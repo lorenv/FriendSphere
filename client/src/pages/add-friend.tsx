@@ -29,12 +29,14 @@ export default function AddFriend() {
   const form = useForm<InsertFriend>({
     resolver: zodResolver(insertFriendSchema),
     defaultValues: {
-      name: "",
+      firstName: "",
+      lastName: "",
       category: "friends",
       interests: [],
       hasKids: false,
       contactInfo: "",
       notes: "",
+      howWeMet: "",
     },
   });
 
@@ -112,12 +114,26 @@ export default function AddFriend() {
 
                 <FormField
                   control={form.control}
-                  name="name"
+                  name="firstName"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>Name *</FormLabel>
+                      <FormLabel>First Name *</FormLabel>
                       <FormControl>
-                        <Input placeholder="Enter friend's name" {...field} />
+                        <Input placeholder="Enter first name" {...field} />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+
+                <FormField
+                  control={form.control}
+                  name="lastName"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Last Name</FormLabel>
+                      <FormControl>
+                        <Input placeholder="Enter last name" {...field} value={field.value || ""} />
                       </FormControl>
                       <FormMessage />
                     </FormItem>
@@ -136,7 +152,8 @@ export default function AddFriend() {
                           <Input 
                             placeholder="e.g., San Francisco, CA" 
                             className="pl-10"
-                            {...field} 
+                            {...field}
+                            value={field.value || ""}
                           />
                         </div>
                       </FormControl>
@@ -187,7 +204,7 @@ export default function AddFriend() {
                     <FormItem>
                       <FormLabel>Partner/Spouse</FormLabel>
                       <FormControl>
-                        <Input placeholder="Partner's name" {...field} />
+                        <Input placeholder="Partner's name" {...field} value={field.value || ""} />
                       </FormControl>
                       <FormMessage />
                     </FormItem>
@@ -226,7 +243,7 @@ export default function AddFriend() {
                     <FormItem className="flex flex-row items-start space-x-3 space-y-0">
                       <FormControl>
                         <Checkbox
-                          checked={field.value}
+                          checked={field.value || false}
                           onCheckedChange={field.onChange}
                         />
                       </FormControl>
@@ -274,6 +291,25 @@ export default function AddFriend() {
                 
                 <FormField
                   control={form.control}
+                  name="howWeMet"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>How we met</FormLabel>
+                      <FormControl>
+                        <Textarea 
+                          placeholder="Tell the story of how you met..."
+                          rows={3}
+                          {...field}
+                          value={field.value || ""}
+                        />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+
+                <FormField
+                  control={form.control}
                   name="introducedBy"
                   render={({ field }) => (
                     <FormItem>
@@ -287,7 +323,7 @@ export default function AddFriend() {
                         <SelectContent>
                           {existingFriends.map((friend) => (
                             <SelectItem key={friend.id} value={friend.id.toString()}>
-                              {friend.name}
+                              {`${friend.firstName} ${friend.lastName || ''}`.trim()}
                             </SelectItem>
                           ))}
                         </SelectContent>
@@ -316,6 +352,7 @@ export default function AddFriend() {
                           placeholder="Add any additional notes about your friend..."
                           rows={4}
                           {...field}
+                          value={field.value || ""}
                         />
                       </FormControl>
                       <FormMessage />

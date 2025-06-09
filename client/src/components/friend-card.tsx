@@ -9,6 +9,7 @@ interface FriendCardProps {
 
 export function FriendCard({ friend }: FriendCardProps) {
   const category = FRIEND_CATEGORIES[friend.category as keyof typeof FRIEND_CATEGORIES] || FRIEND_CATEGORIES.friends;
+  const fullName = `${friend.firstName} ${friend.lastName || ''}`.trim();
   
   return (
     <Link href={`/friends/${friend.id}`}>
@@ -17,17 +18,17 @@ export function FriendCard({ friend }: FriendCardProps) {
           {friend.photo ? (
             <img 
               src={friend.photo} 
-              alt={`${friend.name}'s profile photo`} 
+              alt={`${fullName}'s profile photo`} 
               className="w-full h-full object-cover"
             />
           ) : (
             <div className="text-2xl font-bold text-gray-400">
-              {friend.name.charAt(0).toUpperCase()}
+              {friend.firstName.charAt(0).toUpperCase()}
             </div>
           )}
         </div>
         <div className="flex-1">
-          <h3 className="font-semibold text-dark-gray">{friend.name}</h3>
+          <h3 className="font-semibold text-dark-gray">{fullName}</h3>
           {friend.location && (
             <p className="text-sm text-gray-500 mb-1">{friend.location}</p>
           )}
