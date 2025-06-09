@@ -4,7 +4,8 @@ import { z } from "zod";
 
 export const friends = pgTable("friends", {
   id: serial("id").primaryKey(),
-  name: text("name").notNull(),
+  firstName: text("first_name").notNull(),
+  lastName: text("last_name"),
   photo: text("photo"),
   location: text("location"), // City, State format
   category: text("category").notNull(), // close_friends, friends, work_friends, new_friends, acquaintances, etc.
@@ -13,6 +14,7 @@ export const friends = pgTable("friends", {
   hasKids: boolean("has_kids").default(false),
   partner: text("partner"), // Name of partner/spouse
   introducedBy: integer("introduced_by"), // ID of friend who introduced them
+  howWeMet: text("how_we_met"), // Story of how you met
   notes: text("notes"),
   contactInfo: text("contact_info"), // JSON string for phone, email, social media
   lastInteraction: timestamp("last_interaction"),

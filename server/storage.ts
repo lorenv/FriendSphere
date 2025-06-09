@@ -64,7 +64,7 @@ export class DatabaseStorage implements IStorage {
     await this.createActivity({
       friendId: friend.id,
       activityType: "added",
-      description: `Added ${friend.name} to your friends`,
+      description: `Added ${friend.firstName} ${friend.lastName || ''} to your friends`,
     });
     
     return friend;
@@ -82,7 +82,7 @@ export class DatabaseStorage implements IStorage {
       await this.createActivity({
         friendId: id,
         activityType: "updated",
-        description: `Updated ${friend.name}'s information`,
+        description: `Updated ${friend.firstName} ${friend.lastName || ''}'s information`,
       });
     }
     
