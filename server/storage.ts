@@ -126,7 +126,7 @@ export class DatabaseStorage implements IStorage {
   }
 
   async getRecentActivities(limit: number = 10): Promise<Activity[]> {
-    return await db.select().from(activities).orderBy(activities.timestamp).limit(limit);
+    return await db.select().from(activities).orderBy(desc(activities.timestamp)).limit(limit);
   }
 
   async getActivitiesByFriend(friendId: number): Promise<Activity[]> {
