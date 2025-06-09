@@ -24,7 +24,8 @@ export default function Friends() {
   });
 
   const filteredFriends = friends.filter(friend => {
-    const matchesSearch = friend.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    const fullName = `${friend.firstName} ${friend.lastName || ''}`.trim();
+    const matchesSearch = fullName.toLowerCase().includes(searchTerm.toLowerCase()) ||
                          (friend.location || "").toLowerCase().includes(searchTerm.toLowerCase());
     const matchesCategory = selectedCategory === "all" || friend.category === selectedCategory;
     return matchesSearch && matchesCategory;

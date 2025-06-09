@@ -79,12 +79,12 @@ export default function Home() {
                     {activity.friend?.photo ? (
                       <img 
                         src={activity.friend.photo} 
-                        alt={`${activity.friend.name}'s profile photo`} 
+                        alt={`${activity.friend.firstName} ${activity.friend.lastName || ''}'s profile photo`} 
                         className="w-full h-full object-cover"
                       />
                     ) : (
                       <div className="text-lg font-bold text-gray-400">
-                        {activity.friend?.name?.charAt(0).toUpperCase() || "?"}
+                        {activity.friend?.firstName?.charAt(0).toUpperCase() || "?"}
                       </div>
                     )}
                   </div>
@@ -195,41 +195,44 @@ export default function Home() {
             </div>
             
             <div className="space-y-3">
-              {recentFriends.map((friend) => (
-                <Link key={friend.id} href={`/friends/${friend.id}`}>
-                  <div className="bg-white rounded-2xl p-4 card-shadow flex items-center space-x-4 cursor-pointer">
-                    <div className="w-16 h-16 rounded-2xl bg-gray-200 flex items-center justify-center overflow-hidden">
-                      {friend.photo ? (
-                        <img 
-                          src={friend.photo} 
-                          alt={`${friend.name}'s profile photo`} 
-                          className="w-full h-full object-cover"
-                        />
-                      ) : (
-                        <div className="text-2xl font-bold text-gray-400">
-                          {friend.name.charAt(0).toUpperCase()}
-                        </div>
-                      )}
-                    </div>
-                    <div className="flex-1">
-                      <h3 className="font-semibold text-dark-gray">{friend.name}</h3>
-                      {friend.location && (
-                        <p className="text-sm text-gray-500 mb-1">{friend.location}</p>
-                      )}
-                      <div className="flex items-center space-x-2">
-                        <span className="bg-coral/10 text-coral text-xs px-2 py-1 rounded-full font-medium">
-                          {friend.category.replace('_', ' ').replace(/\b\w/g, l => l.toUpperCase())}
-                        </span>
-                        {friend.interests && friend.interests.length > 0 && (
-                          <span className="bg-turquoise/10 text-turquoise text-xs px-2 py-1 rounded-full font-medium">
-                            {friend.interests[0]}
-                          </span>
+              {recentFriends.map((friend) => {
+                const fullName = `${friend.firstName} ${friend.lastName || ''}`.trim();
+                return (
+                  <Link key={friend.id} href={`/friends/${friend.id}`}>
+                    <div className="bg-white rounded-2xl p-4 card-shadow flex items-center space-x-4 cursor-pointer">
+                      <div className="w-16 h-16 rounded-2xl bg-gray-200 flex items-center justify-center overflow-hidden">
+                        {friend.photo ? (
+                          <img 
+                            src={friend.photo} 
+                            alt={`${fullName}'s profile photo`} 
+                            className="w-full h-full object-cover"
+                          />
+                        ) : (
+                          <div className="text-2xl font-bold text-gray-400">
+                            {friend.firstName.charAt(0).toUpperCase()}
+                          </div>
                         )}
                       </div>
+                      <div className="flex-1">
+                        <h3 className="font-semibold text-dark-gray">{fullName}</h3>
+                        {friend.location && (
+                          <p className="text-sm text-gray-500 mb-1">{friend.location}</p>
+                        )}
+                        <div className="flex items-center space-x-2">
+                          <span className="bg-coral/10 text-coral text-xs px-2 py-1 rounded-full font-medium">
+                            {friend.category.replace('_', ' ').replace(/\b\w/g, l => l.toUpperCase())}
+                          </span>
+                          {friend.interests && friend.interests.length > 0 && (
+                            <span className="bg-turquoise/10 text-turquoise text-xs px-2 py-1 rounded-full font-medium">
+                              {friend.interests[0]}
+                            </span>
+                          )}
+                        </div>
+                      </div>
                     </div>
-                  </div>
-                </Link>
-              ))}
+                  </Link>
+                );
+              })}
             </div>
           </div>
         )}

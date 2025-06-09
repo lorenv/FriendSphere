@@ -3,7 +3,8 @@ import { friends, activities, relationships } from "@shared/schema";
 
 const sampleFriends = [
   {
-    name: "Sarah Chen",
+    firstName: "Sarah",
+    lastName: "Chen",
     photo: "https://images.unsplash.com/photo-1494790108755-2616b612b789?w=400&h=400&fit=crop&crop=face",
     location: "San Francisco, CA",
     category: "close_friends",
@@ -12,10 +13,12 @@ const sampleFriends = [
     hasKids: false,
     partner: "Mark",
     notes: "Met at college, amazing photographer. Lives in Mission District.",
-    contactInfo: JSON.stringify({ phone: "+1-415-555-0123", email: "sarah.chen@email.com" })
+    contactInfo: JSON.stringify({ phone: "+1-415-555-0123", email: "sarah.chen@email.com" }),
+    howDidYouMeet: "College roommates"
   },
   {
-    name: "Marcus Johnson",
+    firstName: "Marcus",
+    lastName: "Johnson",
     photo: "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=400&h=400&fit=crop&crop=face",
     location: "New York, NY",
     category: "work_friends",
@@ -24,7 +27,8 @@ const sampleFriends = [
     hasKids: false,
     partner: null,
     notes: "Software engineer at Google. Great at debugging complex problems.",
-    contactInfo: JSON.stringify({ phone: "+1-212-555-0456", email: "marcus.j@email.com" })
+    contactInfo: JSON.stringify({ phone: "+1-212-555-0456", email: "marcus.j@email.com" }),
+    howDidYouMeet: "Started working together in 2022"
   },
   {
     name: "Emily Rodriguez",
