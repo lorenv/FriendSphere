@@ -46,7 +46,13 @@ export default function FriendDetail() {
 
   const updateFriendMutation = useMutation({
     mutationFn: async (updateData: Partial<Friend>) => {
-      const response = await apiRequest("PUT", `/api/friends/${friendId}`, updateData);
+      const response = await apiRequest(`/api/friends/${friendId}`, {
+        method: "PATCH",
+        body: JSON.stringify(updateData),
+      });
+      if (!response.ok) {
+        throw new Error("Failed to update friend");
+      }
       return response.json();
     },
     onSuccess: () => {

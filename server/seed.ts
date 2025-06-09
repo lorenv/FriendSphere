@@ -31,7 +31,8 @@ const sampleFriends = [
     howDidYouMeet: "Started working together in 2022"
   },
   {
-    name: "Emily Rodriguez",
+    firstName: "Emily",
+    lastName: "Rodriguez",
     photo: "https://images.unsplash.com/photo-1438761681033-6461ffad8d80?w=400&h=400&fit=crop&crop=face",
     location: "Los Angeles, CA",
     category: "close_friends",
@@ -40,10 +41,12 @@ const sampleFriends = [
     hasKids: true,
     partner: "David",
     notes: "Childhood friend, now a successful artist. Has two kids - Emma and Alex.",
-    contactInfo: JSON.stringify({ phone: "+1-323-555-0789", email: "emily.r@email.com" })
+    contactInfo: JSON.stringify({ phone: "+1-323-555-0789", email: "emily.r@email.com" }),
+    howDidYouMeet: "Childhood friends"
   },
   {
-    name: "Alex Thompson",
+    firstName: "Alex",
+    lastName: "Thompson",
     photo: "https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=400&h=400&fit=crop&crop=face",
     location: "Seattle, WA",
     category: "friends",
@@ -53,79 +56,91 @@ const sampleFriends = [
     partner: "Jamie",
     notes: "Met through Sarah. Works in tech, amazing cook.",
     contactInfo: JSON.stringify({ phone: "+1-206-555-0321", email: "alex.t@email.com" }),
-    introducedBy: 1
+    howDidYouMeet: "Introduced by Sarah"
   },
   {
-    name: "Maya Patel",
-    photo: "https://images.unsplash.com/photo-1489424731084-a5d8b219a5bb?w=400&h=400&fit=crop&crop=face",
-    location: "Austin, TX",
-    category: "new_friends",
-    interests: ["Yoga", "Writing", "Nature"],
-    lifestyle: "Relaxed",
-    hasKids: false,
-    partner: null,
-    notes: "Just moved to Austin, works in marketing. Very creative and fun to be around.",
-    contactInfo: JSON.stringify({ phone: "+1-512-555-0654", email: "maya.p@email.com" })
-  },
-  {
-    name: "Jordan Kim",
-    photo: "https://images.unsplash.com/photo-1507591064344-4c6ce005b128?w=400&h=400&fit=crop&crop=face",
-    location: "Chicago, IL",
-    category: "work_friends",
-    interests: ["Business", "Sports", "Movies"],
-    lifestyle: "Social",
-    hasKids: true,
-    partner: "Sam",
-    notes: "Project manager at previous company. Great leader and mentor.",
-    contactInfo: JSON.stringify({ phone: "+1-773-555-0987", email: "jordan.k@email.com" })
-  },
-  {
-    name: "Zoe Martinez",
+    firstName: "Lisa",
+    lastName: "Wang",
     photo: "https://images.unsplash.com/photo-1544005313-94ddf0286df2?w=400&h=400&fit=crop&crop=face",
-    location: "Miami, FL",
-    category: "acquaintances",
-    interests: ["Dancing", "Fashion", "Beach"],
-    lifestyle: "Social",
+    location: "Boston, MA",
+    category: "work_friends",
+    interests: ["Finance", "Yoga", "Wine"],
+    lifestyle: "Professional",
     hasKids: false,
     partner: null,
-    notes: "Met at a conference last year. Fashion designer with great style.",
-    contactInfo: JSON.stringify({ phone: "+1-305-555-0147", email: "zoe.m@email.com" })
+    notes: "Investment banker, surprisingly zen. Great wine collection.",
+    contactInfo: JSON.stringify({ phone: "+1-617-555-0654", email: "lisa.w@email.com" }),
+    howDidYouMeet: "Previous company colleague"
   },
   {
-    name: "Ryan O'Connor",
+    firstName: "David",
+    lastName: "Miller",
     photo: "https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=400&h=400&fit=crop&crop=face",
-    location: "Boston, MA",
+    location: "Austin, TX",
     category: "friends",
-    interests: ["History", "Politics", "Running"],
-    lifestyle: "Analytical",
-    hasKids: false,
-    partner: "Katie",
-    notes: "College roommate. Now works as a historian. Still runs marathons.",
-    contactInfo: JSON.stringify({ phone: "+1-617-555-0258", email: "ryan.o@email.com" })
+    interests: ["Music", "BBQ", "Startups"],
+    lifestyle: "Entrepreneurial",
+    hasKids: true,
+    partner: "Jessica",
+    notes: "Serial entrepreneur, amazing BBQ skills. Has a 5-year-old daughter.",
+    contactInfo: JSON.stringify({ phone: "+1-512-555-0987", email: "david.m@email.com" }),
+    howDidYouMeet: "Startup meetup in 2020"
   },
   {
-    name: "Luna Zhang",
+    firstName: "Rachel",
+    lastName: "Kim",
     photo: "https://images.unsplash.com/photo-1487412720507-e7ab37603c6f?w=400&h=400&fit=crop&crop=face",
     location: "Portland, OR",
-    category: "close_friends",
-    interests: ["Design", "Coffee", "Hiking"],
-    lifestyle: "Creative",
+    category: "new_friends",
+    interests: ["Design", "Coffee", "Sustainability"],
+    lifestyle: "Eco-conscious",
     hasKids: false,
     partner: null,
-    notes: "UX designer and coffee enthusiast. We go hiking every month.",
-    contactInfo: JSON.stringify({ phone: "+1-503-555-0369", email: "luna.z@email.com" })
+    notes: "UX designer, environmental activist. Makes the best matcha lattes.",
+    contactInfo: JSON.stringify({ phone: "+1-503-555-0234", email: "rachel.k@email.com" }),
+    howDidYouMeet: "Design conference last month"
   },
   {
-    name: "Ethan Williams",
-    photo: "https://images.unsplash.com/photo-1463453091185-61582044d556?w=400&h=400&fit=crop&crop=face",
+    firstName: "James",
+    lastName: "Wilson",
+    photo: "https://images.unsplash.com/photo-1519244703995-f4e0f30006d5?w=400&h=400&fit=crop&crop=face",
     location: "Denver, CO",
+    category: "friends",
+    interests: ["Skiing", "Photography", "Craft Beer"],
+    lifestyle: "Outdoorsy",
+    hasKids: false,
+    partner: "Kate",
+    notes: "Ski instructor in winter, photographer in summer. Lives for powder days.",
+    contactInfo: JSON.stringify({ phone: "+1-303-555-0567", email: "james.w@email.com" }),
+    howDidYouMeet: "Ski trip in Aspen"
+  },
+  {
+    firstName: "Nina",
+    lastName: "Patel",
+    photo: "https://images.unsplash.com/photo-1489424731084-a5d8b219a5bb?w=400&h=400&fit=crop&crop=face",
+    location: "San Francisco, CA",
+    category: "close_friends",
+    interests: ["Meditation", "Cooking", "Gardening"],
+    lifestyle: "Mindful",
+    hasKids: false,
+    partner: "Raj",
+    notes: "Meditation teacher who grows her own vegetables. Makes incredible Indian food.",
+    contactInfo: JSON.stringify({ phone: "+1-415-555-0890", email: "nina.p@email.com" }),
+    howDidYouMeet: "Meditation retreat in 2019"
+  },
+  {
+    firstName: "Jake",
+    lastName: "Taylor",
+    photo: "https://images.unsplash.com/photo-1507591064344-4c6ce005b128?w=400&h=400&fit=crop&crop=face",
+    location: "Chicago, IL",
     category: "new_friends",
-    interests: ["Skiing", "Photography", "Adventure"],
-    lifestyle: "Adventurous",
+    interests: ["Running", "History", "Museums"],
+    lifestyle: "Academic",
     hasKids: false,
     partner: null,
-    notes: "Met at a photography workshop. Loves outdoor adventures and skiing.",
-    contactInfo: JSON.stringify({ phone: "+1-303-555-0741", email: "ethan.w@email.com" })
+    notes: "PhD student in history. Marathon runner. Knows everything about Chicago architecture.",
+    contactInfo: JSON.stringify({ phone: "+1-312-555-0123", email: "jake.t@email.com" }),
+    howDidYouMeet: "Running group meetup"
   }
 ];
 
@@ -156,7 +171,7 @@ export async function seedDatabase() {
     const activitiesToCreate = insertedFriends.map(friend => ({
       friendId: friend.id,
       activityType: "added",
-      description: `Added ${friend.name} to your friends`
+      description: `Added ${friend.firstName} ${friend.lastName || ''} to your friends`
     }));
     
     // Add some additional activities
@@ -164,12 +179,12 @@ export async function seedDatabase() {
       {
         friendId: insertedFriends[0].id,
         activityType: "updated",
-        description: `Updated ${insertedFriends[0].name}'s information`
+        description: `Updated ${insertedFriends[0].firstName} ${insertedFriends[0].lastName || ''}'s information`
       },
       {
         friendId: insertedFriends[1].id,
         activityType: "interacted",
-        description: `Had coffee with ${insertedFriends[1].name}`
+        description: `Had coffee with ${insertedFriends[1].firstName} ${insertedFriends[1].lastName || ''}`
       }
     );
     
@@ -182,9 +197,4 @@ export async function seedDatabase() {
     console.error("❌ Error seeding database:", error);
     return false;
   }
-}
-
-// Only run if this file is executed directly
-if (import.meta.url === `file://${process.argv[1]}`) {
-  seedDatabase().then(() => process.exit(0));
 }
