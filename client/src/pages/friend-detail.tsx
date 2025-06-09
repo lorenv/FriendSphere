@@ -126,17 +126,17 @@ export default function FriendDetail() {
             {friend.photo ? (
               <img 
                 src={friend.photo} 
-                alt={`${friend.name}'s profile photo`} 
+                alt={`${friend.firstName} ${friend.lastName || ''}'s profile photo`} 
                 className="w-full h-full object-cover"
               />
             ) : (
               <div className="text-3xl font-bold text-white">
-                {friend.name.charAt(0).toUpperCase()}
+                {friend.firstName.charAt(0).toUpperCase()}
               </div>
             )}
           </div>
           <div className="flex-1">
-            <h1 className="text-2xl font-bold">{friend.name}</h1>
+            <h1 className="text-2xl font-bold">{`${friend.firstName} ${friend.lastName || ''}`.trim()}</h1>
             {friend.location && (
               <div className="flex items-center text-white/80 text-sm mt-1">
                 <MapPin size={14} className="mr-1" />

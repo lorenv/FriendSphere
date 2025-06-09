@@ -47,7 +47,7 @@ export default function EditFriend() {
       partner: "",
       notes: "",
       contactInfo: "",
-      howDidYouMeet: "",
+      howWeMet: "",
     },
   });
 
@@ -66,7 +66,7 @@ export default function EditFriend() {
         partner: friend.partner || "",
         notes: friend.notes || "",
         contactInfo: friend.contactInfo || "",
-        howDidYouMeet: friend.howDidYouMeet || "",
+        howWeMet: friend.howWeMet || "",
       });
     }
   });
@@ -316,7 +316,7 @@ export default function EditFriend() {
 
               <FormField
                 control={form.control}
-                name="howDidYouMeet"
+                name="howWeMet"
                 render={({ field }) => (
                   <FormItem>
                     <FormLabel>How did you meet?</FormLabel>
