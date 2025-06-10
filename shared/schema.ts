@@ -8,7 +8,9 @@ export const friends = pgTable("friends", {
   lastName: text("last_name"),
   photo: text("photo"),
   location: text("location"), // City, State format
+  neighborhood: text("neighborhood"), // Specific neighborhood within location
   category: text("category").notNull(), // close_friends, friends, work_friends, new_friends, acquaintances, etc.
+  relationshipLevel: text("relationship_level").default("new"), // new, friend, close, work
   interests: text("interests").array().default([]), // Array of interests
   lifestyle: text("lifestyle"),
   hasKids: boolean("has_kids").default(false),

@@ -29,6 +29,13 @@ export const INTERESTS = [
   "Dancing", "Yoga", "Hiking", "Cycling", "Swimming", "Running"
 ] as const;
 
+export const RELATIONSHIP_LEVELS = {
+  new: { label: "New", icon: "star", color: "emerald" },
+  friend: { label: "Friend", icon: "shield", color: "blue" },
+  close: { label: "Close", icon: "heart", color: "rose" },
+  work: { label: "Work", icon: "briefcase", color: "slate" },
+} as const;
+
 export const LIFESTYLE_OPTIONS = [
   "Active", "Relaxed", "Social", "Quiet", "Adventurous", "Homebody",
   "Workaholic", "Balanced", "Creative", "Analytical", "Spontaneous",

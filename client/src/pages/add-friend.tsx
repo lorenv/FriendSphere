@@ -6,8 +6,8 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { insertFriendSchema, type InsertFriend, type Friend } from "@shared/schema";
 import { queryClient, apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
-import { FRIEND_CATEGORIES, INTERESTS, LIFESTYLE_OPTIONS } from "@/lib/constants";
-import { ArrowLeft, Camera, MapPin } from "lucide-react";
+import { FRIEND_CATEGORIES, INTERESTS, LIFESTYLE_OPTIONS, RELATIONSHIP_LEVELS } from "@/lib/constants";
+import { ArrowLeft, Camera } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -17,6 +17,8 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { InstagramIntegration } from "@/components/instagram-integration";
+import { LocationSearch } from "@/components/location-search";
+import { RelationshipLevelSelector } from "@/components/relationship-level-selector";
 
 export default function AddFriend() {
   const [, setLocation] = useLocation();
@@ -34,6 +36,7 @@ export default function AddFriend() {
       firstName: "",
       lastName: "",
       category: "friends",
+      relationshipLevel: "new",
       interests: [],
       hasKids: false,
       contactInfo: "",
@@ -184,26 +187,11 @@ export default function AddFriend() {
                   )}
                 />
 
-                <FormField
-                  control={form.control}
-                  name="location"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Location</FormLabel>
-                      <FormControl>
-                        <div className="relative">
-                          <MapPin size={16} className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" />
-                          <Input 
-                            placeholder="e.g., San Francisco, CA" 
-                            className="pl-10"
-                            {...field}
-                            value={field.value || ""}
-                          />
-                        </div>
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
+                <LocationSearch
+                  value={form.watch("location") || ""}
+                  neighborhood={form.watch("neighborhood") || ""}
+                  onLocationChange={(location) => form.setValue("location", location)}
+                  onNeighborhoodChange={(neighborhood) => form.setValue("neighborhood", neighborhood)}
                 />
 
                 <FormField
