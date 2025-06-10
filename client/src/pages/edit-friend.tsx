@@ -16,6 +16,8 @@ import { apiRequest, queryClient } from "@/lib/queryClient";
 import { INTERESTS, LIFESTYLE_OPTIONS, RELATIONSHIP_LEVELS } from "@/lib/constants";
 import { ArrowLeft, MapPin, X, Plus, Trash2 } from "lucide-react";
 import { Link } from "wouter";
+import { RelationshipLevelSelector } from "@/components/relationship-level-selector";
+import { LocationSearch } from "@/components/location-search";
 
 export default function EditFriend() {
   const { id } = useParams();
@@ -101,13 +103,7 @@ export default function EditFriend() {
 
   const deleteMutation = useMutation({
     mutationFn: async () => {
-      const response = await apiRequest(`/api/friends/${id}`, {
-        method: "DELETE",
-      });
-      if (!response.ok) {
-        throw new Error("Failed to delete friend");
-      }
-      return response.json();
+      return await apiRequest(`/api/friends/${id}`, "DELETE");
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/friends"] });
@@ -290,24 +286,16 @@ export default function EditFriend() {
               
               <FormField
                 control={form.control}
-                name="category"
+                name="relationshipLevel"
                 render={({ field }) => (
                   <FormItem className="mb-4">
-                    <FormLabel>Friend Category</FormLabel>
-                    <Select onValueChange={field.onChange} defaultValue={field.value}>
-                      <FormControl>
-                        <SelectTrigger>
-                          <SelectValue placeholder="Select a category" />
-                        </SelectTrigger>
-                      </FormControl>
-                      <SelectContent>
-                        {Object.entries(FRIEND_CATEGORIES).map(([key, category]) => (
-                          <SelectItem key={key} value={key}>
-                            {category.label}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
+                    <FormLabel>Relationship Level</FormLabel>
+                    <FormControl>
+                      <RelationshipLevelSelector
+                        value={field.value || "new"}
+                        onChange={field.onChange}
+                      />
+                    </FormControl>
                     <FormMessage />
                   </FormItem>
                 )}
