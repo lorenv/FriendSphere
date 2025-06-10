@@ -54,11 +54,7 @@ export default function AddFriend() {
 
   const createFriendMutation = useMutation({
     mutationFn: async (friendData: InsertFriend) => {
-      const response = await apiRequest("/api/friends", {
-        method: "POST",
-        body: JSON.stringify({ ...friendData, interests: selectedInterests }),
-      });
-      return response.json();
+      return await apiRequest("/api/friends", "POST", { ...friendData, interests: selectedInterests });
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/friends"] });
@@ -334,7 +330,7 @@ export default function AddFriend() {
                             ? "bg-coral text-white hover:bg-coral/90"
                             : "hover:bg-coral/10"
                         }`}
-                        onClick={() => toggleInterest(interest)}
+                        onClick={() => toggleInterest(interest as string)}
                       >
                         {interest}
                       </Badge>
@@ -342,7 +338,7 @@ export default function AddFriend() {
                   </div>
                   
                   {/* Custom interests */}
-                  {selectedInterests.filter(i => !INTERESTS.includes(i)).map((interest) => (
+                  {selectedInterests.filter(i => !INTERESTS.includes(i as any)).map((interest) => (
                     <Badge
                       key={interest}
                       variant="default"
@@ -421,7 +417,7 @@ export default function AddFriend() {
                       </div>
                       <FormControl>
                         <Switch
-                          checked={field.value}
+                          checked={field.value || false}
                           onCheckedChange={field.onChange}
                         />
                       </FormControl>

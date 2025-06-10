@@ -2,7 +2,7 @@ import { useQuery } from "@tanstack/react-query";
 import { useState, useEffect, useMemo } from "react";
 import { Friend, Relationship } from "@shared/schema";
 import { BottomNavigation } from "@/components/bottom-navigation";
-import { FRIEND_CATEGORIES } from "@/lib/constants";
+import { RELATIONSHIP_LEVELS } from "@/lib/constants";
 import { ArrowLeft, ZoomIn, ZoomOut, MapPin, Users, Network } from "lucide-react";
 import { useLocation } from "wouter";
 import { Button } from "@/components/ui/button";
@@ -245,7 +245,7 @@ export default function NetworkMap() {
       const friendsAtLevel = friends.filter(f => levels.get(f.id) === level);
       const indexAtLevel = friendsAtLevel.findIndex(f => f.id === friend.id);
       
-      const category = FRIEND_CATEGORIES[friend.category as keyof typeof FRIEND_CATEGORIES] || FRIEND_CATEGORIES.friends;
+      const relationshipLevel = RELATIONSHIP_LEVELS[friend.relationshipLevel as keyof typeof RELATIONSHIP_LEVELS] || RELATIONSHIP_LEVELS.new;
       
       const x = 50 + (indexAtLevel * 300 / Math.max(1, friendsAtLevel.length - 1));
       const y = 80 + (level * 80);
@@ -253,10 +253,10 @@ export default function NetworkMap() {
       return {
         id: friend.id,
         name: `${friend.firstName} ${friend.lastName || ''}`.trim(),
-        category: friend.category,
+        category: friend.relationshipLevel,
         x: Math.min(350, Math.max(50, x)),
         y,
-        color: category.color,
+        color: relationshipLevel.color,
         connections: [],
       };
     });
