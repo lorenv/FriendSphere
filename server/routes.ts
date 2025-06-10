@@ -162,6 +162,58 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.get("/api/instagram/media", getInstagramMedia);
   app.post("/api/instagram/disconnect", disconnectInstagram);
 
+  // Places search route
+  app.post("/api/places/search", async (req, res) => {
+    try {
+      const { query } = req.body;
+      
+      if (!query || query.length < 2) {
+        return res.json({ suggestions: [] });
+      }
+
+      const apiKey = process.env.GOOGLE_MAPS_API_KEY;
+      if (!apiKey) {
+        return res.status(500).json({ error: "Google Maps API key not configured" });
+      }
+
+      // Use Google Places API Autocomplete
+      const url = `https://maps.googleapis.com/maps/api/place/autocomplete/json?input=${encodeURIComponent(query)}&types=(regions)&key=${apiKey}`;
+      
+      const response = await fetch(url);
+      const data = await response.json();
+
+      if (data.status !== "OK" && data.status !== "ZERO_RESULTS") {
+        console.error("Google Places API error:", data);
+        return res.status(500).json({ error: "Places search failed" });
+      }
+
+      const suggestions = data.predictions?.map((prediction: any) => {
+        // Determine the type based on the place types
+        let type = "locality";
+        if (prediction.types.includes("neighborhood") || prediction.types.includes("sublocality")) {
+          type = "neighborhood";
+        } else if (prediction.types.includes("sublocality_level_1")) {
+          type = "sublocality";
+        } else if (prediction.types.includes("administrative_area_level_3")) {
+          type = "administrative_area_level_3";
+        }
+
+        return {
+          id: prediction.place_id,
+          name: prediction.structured_formatting.main_text,
+          type,
+          fullLocation: prediction.description,
+          placeId: prediction.place_id
+        };
+      }) || [];
+
+      res.json({ suggestions });
+    } catch (error) {
+      console.error("Places search error:", error);
+      res.status(500).json({ error: "Failed to search places" });
+    }
+  });
+
   const httpServer = createServer(app);
   return httpServer;
 }

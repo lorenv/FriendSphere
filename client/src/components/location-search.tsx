@@ -6,8 +6,9 @@ import { Label } from "@/components/ui/label";
 interface LocationSuggestion {
   id: string;
   name: string;
-  type: "neighborhood" | "city";
+  type: "neighborhood" | "locality" | "administrative_area_level_3" | "sublocality";
   fullLocation: string;
+  placeId: string;
 }
 
 interface LocationSearchProps {
@@ -16,81 +17,70 @@ interface LocationSearchProps {
   placeholder?: string;
 }
 
-// Mock neighborhood data - in a real app, this would come from a mapping API
-const mockNeighborhoods: Record<string, string[]> = {
-  "Los Angeles, CA": [
-    "Beverly Hills", "Santa Monica", "Venice", "Hollywood", "West Hollywood",
-    "Brentwood", "Westwood", "Century City", "Marina del Rey", "Culver City",
-    "Koreatown", "Downtown LA", "Silver Lake", "Echo Park", "Los Feliz"
-  ],
-  "San Francisco, CA": [
-    "Mission District", "Castro", "Nob Hill", "Pacific Heights", "Russian Hill",
-    "Marina District", "SOMA", "Haight-Ashbury", "Richmond", "Sunset",
-    "Chinatown", "Financial District", "Presidio", "Potrero Hill", "Hayes Valley"
-  ],
-  "New York, NY": [
-    "SoHo", "Tribeca", "Greenwich Village", "East Village", "Chelsea",
-    "Upper East Side", "Upper West Side", "Midtown", "Financial District",
-    "Brooklyn Heights", "Williamsburg", "Park Slope", "DUMBO", "Long Island City"
-  ],
-  "Seattle, WA": [
-    "Capitol Hill", "Ballard", "Fremont", "Queen Anne", "Belltown",
-    "University District", "Wallingford", "Phinney Ridge", "Green Lake",
-    "Madison Park", "South Lake Union", "Pioneer Square", "Georgetown"
-  ]
-};
-
 export function LocationSearch({ 
   value = "", 
   onChange,
-  placeholder = "Search neighborhoods in Los Angeles..."
+  placeholder = "Search neighborhoods..."
 }: LocationSearchProps) {
   const [searchQuery, setSearchQuery] = useState(value);
   const [suggestions, setSuggestions] = useState<LocationSuggestion[]>([]);
   const [showSuggestions, setShowSuggestions] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
+  const debounceRef = useRef<NodeJS.Timeout>();
 
-  useEffect(() => {
-    if (!searchQuery || searchQuery.length < 2) {
+  const searchPlaces = async (query: string) => {
+    if (!query || query.length < 2) {
       setSuggestions([]);
       return;
     }
 
-    // Generate suggestions based on the query
-    const newSuggestions: LocationSuggestion[] = [];
-
-    // Search through all neighborhoods across all cities
-    Object.entries(mockNeighborhoods).forEach(([city, neighborhoods]) => {
-      neighborhoods.forEach(neighborhood => {
-        if (neighborhood.toLowerCase().includes(searchQuery.toLowerCase())) {
-          newSuggestions.push({
-            id: `${neighborhood}-${city}`,
-            name: neighborhood,
-            type: "neighborhood",
-            fullLocation: `${neighborhood}, ${city}`
-          });
-        }
+    setIsLoading(true);
+    try {
+      const response = await fetch('/api/places/search', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ query }),
       });
-      
-      // Also include city matches
-      if (city.toLowerCase().includes(searchQuery.toLowerCase())) {
-        newSuggestions.push({
-          id: city,
-          name: city,
-          type: "city",
-          fullLocation: city
-        });
-      }
-    });
 
-    setSuggestions(newSuggestions.slice(0, 8));
+      if (!response.ok) {
+        throw new Error('Failed to search places');
+      }
+
+      const data = await response.json();
+      setSuggestions(data.suggestions || []);
+    } catch (error) {
+      console.error('Error searching places:', error);
+      setSuggestions([]);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    // Debounce the search to avoid too many API calls
+    if (debounceRef.current) {
+      clearTimeout(debounceRef.current);
+    }
+
+    debounceRef.current = setTimeout(() => {
+      searchPlaces(searchQuery);
+    }, 300);
+
+    return () => {
+      if (debounceRef.current) {
+        clearTimeout(debounceRef.current);
+      }
+    };
   }, [searchQuery]);
 
   const handleLocationSelect = (suggestion: LocationSuggestion) => {
     const selectedLocation = suggestion.fullLocation;
     setSearchQuery(selectedLocation);
     
-    if (suggestion.type === "neighborhood") {
+    if (suggestion.type === "neighborhood" || suggestion.type === "sublocality") {
       // Extract neighborhood and city from the suggestion
       const parts = selectedLocation.split(", ");
       const neighborhood = parts[0];
@@ -140,28 +130,27 @@ export function LocationSearch({
       </div>
 
       {/* Suggestions Dropdown */}
-      {showSuggestions && suggestions.length > 0 && (
+      {showSuggestions && (suggestions.length > 0 || isLoading) && (
         <div className="absolute z-50 w-full bg-white border border-gray-200 rounded-lg shadow-lg max-h-60 overflow-y-auto mt-1">
-          {suggestions.map((suggestion) => (
+          {isLoading && (
+            <div className="px-4 py-3 text-gray-500 text-sm">
+              Searching...
+            </div>
+          )}
+          {!isLoading && suggestions.map((suggestion) => (
             <button
               key={suggestion.id}
               onClick={() => handleLocationSelect(suggestion)}
               className="w-full px-4 py-3 text-left hover:bg-gray-50 border-b border-gray-100 last:border-b-0 flex items-center space-x-3"
             >
               <div className="flex-shrink-0">
-                {suggestion.type === "neighborhood" ? (
-                  <Search size={14} className="text-gray-400" />
-                ) : (
-                  <MapPin size={14} className="text-gray-400" />
-                )}
+                <MapPin size={14} className="text-gray-400" />
               </div>
               <div>
                 <div className="font-medium text-gray-900">{suggestion.name}</div>
-                {suggestion.type === "neighborhood" && (
-                  <div className="text-sm text-gray-500">
-                    {suggestion.fullLocation.split(", ").slice(1).join(", ")}
-                  </div>
-                )}
+                <div className="text-sm text-gray-500">
+                  {suggestion.fullLocation}
+                </div>
               </div>
             </button>
           ))}
