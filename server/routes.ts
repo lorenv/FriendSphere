@@ -176,8 +176,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(500).json({ error: "Google Maps API key not configured" });
       }
 
-      // Use Google Places API Autocomplete
-      const url = `https://maps.googleapis.com/maps/api/place/autocomplete/json?input=${encodeURIComponent(query)}&types=(regions)&key=${apiKey}`;
+      // Use Google Places API Autocomplete with US restriction and broader search
+      const params = new URLSearchParams({
+        input: query,
+        key: apiKey,
+        components: 'country:us', // Restrict to US only
+        types: 'establishment|geocode', // Include establishments and geographic areas
+        language: 'en'
+      });
+
+      const url = `https://maps.googleapis.com/maps/api/place/autocomplete/json?${params}`;
       
       const response = await fetch(url);
       const data = await response.json();
@@ -190,10 +198,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const suggestions = data.predictions?.map((prediction: any) => {
         // Determine the type based on the place types
         let type = "locality";
-        if (prediction.types.includes("neighborhood") || prediction.types.includes("sublocality")) {
+        if (prediction.types.includes("neighborhood") || 
+            prediction.types.includes("sublocality") ||
+            prediction.types.includes("sublocality_level_1") ||
+            prediction.types.includes("sublocality_level_2")) {
           type = "neighborhood";
-        } else if (prediction.types.includes("sublocality_level_1")) {
-          type = "sublocality";
         } else if (prediction.types.includes("administrative_area_level_3")) {
           type = "administrative_area_level_3";
         }
