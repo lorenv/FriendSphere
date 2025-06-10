@@ -56,7 +56,10 @@ export default function NameGame() {
       friendsWithPhotos.filter(f => f.id !== correctFriend.id)
     ).slice(0, 3);
     
-    const allOptions = shuffleArray([correctFriend.name, ...wrongOptions.map(f => f.name)]);
+    const allOptions = shuffleArray([
+      `${correctFriend.firstName} ${correctFriend.lastName || ''}`.trim(), 
+      ...wrongOptions.map(f => `${f.firstName} ${f.lastName || ''}`.trim())
+    ]);
 
     return {
       currentFriend: correctFriend,
@@ -87,7 +90,7 @@ export default function NameGame() {
     setSelectedAnswer(answer);
     setShowResult(true);
 
-    const isCorrect = answer === gameState.currentFriend.name;
+    const isCorrect = answer === `${gameState.currentFriend.firstName} ${gameState.currentFriend.lastName || ''}`.trim();
     
     setTimeout(() => {
       setGameState(prev => {
@@ -281,7 +284,7 @@ export default function NameGame() {
                     let buttonClass = "w-full p-4 text-left rounded-2xl border-2 transition-all duration-200 ";
                     
                     if (showResult) {
-                      if (option === gameState.currentFriend!.name) {
+                      if (option === `${gameState.currentFriend!.firstName} ${gameState.currentFriend!.lastName || ''}`.trim()) {
                         buttonClass += "bg-green-100 border-green-500 text-green-700";
                       } else if (option === selectedAnswer) {
                         buttonClass += "bg-red-100 border-red-500 text-red-700";
@@ -310,11 +313,11 @@ export default function NameGame() {
                 {showResult && (
                   <div className="mt-4 p-4 rounded-2xl bg-gray-50">
                     <p className="text-sm text-gray-600">
-                      {selectedAnswer === gameState.currentFriend.name ? (
+                      {selectedAnswer === `${gameState.currentFriend.firstName} ${gameState.currentFriend.lastName || ''}`.trim() ? (
                         <span className="text-green-600 font-medium">Correct! 🎉</span>
                       ) : (
                         <span className="text-red-600 font-medium">
-                          Wrong! The correct answer is {gameState.currentFriend.name}
+                          Wrong! The correct answer is {`${gameState.currentFriend.firstName} ${gameState.currentFriend.lastName || ''}`.trim()}
                         </span>
                       )}
                     </p>

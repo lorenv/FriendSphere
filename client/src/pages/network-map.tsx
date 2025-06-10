@@ -67,7 +67,7 @@ export default function NetworkMap() {
       
       return {
         id: friend.id,
-        name: friend.name,
+        name: `${friend.firstName} ${friend.lastName || ''}`.trim(),
         category: friend.category,
         x: centerX + Math.cos(angle) * radius,
         y: centerY + Math.sin(angle) * radius,
@@ -251,7 +251,7 @@ export default function NetworkMap() {
                 
                 return (
                   <div>
-                    <h3 className="font-semibold text-dark-gray">{friend.name}</h3>
+                    <h3 className="font-semibold text-dark-gray">{`${friend.firstName} ${friend.lastName || ''}`.trim()}</h3>
                     <p className="text-sm text-gray-500">
                       {FRIEND_CATEGORIES[friend.category as keyof typeof FRIEND_CATEGORIES]?.label}
                     </p>
