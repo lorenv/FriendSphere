@@ -3,6 +3,7 @@ import { createServer, type Server } from "http";
 import { storage } from "./storage";
 import { insertFriendSchema, insertRelationshipSchema, insertActivitySchema } from "@shared/schema";
 import { z } from "zod";
+import { getInstagramAuthUrl, handleInstagramCallback, getInstagramProfile, getInstagramMedia, disconnectInstagram } from "./instagram";
 
 export async function registerRoutes(app: Express): Promise<Server> {
   // Friends routes
@@ -153,6 +154,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.status(500).json({ message: "Failed to fetch stats" });
     }
   });
+
+  // Instagram integration routes
+  app.get("/api/instagram/auth-url", getInstagramAuthUrl);
+  app.get("/api/instagram/callback", handleInstagramCallback);
+  app.get("/api/instagram/profile", getInstagramProfile);
+  app.get("/api/instagram/media", getInstagramMedia);
+  app.post("/api/instagram/disconnect", disconnectInstagram);
 
   const httpServer = createServer(app);
   return httpServer;
