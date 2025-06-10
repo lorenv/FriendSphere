@@ -194,6 +194,11 @@ export default function AddFriend() {
                   onNeighborhoodChange={(neighborhood) => form.setValue("neighborhood", neighborhood)}
                 />
 
+                <RelationshipLevelSelector
+                  value={form.watch("relationshipLevel") || "new"}
+                  onChange={(level) => form.setValue("relationshipLevel", level)}
+                />
+
                 <FormField
                   control={form.control}
                   name="category"
