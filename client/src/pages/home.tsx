@@ -10,8 +10,20 @@ interface EnrichedActivity extends Activity {
   friend?: Friend;
 }
 
+interface Stats {
+  totalFriends: number;
+  closeFriends: number;
+  newConnections: number;
+  categoryBreakdown: Record<string, number>;
+}
+
 export default function Home() {
-  const { data: stats } = useQuery({
+  const { data: stats = {
+    totalFriends: 0,
+    closeFriends: 0,
+    newConnections: 0,
+    categoryBreakdown: {}
+  } } = useQuery<Stats>({
     queryKey: ["/api/stats"],
   });
 
@@ -43,15 +55,15 @@ export default function Home() {
         {/* Quick Stats */}
         <div className="flex space-x-4">
           <div className="bg-white/20 rounded-2xl px-4 py-3 flex-1">
-            <div className="text-2xl font-bold">{stats?.totalFriends || 0}</div>
+            <div className="text-2xl font-bold">{stats.totalFriends}</div>
             <div className="text-xs text-white/80">Total Friends</div>
           </div>
           <div className="bg-white/20 rounded-2xl px-4 py-3 flex-1">
-            <div className="text-2xl font-bold">{stats?.closeFriends || 0}</div>
+            <div className="text-2xl font-bold">{stats.closeFriends}</div>
             <div className="text-xs text-white/80">Close Friends</div>
           </div>
           <div className="bg-white/20 rounded-2xl px-4 py-3 flex-1">
-            <div className="text-2xl font-bold">{stats?.newConnections || 0}</div>
+            <div className="text-2xl font-bold">{stats.newConnections}</div>
             <div className="text-xs text-white/80">New This Month</div>
           </div>
         </div>
@@ -110,7 +122,7 @@ export default function Home() {
               <div className="bg-gradient-to-br from-coral to-coral/80 rounded-3xl p-4 text-white card-shadow cursor-pointer">
                 <div className="flex items-center justify-between mb-3">
                   <Heart size={24} />
-                  <span className="text-2xl font-bold">{stats?.categoryBreakdown?.close_friends || 0}</span>
+                  <span className="text-2xl font-bold">{stats.categoryBreakdown?.close_friends || 0}</span>
                 </div>
                 <h3 className="font-semibold">Close Friends</h3>
                 <p className="text-xs text-white/80">Your inner circle</p>
@@ -121,7 +133,7 @@ export default function Home() {
               <div className="bg-gradient-to-br from-turquoise to-turquoise/80 rounded-3xl p-4 text-white card-shadow cursor-pointer">
                 <div className="flex items-center justify-between mb-3">
                   <Users size={24} />
-                  <span className="text-2xl font-bold">{stats?.categoryBreakdown?.friends || 0}</span>
+                  <span className="text-2xl font-bold">{stats.categoryBreakdown?.friends || 0}</span>
                 </div>
                 <h3 className="font-semibold">Friends</h3>
                 <p className="text-xs text-white/80">Regular friends</p>
