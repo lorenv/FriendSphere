@@ -189,9 +189,12 @@ export default function AddFriend() {
 
                 <LocationSearch
                   value={form.watch("location") || ""}
-                  neighborhood={form.watch("neighborhood") || ""}
-                  onLocationChange={(location) => form.setValue("location", location)}
-                  onNeighborhoodChange={(neighborhood) => form.setValue("neighborhood", neighborhood)}
+                  onChange={(location, neighborhood) => {
+                    form.setValue("location", location);
+                    if (neighborhood) {
+                      form.setValue("neighborhood", neighborhood);
+                    }
+                  }}
                 />
 
                 <RelationshipLevelSelector

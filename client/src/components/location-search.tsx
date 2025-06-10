@@ -12,9 +12,7 @@ interface LocationSuggestion {
 
 interface LocationSearchProps {
   value?: string;
-  neighborhood?: string;
-  onLocationChange: (location: string) => void;
-  onNeighborhoodChange: (neighborhood: string) => void;
+  onChange: (location: string, neighborhood?: string) => void;
   placeholder?: string;
 }
 
@@ -44,27 +42,16 @@ const mockNeighborhoods: Record<string, string[]> = {
 
 export function LocationSearch({ 
   value = "", 
-  neighborhood = "",
-  onLocationChange, 
-  onNeighborhoodChange,
+  onChange,
   placeholder = "Search neighborhoods in Los Angeles..."
 }: LocationSearchProps) {
   const [searchQuery, setSearchQuery] = useState(value);
-  const [neighborhoodQuery, setNeighborhoodQuery] = useState(neighborhood);
   const [suggestions, setSuggestions] = useState<LocationSuggestion[]>([]);
   const [showSuggestions, setShowSuggestions] = useState(false);
-  const [focusedField, setFocusedField] = useState<"location" | "neighborhood" | null>(null);
   const inputRef = useRef<HTMLInputElement>(null);
-  const neighborhoodRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
-    if (!searchQuery && !neighborhoodQuery) {
-      setSuggestions([]);
-      return;
-    }
-
-    const query = focusedField === "neighborhood" ? neighborhoodQuery : searchQuery;
-    if (query.length < 2) {
+    if (!searchQuery || searchQuery.length < 2) {
       setSuggestions([]);
       return;
     }
@@ -72,78 +59,59 @@ export function LocationSearch({
     // Generate suggestions based on the query
     const newSuggestions: LocationSuggestion[] = [];
 
-    if (focusedField === "location") {
-      // Show city suggestions
-      const cities = Object.keys(mockNeighborhoods);
-      cities.forEach(city => {
-        if (city.toLowerCase().includes(query.toLowerCase())) {
+    // Search through all neighborhoods across all cities
+    Object.entries(mockNeighborhoods).forEach(([city, neighborhoods]) => {
+      neighborhoods.forEach(neighborhood => {
+        if (neighborhood.toLowerCase().includes(searchQuery.toLowerCase())) {
           newSuggestions.push({
-            id: city,
-            name: city,
-            type: "city",
-            fullLocation: city
-          });
-        }
-      });
-    } else if (focusedField === "neighborhood" && searchQuery) {
-      // Show neighborhood suggestions for the selected city
-      const neighborhoods = mockNeighborhoods[searchQuery] || [];
-      neighborhoods.forEach(hood => {
-        if (hood.toLowerCase().includes(query.toLowerCase())) {
-          newSuggestions.push({
-            id: `${hood}-${searchQuery}`,
-            name: hood,
+            id: `${neighborhood}-${city}`,
+            name: neighborhood,
             type: "neighborhood",
-            fullLocation: `${hood}, ${searchQuery}`
+            fullLocation: `${neighborhood}, ${city}`
           });
         }
       });
-    }
+      
+      // Also include city matches
+      if (city.toLowerCase().includes(searchQuery.toLowerCase())) {
+        newSuggestions.push({
+          id: city,
+          name: city,
+          type: "city",
+          fullLocation: city
+        });
+      }
+    });
 
     setSuggestions(newSuggestions.slice(0, 8));
-  }, [searchQuery, neighborhoodQuery, focusedField]);
+  }, [searchQuery]);
 
   const handleLocationSelect = (suggestion: LocationSuggestion) => {
-    if (suggestion.type === "city") {
-      setSearchQuery(suggestion.name);
-      onLocationChange(suggestion.name);
-      setNeighborhoodQuery("");
-      onNeighborhoodChange("");
+    const selectedLocation = suggestion.fullLocation;
+    setSearchQuery(selectedLocation);
+    
+    if (suggestion.type === "neighborhood") {
+      // Extract neighborhood and city from the suggestion
+      const parts = selectedLocation.split(", ");
+      const neighborhood = parts[0];
+      const city = parts.slice(1).join(", ");
+      onChange(city, neighborhood);
     } else {
-      setNeighborhoodQuery(suggestion.name);
-      onNeighborhoodChange(suggestion.name);
+      onChange(selectedLocation);
     }
+    
     setShowSuggestions(false);
     setSuggestions([]);
   };
 
-  const handleLocationInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const newValue = e.target.value;
     setSearchQuery(newValue);
-    onLocationChange(newValue);
-    setShowSuggestions(true);
-    
-    // Clear neighborhood if location changes
-    if (newValue !== searchQuery) {
-      setNeighborhoodQuery("");
-      onNeighborhoodChange("");
-    }
-  };
-
-  const handleNeighborhoodInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const newValue = e.target.value;
-    setNeighborhoodQuery(newValue);
-    onNeighborhoodChange(newValue);
+    onChange(newValue);
     setShowSuggestions(true);
   };
 
-  const handleLocationFocus = () => {
-    setFocusedField("location");
-    setShowSuggestions(true);
-  };
-
-  const handleNeighborhoodFocus = () => {
-    setFocusedField("neighborhood");
+  const handleFocus = () => {
     setShowSuggestions(true);
   };
 
@@ -151,53 +119,29 @@ export function LocationSearch({
     // Delay hiding suggestions to allow clicks
     setTimeout(() => {
       setShowSuggestions(false);
-      setFocusedField(null);
     }, 200);
   };
 
   return (
-    <div className="space-y-4">
-      {/* Location Input */}
-      <div className="relative">
-        <Label htmlFor="location">Location *</Label>
-        <div className="relative mt-1">
-          <MapPin size={16} className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" />
-          <Input
-            ref={inputRef}
-            id="location"
-            value={searchQuery}
-            onChange={handleLocationInputChange}
-            onFocus={handleLocationFocus}
-            onBlur={handleBlur}
-            placeholder="e.g., Los Angeles, CA"
-            className="pl-10"
-          />
-        </div>
+    <div className="relative">
+      <Label htmlFor="location">Location *</Label>
+      <div className="relative mt-1">
+        <MapPin size={16} className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" />
+        <Input
+          ref={inputRef}
+          id="location"
+          value={searchQuery}
+          onChange={handleInputChange}
+          onFocus={handleFocus}
+          onBlur={handleBlur}
+          placeholder={placeholder}
+          className="pl-10"
+        />
       </div>
-
-      {/* Neighborhood Input */}
-      {searchQuery && (
-        <div className="relative">
-          <Label htmlFor="neighborhood">Neighborhood</Label>
-          <div className="relative mt-1">
-            <Search size={16} className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" />
-            <Input
-              ref={neighborhoodRef}
-              id="neighborhood"
-              value={neighborhoodQuery}
-              onChange={handleNeighborhoodInputChange}
-              onFocus={handleNeighborhoodFocus}
-              onBlur={handleBlur}
-              placeholder={`Search neighborhoods in ${searchQuery.split(',')[0]}...`}
-              className="pl-10"
-            />
-          </div>
-        </div>
-      )}
 
       {/* Suggestions Dropdown */}
       {showSuggestions && suggestions.length > 0 && (
-        <div className="absolute z-50 w-full bg-white border border-gray-200 rounded-lg shadow-lg max-h-60 overflow-y-auto">
+        <div className="absolute z-50 w-full bg-white border border-gray-200 rounded-lg shadow-lg max-h-60 overflow-y-auto mt-1">
           {suggestions.map((suggestion) => (
             <button
               key={suggestion.id}
@@ -214,7 +158,9 @@ export function LocationSearch({
               <div>
                 <div className="font-medium text-gray-900">{suggestion.name}</div>
                 {suggestion.type === "neighborhood" && (
-                  <div className="text-sm text-gray-500">{searchQuery}</div>
+                  <div className="text-sm text-gray-500">
+                    {suggestion.fullLocation.split(", ").slice(1).join(", ")}
+                  </div>
                 )}
               </div>
             </button>

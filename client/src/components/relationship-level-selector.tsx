@@ -15,17 +15,17 @@ const iconMap = {
 };
 
 const colorMap = {
-  emerald: "text-emerald-500 border-emerald-200 bg-emerald-50",
-  blue: "text-blue-500 border-blue-200 bg-blue-50",
-  rose: "text-rose-500 border-rose-200 bg-rose-50",
-  slate: "text-slate-500 border-slate-200 bg-slate-50",
+  emerald: "text-emerald-500 border-gray-200 bg-white hover:bg-gray-50",
+  blue: "text-blue-500 border-gray-200 bg-white hover:bg-gray-50",
+  rose: "text-rose-500 border-gray-200 bg-white hover:bg-gray-50",
+  slate: "text-slate-500 border-gray-200 bg-white hover:bg-gray-50",
 };
 
 const selectedColorMap = {
-  emerald: "text-white bg-emerald-500 border-emerald-500",
-  blue: "text-white bg-blue-500 border-blue-500",
-  rose: "text-white bg-rose-500 border-rose-500",
-  slate: "text-white bg-slate-500 border-slate-500",
+  emerald: "text-emerald-500 bg-emerald-50 border-emerald-300",
+  blue: "text-blue-500 bg-blue-50 border-blue-300",
+  rose: "text-rose-500 bg-rose-50 border-rose-300",
+  slate: "text-slate-500 bg-slate-50 border-slate-300",
 };
 
 export function RelationshipLevelSelector({ value = "new", onChange }: RelationshipLevelSelectorProps) {
