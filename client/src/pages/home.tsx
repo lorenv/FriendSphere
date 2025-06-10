@@ -232,7 +232,7 @@ export default function Home() {
                         )}
                         <div className="flex items-center space-x-2">
                           <span className="bg-coral/10 text-coral text-xs px-2 py-1 rounded-full font-medium">
-                            {friend.category.replace('_', ' ').replace(/\b\w/g, l => l.toUpperCase())}
+                            {friend.relationshipLevel.replace('_', ' ').replace(/\b\w/g, (l: string) => l.toUpperCase())}
                           </span>
                           {friend.interests && friend.interests.length > 0 && (
                             <span className="bg-turquoise/10 text-turquoise text-xs px-2 py-1 rounded-full font-medium">

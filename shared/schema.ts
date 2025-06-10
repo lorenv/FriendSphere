@@ -9,8 +9,7 @@ export const friends = pgTable("friends", {
   photo: text("photo"),
   location: text("location"), // City, State format
   neighborhood: text("neighborhood"), // Specific neighborhood within location
-  category: text("category").notNull(), // close_friends, friends, work_friends, new_friends, acquaintances, etc.
-  relationshipLevel: text("relationship_level").default("new"), // new, friend, close, work
+  relationshipLevel: text("relationship_level").default("new").notNull(), // new, friend, close, work
   interests: text("interests").array().default([]), // Array of interests
   lifestyle: text("lifestyle"),
   hasKids: boolean("has_kids").default(false),
@@ -18,7 +17,9 @@ export const friends = pgTable("friends", {
   introducedBy: integer("introduced_by"), // ID of friend who introduced them
   howWeMet: text("how_we_met"), // Story of how you met
   notes: text("notes"),
-  contactInfo: text("contact_info"), // JSON string for phone, email, social media
+  phone: text("phone"), // Phone number
+  email: text("email"), // Email address
+  contactInfo: text("contact_info"), // JSON string for additional social media
   lastInteraction: timestamp("last_interaction"),
 });
 

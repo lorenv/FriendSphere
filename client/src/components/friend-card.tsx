@@ -1,5 +1,5 @@
 import { Friend } from "@shared/schema";
-import { FRIEND_CATEGORIES, RELATIONSHIP_LEVELS } from "@/lib/constants";
+import { RELATIONSHIP_LEVELS } from "@/lib/constants";
 import { ChevronRight, Star, Shield, Heart, Briefcase } from "lucide-react";
 import { Link } from "wouter";
 
@@ -15,7 +15,6 @@ const iconMap = {
 };
 
 export function FriendCard({ friend }: FriendCardProps) {
-  const category = FRIEND_CATEGORIES[friend.category as keyof typeof FRIEND_CATEGORIES] || FRIEND_CATEGORIES.friends;
   const relationshipLevel = RELATIONSHIP_LEVELS[friend.relationshipLevel as keyof typeof RELATIONSHIP_LEVELS] || RELATIONSHIP_LEVELS.new;
   const RelationshipIcon = iconMap[relationshipLevel.icon as keyof typeof iconMap];
   const fullName = `${friend.firstName} ${friend.lastName || ''}`.trim();
@@ -51,8 +50,8 @@ export function FriendCard({ friend }: FriendCardProps) {
             </p>
           )}
           <div className="flex items-center space-x-2">
-            <span className={`bg-${category.color}/10 text-${category.color} text-xs px-2 py-1 rounded-full font-medium`}>
-              {category.label}
+            <span className={`bg-${relationshipLevel.color}/10 text-${relationshipLevel.color} text-xs px-2 py-1 rounded-full font-medium`}>
+              {relationshipLevel.label}
             </span>
             {friend.interests && friend.interests.length > 0 && (
               <span className="bg-gray-100 text-gray-600 text-xs px-2 py-1 rounded-full font-medium">

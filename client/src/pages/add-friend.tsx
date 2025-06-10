@@ -1,55 +1,62 @@
 import { useState } from "react";
+import { useForm, useFieldArray } from "react-hook-form";
+import { useMutation } from "@tanstack/react-query";
 import { useLocation } from "wouter";
-import { useMutation, useQuery } from "@tanstack/react-query";
-import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { insertFriendSchema, type InsertFriend, type Friend } from "@shared/schema";
+import { insertFriendSchema, type InsertFriend } from "@shared/schema";
 import { queryClient, apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
-import { FRIEND_CATEGORIES, INTERESTS, LIFESTYLE_OPTIONS, RELATIONSHIP_LEVELS } from "@/lib/constants";
-import { ArrowLeft, Camera } from "lucide-react";
+import { INTERESTS, LIFESTYLE_OPTIONS, RELATIONSHIP_LEVELS } from "@/lib/constants";
+import { ArrowLeft, Camera, Plus, X, UserPlus, Phone, Mail } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Checkbox } from "@/components/ui/checkbox";
+import { Switch } from "@/components/ui/switch";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
-import { InstagramIntegration } from "@/components/instagram-integration";
 import { LocationSearch } from "@/components/location-search";
 import { RelationshipLevelSelector } from "@/components/relationship-level-selector";
+
+interface Contact {
+  id: string;
+  firstName: string;
+  lastName?: string;
+  phoneNumbers: string[];
+  emails: string[];
+}
 
 export default function AddFriend() {
   const [, setLocation] = useLocation();
   const { toast } = useToast();
+  const [customInterest, setCustomInterest] = useState("");
   const [selectedInterests, setSelectedInterests] = useState<string[]>([]);
-  const [selectedPhoto, setSelectedPhoto] = useState<string | null>(null);
-
-  const { data: existingFriends = [] } = useQuery<Friend[]>({
-    queryKey: ["/api/friends"],
-  });
+  const [showContactImport, setShowContactImport] = useState(false);
+  const [contacts, setContacts] = useState<Contact[]>([]);
 
   const form = useForm<InsertFriend>({
     resolver: zodResolver(insertFriendSchema),
     defaultValues: {
       firstName: "",
       lastName: "",
-      category: "friends",
       relationshipLevel: "new",
       interests: [],
       hasKids: false,
       contactInfo: "",
       notes: "",
       howWeMet: "",
+      phone: "",
+      email: "",
     },
   });
 
   const createFriendMutation = useMutation({
     mutationFn: async (friendData: InsertFriend) => {
-      const response = await apiRequest("POST", "/api/friends", {
-        ...friendData,
-        interests: selectedInterests,
+      const response = await apiRequest("/api/friends", {
+        method: "POST",
+        body: JSON.stringify({ ...friendData, interests: selectedInterests }),
       });
       return response.json();
     },
@@ -57,200 +64,325 @@ export default function AddFriend() {
       queryClient.invalidateQueries({ queryKey: ["/api/friends"] });
       queryClient.invalidateQueries({ queryKey: ["/api/stats"] });
       toast({
-        title: "Success",
-        description: "Friend added successfully!",
+        title: "Friend added successfully!",
+        description: "Your new friend has been added to your network.",
       });
       setLocation("/friends");
     },
-    onError: () => {
+    onError: (error: Error) => {
       toast({
         title: "Error",
-        description: "Failed to add friend. Please try again.",
+        description: error.message || "Failed to add friend. Please try again.",
         variant: "destructive",
       });
     },
   });
 
   const onSubmit = (data: InsertFriend) => {
-    const friendData = {
-      ...data,
-      interests: selectedInterests,
-      photo: selectedPhoto || data.photo
-    };
-    createFriendMutation.mutate(friendData);
+    createFriendMutation.mutate({ ...data, interests: selectedInterests });
+  };
+
+  const handleLocationChange = (location: string, neighborhood?: string) => {
+    form.setValue("location", location);
+    form.setValue("neighborhood", neighborhood);
+  };
+
+  const addCustomInterest = () => {
+    if (customInterest.trim() && !selectedInterests.includes(customInterest.trim())) {
+      setSelectedInterests([...selectedInterests, customInterest.trim()]);
+      setCustomInterest("");
+    }
+  };
+
+  const removeInterest = (interest: string) => {
+    setSelectedInterests(selectedInterests.filter(i => i !== interest));
   };
 
   const toggleInterest = (interest: string) => {
-    setSelectedInterests(prev => 
-      prev.includes(interest) 
-        ? prev.filter(i => i !== interest)
-        : [...prev, interest]
-    );
+    if (selectedInterests.includes(interest)) {
+      removeInterest(interest);
+    } else {
+      setSelectedInterests([...selectedInterests, interest]);
+    }
   };
 
-  const handlePhotoSelect = (photoUrl: string) => {
-    setSelectedPhoto(photoUrl);
-    toast({
-      title: "Photo Selected",
-      description: "Instagram photo has been set as profile picture.",
-    });
-  };
-
-  const handleContactImport = (contacts: any[]) => {
-    // Auto-fill form with first contact data
-    if (contacts.length > 0) {
-      const contact = contacts[0];
-      form.setValue('firstName', contact.full_name?.split(' ')[0] || contact.username);
-      form.setValue('lastName', contact.full_name?.split(' ').slice(1).join(' ') || '');
-      if (contact.profile_picture) {
-        setSelectedPhoto(contact.profile_picture);
+  const importFromContacts = async () => {
+    if ('contacts' in navigator && 'ContactsManager' in window) {
+      try {
+        const props = ['name', 'tel', 'email'];
+        const contacts = await (navigator as any).contacts.select(props);
+        setContacts(contacts.map((contact: any, index: number) => ({
+          id: `contact-${index}`,
+          firstName: contact.name?.[0] || 'Unknown',
+          lastName: contact.name?.[1] || '',
+          phoneNumbers: contact.tel || [],
+          emails: contact.email || [],
+        })));
+        setShowContactImport(true);
+      } catch (error) {
+        toast({
+          title: "Contact Access Unavailable",
+          description: "Contact access is not available on this device or browser.",
+          variant: "destructive",
+        });
       }
-      
+    } else {
       toast({
-        title: "Contact Imported",
-        description: `Filled form with ${contact.username}'s information.`,
+        title: "Contacts Not Supported",
+        description: "Contact import is not supported on this browser.",
+        variant: "destructive",
       });
     }
   };
 
-  return (
-    <div className="max-w-md mx-auto bg-white min-h-screen relative overflow-hidden">
-      {/* Header */}
-      <div className="gradient-bg px-6 pt-12 pb-6 text-white">
-        <div className="flex items-center justify-between mb-4">
-          <button 
-            onClick={() => setLocation("/friends")}
-            className="p-2 bg-white/20 rounded-full"
-          >
-            <ArrowLeft size={20} />
-          </button>
-          <h1 className="text-xl font-bold">Add Friend</h1>
-          <div className="w-10"></div>
+  const selectContact = (contact: Contact) => {
+    form.setValue("firstName", contact.firstName);
+    form.setValue("lastName", contact.lastName || "");
+    form.setValue("phone", contact.phoneNumbers[0] || "");
+    form.setValue("email", contact.emails[0] || "");
+    setShowContactImport(false);
+  };
+
+  if (showContactImport) {
+    return (
+      <div className="min-h-screen bg-off-white p-4">
+        <div className="max-w-md mx-auto">
+          <div className="flex items-center mb-6">
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => setShowContactImport(false)}
+              className="p-2 text-dark-gray hover:text-coral"
+            >
+              <ArrowLeft size={20} />
+            </Button>
+            <h1 className="text-2xl font-bold text-dark-gray ml-2">Import Contact</h1>
+          </div>
+
+          <div className="space-y-3">
+            {contacts.map((contact) => (
+              <Card key={contact.id} className="cursor-pointer hover:shadow-md transition-shadow" onClick={() => selectContact(contact)}>
+                <CardContent className="p-4">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <h3 className="font-semibold text-dark-gray">
+                        {contact.firstName} {contact.lastName}
+                      </h3>
+                      {contact.phoneNumbers.length > 0 && (
+                        <p className="text-sm text-gray-500 flex items-center mt-1">
+                          <Phone size={14} className="mr-1" />
+                          {contact.phoneNumbers[0]}
+                        </p>
+                      )}
+                      {contact.emails.length > 0 && (
+                        <p className="text-sm text-gray-500 flex items-center mt-1">
+                          <Mail size={14} className="mr-1" />
+                          {contact.emails[0]}
+                        </p>
+                      )}
+                    </div>
+                    <UserPlus size={20} className="text-coral" />
+                  </div>
+                </CardContent>
+              </Card>
+            ))}
+          </div>
         </div>
       </div>
+    );
+  }
 
-      <div className="px-6 -mt-2 pb-24 space-y-6">
-        <Form {...form}>
-          <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
-            
-            {/* Basic Info */}
-            <Card>
-              <CardHeader>
-                <CardTitle className="text-lg">Basic Information</CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                
-                {/* Photo Upload */}
-                <div className="flex flex-col items-center space-y-3">
-                  <div className="w-24 h-24 rounded-2xl bg-gray-100 flex items-center justify-center overflow-hidden">
-                    {selectedPhoto ? (
-                      <img 
-                        src={selectedPhoto} 
-                        alt="Profile" 
-                        className="w-full h-full object-cover"
-                      />
-                    ) : (
-                      <Camera size={32} className="text-gray-400" />
+  return (
+    <div className="min-h-screen bg-off-white">
+      <div className="max-w-md mx-auto p-4">
+        <div className="flex items-center mb-6">
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={() => setLocation("/friends")}
+            className="p-2 text-dark-gray hover:text-coral"
+          >
+            <ArrowLeft size={20} />
+          </Button>
+          <h1 className="text-2xl font-bold text-dark-gray ml-2">Add Friend</h1>
+        </div>
+
+        <Card>
+          <CardContent className="p-6">
+            <Form {...form}>
+              <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
+                {/* Import from contacts button */}
+                <div className="flex justify-center">
+                  <Button
+                    type="button"
+                    variant="outline"
+                    onClick={importFromContacts}
+                    className="w-full"
+                  >
+                    <UserPlus size={16} className="mr-2" />
+                    Import from Contacts
+                  </Button>
+                </div>
+
+                {/* Basic Info */}
+                <div className="space-y-4">
+                  <FormField
+                    control={form.control}
+                    name="firstName"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>First Name</FormLabel>
+                        <FormControl>
+                          <Input placeholder="Enter first name" {...field} />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
                     )}
-                  </div>
-                  <InstagramIntegration 
-                    onPhotoSelect={handlePhotoSelect}
-                    onContactImport={handleContactImport}
+                  />
+
+                  <FormField
+                    control={form.control}
+                    name="lastName"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Last Name</FormLabel>
+                        <FormControl>
+                          <Input placeholder="Enter last name" {...field} value={field.value || ""} />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+
+                  {/* Contact Info */}
+                  <FormField
+                    control={form.control}
+                    name="phone"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Phone Number</FormLabel>
+                        <FormControl>
+                          <Input placeholder="Enter phone number" {...field} value={field.value || ""} />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+
+                  <FormField
+                    control={form.control}
+                    name="email"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Email</FormLabel>
+                        <FormControl>
+                          <Input placeholder="Enter email address" type="email" {...field} value={field.value || ""} />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
                   />
                 </div>
 
+                {/* Location */}
                 <FormField
                   control={form.control}
-                  name="firstName"
+                  name="location"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>First Name *</FormLabel>
+                      <FormLabel>Location</FormLabel>
                       <FormControl>
-                        <Input placeholder="Enter first name" {...field} />
+                        <LocationSearch
+                          value={field.value || ""}
+                          onChange={handleLocationChange}
+                          placeholder="Search for city, neighborhood..."
+                        />
                       </FormControl>
                       <FormMessage />
                     </FormItem>
                   )}
                 />
 
+                {/* Relationship Level */}
                 <FormField
                   control={form.control}
-                  name="lastName"
+                  name="relationshipLevel"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>Last Name</FormLabel>
+                      <FormLabel>Relationship Level</FormLabel>
                       <FormControl>
-                        <Input placeholder="Enter last name" {...field} value={field.value || ""} />
+                        <RelationshipLevelSelector
+                          value={field.value || "new"}
+                          onChange={field.onChange}
+                        />
                       </FormControl>
                       <FormMessage />
                     </FormItem>
                   )}
                 />
 
-                <LocationSearch
-                  value={form.watch("location") || ""}
-                  onChange={(location, neighborhood) => {
-                    form.setValue("location", location);
-                    if (neighborhood) {
-                      form.setValue("neighborhood", neighborhood);
-                    }
-                  }}
-                />
+                {/* Interests */}
+                <div className="space-y-3">
+                  <Label>Interests</Label>
+                  <div className="flex flex-wrap gap-2">
+                    {INTERESTS.map((interest) => (
+                      <Badge
+                        key={interest}
+                        variant={selectedInterests.includes(interest) ? "default" : "outline"}
+                        className={`cursor-pointer transition-colors ${
+                          selectedInterests.includes(interest)
+                            ? "bg-coral text-white hover:bg-coral/90"
+                            : "hover:bg-coral/10"
+                        }`}
+                        onClick={() => toggleInterest(interest)}
+                      >
+                        {interest}
+                      </Badge>
+                    ))}
+                  </div>
+                  
+                  {/* Custom interests */}
+                  {selectedInterests.filter(i => !INTERESTS.includes(i)).map((interest) => (
+                    <Badge
+                      key={interest}
+                      variant="default"
+                      className="bg-blue-500 text-white mr-2 mb-2"
+                    >
+                      {interest}
+                      <X
+                        size={14}
+                        className="ml-1 cursor-pointer hover:text-red-200"
+                        onClick={() => removeInterest(interest)}
+                      />
+                    </Badge>
+                  ))}
 
-                <RelationshipLevelSelector
-                  value={form.watch("relationshipLevel") || "new"}
-                  onChange={(level) => form.setValue("relationshipLevel", level)}
-                />
+                  {/* Add custom interest */}
+                  <div className="flex gap-2">
+                    <Input
+                      placeholder="Add custom interest"
+                      value={customInterest}
+                      onChange={(e) => setCustomInterest(e.target.value)}
+                      onKeyDown={(e) => {
+                        if (e.key === "Enter") {
+                          e.preventDefault();
+                          addCustomInterest();
+                        }
+                      }}
+                    />
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      onClick={addCustomInterest}
+                      disabled={!customInterest.trim()}
+                    >
+                      <Plus size={16} />
+                    </Button>
+                  </div>
+                </div>
 
-                <FormField
-                  control={form.control}
-                  name="category"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Category *</FormLabel>
-                      <Select onValueChange={field.onChange} defaultValue={field.value}>
-                        <FormControl>
-                          <SelectTrigger>
-                            <SelectValue placeholder="Select category" />
-                          </SelectTrigger>
-                        </FormControl>
-                        <SelectContent>
-                          {Object.entries(FRIEND_CATEGORIES).map(([key, category]) => (
-                            <SelectItem key={key} value={key}>
-                              {category.label}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-
-              </CardContent>
-            </Card>
-
-            {/* Personal Details */}
-            <Card>
-              <CardHeader>
-                <CardTitle className="text-lg">Personal Details</CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                
-                <FormField
-                  control={form.control}
-                  name="partner"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Partner/Spouse</FormLabel>
-                      <FormControl>
-                        <Input placeholder="Partner's name" {...field} value={field.value || ""} />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-
+                {/* Additional Info */}
                 <FormField
                   control={form.control}
                   name="lifestyle"
@@ -264,9 +396,9 @@ export default function AddFriend() {
                           </SelectTrigger>
                         </FormControl>
                         <SelectContent>
-                          {LIFESTYLE_OPTIONS.map((lifestyle) => (
-                            <SelectItem key={lifestyle} value={lifestyle}>
-                              {lifestyle}
+                          {LIFESTYLE_OPTIONS.map((option) => (
+                            <SelectItem key={option} value={option}>
+                              {option}
                             </SelectItem>
                           ))}
                         </SelectContent>
@@ -280,65 +412,47 @@ export default function AddFriend() {
                   control={form.control}
                   name="hasKids"
                   render={({ field }) => (
-                    <FormItem className="flex flex-row items-start space-x-3 space-y-0">
+                    <FormItem className="flex flex-row items-center justify-between rounded-lg border p-4">
+                      <div className="space-y-0.5">
+                        <FormLabel className="text-base">Has Kids</FormLabel>
+                        <div className="text-sm text-muted-foreground">
+                          Does this person have children?
+                        </div>
+                      </div>
                       <FormControl>
-                        <Checkbox
-                          checked={field.value || false}
+                        <Switch
+                          checked={field.value}
                           onCheckedChange={field.onChange}
                         />
                       </FormControl>
-                      <div className="space-y-1 leading-none">
-                        <FormLabel>Has children</FormLabel>
-                      </div>
                     </FormItem>
                   )}
                 />
 
-              </CardContent>
-            </Card>
+                <FormField
+                  control={form.control}
+                  name="partner"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Partner/Spouse</FormLabel>
+                      <FormControl>
+                        <Input placeholder="Partner's name (optional)" {...field} value={field.value || ""} />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
 
-            {/* Interests */}
-            <Card>
-              <CardHeader>
-                <CardTitle className="text-lg">Interests</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="grid grid-cols-3 gap-2">
-                  {INTERESTS.map((interest) => (
-                    <button
-                      key={interest}
-                      type="button"
-                      onClick={() => toggleInterest(interest)}
-                      className={`p-2 text-xs rounded-lg border transition-colors ${
-                        selectedInterests.includes(interest)
-                          ? "bg-coral text-white border-coral"
-                          : "bg-gray-50 text-gray-700 border-gray-200"
-                      }`}
-                    >
-                      {interest}
-                    </button>
-                  ))}
-                </div>
-              </CardContent>
-            </Card>
-
-            {/* Connection */}
-            <Card>
-              <CardHeader>
-                <CardTitle className="text-lg">How did you meet?</CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                
                 <FormField
                   control={form.control}
                   name="howWeMet"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>How we met</FormLabel>
+                      <FormLabel>How We Met</FormLabel>
                       <FormControl>
-                        <Textarea 
+                        <Textarea
                           placeholder="Tell the story of how you met..."
-                          rows={3}
+                          className="resize-none"
                           {...field}
                           value={field.value || ""}
                         />
@@ -348,49 +462,16 @@ export default function AddFriend() {
                   )}
                 />
 
-                <FormField
-                  control={form.control}
-                  name="introducedBy"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Introduced by</FormLabel>
-                      <Select onValueChange={(value) => field.onChange(parseInt(value))} value={field.value?.toString() || ""}>
-                        <FormControl>
-                          <SelectTrigger>
-                            <SelectValue placeholder="Select friend who introduced you" />
-                          </SelectTrigger>
-                        </FormControl>
-                        <SelectContent>
-                          {existingFriends.map((friend) => (
-                            <SelectItem key={friend.id} value={friend.id.toString()}>
-                              {`${friend.firstName} ${friend.lastName || ''}`.trim()}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-
-              </CardContent>
-            </Card>
-
-            {/* Notes */}
-            <Card>
-              <CardHeader>
-                <CardTitle className="text-lg">Notes</CardTitle>
-              </CardHeader>
-              <CardContent>
                 <FormField
                   control={form.control}
                   name="notes"
                   render={({ field }) => (
                     <FormItem>
+                      <FormLabel>Notes</FormLabel>
                       <FormControl>
-                        <Textarea 
-                          placeholder="Add any additional notes about your friend..."
-                          rows={4}
+                        <Textarea
+                          placeholder="Any additional notes about this person..."
+                          className="resize-none"
                           {...field}
                           value={field.value || ""}
                         />
@@ -399,22 +480,18 @@ export default function AddFriend() {
                     </FormItem>
                   )}
                 />
-              </CardContent>
-            </Card>
 
-            {/* Submit Button */}
-            <div className="sticky bottom-6 pt-4">
-              <Button 
-                type="submit" 
-                className="w-full bg-coral hover:bg-coral/90 text-white py-3 text-lg font-semibold"
-                disabled={createFriendMutation.isPending}
-              >
-                {createFriendMutation.isPending ? "Adding Friend..." : "Add Friend"}
-              </Button>
-            </div>
-
-          </form>
-        </Form>
+                <Button
+                  type="submit"
+                  className="w-full bg-coral hover:bg-coral/90 text-white"
+                  disabled={createFriendMutation.isPending}
+                >
+                  {createFriendMutation.isPending ? "Adding Friend..." : "Add Friend"}
+                </Button>
+              </form>
+            </Form>
+          </CardContent>
+        </Card>
       </div>
     </div>
   );
