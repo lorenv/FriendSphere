@@ -13,7 +13,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest, queryClient } from "@/lib/queryClient";
-import { FRIEND_CATEGORIES, INTERESTS, LIFESTYLE_OPTIONS } from "@/lib/constants";
+import { INTERESTS, LIFESTYLE_OPTIONS, RELATIONSHIP_LEVELS } from "@/lib/constants";
 import { ArrowLeft, MapPin, X, Plus, Trash2 } from "lucide-react";
 import { Link } from "wouter";
 
@@ -40,7 +40,8 @@ export default function EditFriend() {
       lastName: "",
       photo: "",
       location: "",
-      category: "friends",
+      neighborhood: "",
+      relationshipLevel: "new",
       interests: [],
       lifestyle: "",
       hasKids: false,
@@ -48,6 +49,8 @@ export default function EditFriend() {
       notes: "",
       contactInfo: "",
       howWeMet: "",
+      phone: "",
+      email: "",
     },
   });
 
@@ -59,10 +62,13 @@ export default function EditFriend() {
         lastName: friend.lastName || "",
         photo: friend.photo || "",
         location: friend.location || "",
-        category: friend.category,
+        neighborhood: friend.neighborhood || "",
+        relationshipLevel: friend.relationshipLevel,
         interests: friend.interests || [],
         lifestyle: friend.lifestyle || "",
         hasKids: friend.hasKids || false,
+        phone: friend.phone || "",
+        email: friend.email || "",
         partner: friend.partner || "",
         notes: friend.notes || "",
         contactInfo: friend.contactInfo || "",
@@ -73,14 +79,7 @@ export default function EditFriend() {
 
   const updateMutation = useMutation({
     mutationFn: async (friendData: InsertFriend) => {
-      const response = await apiRequest(`/api/friends/${id}`, {
-        method: "PATCH",
-        body: JSON.stringify(friendData),
-      });
-      if (!response.ok) {
-        throw new Error("Failed to update friend");
-      }
-      return response.json();
+      return await apiRequest(`/api/friends/${id}`, "PATCH", friendData);
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/friends"] });

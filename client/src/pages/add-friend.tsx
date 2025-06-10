@@ -417,7 +417,7 @@ export default function AddFriend() {
                       </div>
                       <FormControl>
                         <Switch
-                          checked={field.value || false}
+                          checked={Boolean(field.value)}
                           onCheckedChange={field.onChange}
                         />
                       </FormControl>
