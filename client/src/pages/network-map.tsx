@@ -30,6 +30,8 @@ interface LocationGroup {
   x: number;
   y: number;
   color: string;
+  isArea: boolean;
+  neighborhoodCount: number;
 }
 
 export default function NetworkMap() {
@@ -62,38 +64,136 @@ export default function NetworkMap() {
     enabled: friends.length > 0,
   });
 
-  // Location-based grouping
-  const locationData = useMemo(() => {
-    if (friends.length === 0) return [];
-    
-    const locationGroups = new Map<string, Friend[]>();
-    
+  // Location clustering logic
+  const [expandedAreas, setExpandedAreas] = useState<Set<string>>(new Set());
+
+  const locationClusters = useMemo(() => {
+    if (friends.length === 0) return { areas: [], neighborhoods: new Map() };
+
+    // Location mapping patterns for major metropolitan areas
+    const areaPatterns = {
+      'Los Angeles': [
+        'LA', 'Los Angeles', 'Hollywood', 'Beverly Hills', 'Santa Monica', 
+        'Venice', 'West Hollywood', 'Culver City', 'Marina del Rey', 
+        'Manhattan Beach', 'Hermosa Beach', 'Redondo Beach', 'El Segundo',
+        'Westwood', 'Brentwood', 'Pacific Palisades', 'Malibu', 'Pasadena',
+        'Glendale', 'Burbank', 'Studio City', 'North Hollywood', 'Sherman Oaks',
+        'Encino', 'Tarzana', 'Calabasas', 'Woodland Hills', 'Canoga Park'
+      ],
+      'San Francisco Bay Area': [
+        'San Francisco', 'SF', 'Oakland', 'Berkeley', 'Palo Alto', 'Mountain View',
+        'Menlo Park', 'Redwood City', 'San Mateo', 'Fremont', 'Hayward',
+        'Union City', 'Sunnyvale', 'Santa Clara', 'San Jose', 'Cupertino',
+        'Saratoga', 'Los Gatos', 'Campbell', 'Milpitas', 'Foster City'
+      ],
+      'New York City': [
+        'NYC', 'New York', 'Manhattan', 'Brooklyn', 'Queens', 'Bronx',
+        'Staten Island', 'Long Island City', 'Williamsburg', 'Park Slope',
+        'DUMBO', 'SoHo', 'Tribeca', 'Upper East Side', 'Upper West Side',
+        'Chelsea', 'Greenwich Village', 'East Village', 'Midtown', 'Harlem'
+      ],
+      'Chicago': [
+        'Chicago', 'Lincoln Park', 'Wicker Park', 'Bucktown', 'Logan Square',
+        'River North', 'Gold Coast', 'Old Town', 'Lincoln Square', 'Lakeview',
+        'Boystown', 'Andersonville', 'Uptown', 'Rogers Park', 'Evanston'
+      ],
+      'Seattle': [
+        'Seattle', 'Capitol Hill', 'Fremont', 'Ballard', 'Queen Anne',
+        'Belltown', 'South Lake Union', 'Wallingford', 'Greenwood',
+        'Phinney Ridge', 'University District', 'Bellevue', 'Redmond', 'Kirkland'
+      ],
+      'Austin': [
+        'Austin', 'South Austin', 'East Austin', 'West Austin', 'North Austin',
+        'Downtown Austin', 'Zilker', 'Travis Heights', 'Barton Hills',
+        'Mueller', 'Cedar Park', 'Round Rock', 'Pflugerville'
+      ],
+      'Miami': [
+        'Miami', 'Miami Beach', 'South Beach', 'Wynwood', 'Little Havana',
+        'Coral Gables', 'Coconut Grove', 'Aventura', 'Bal Harbour',
+        'Key Biscayne', 'Homestead', 'Kendall', 'Doral'
+      ]
+    };
+
+    const areaGroups = new Map<string, Friend[]>();
+    const neighborhoodsByArea = new Map<string, Map<string, Friend[]>>();
+    const unmatchedFriends: Friend[] = [];
+
+    // Group friends by metropolitan areas
     friends.forEach(friend => {
       const location = friend.location || 'Unknown Location';
-      if (!locationGroups.has(location)) {
-        locationGroups.set(location, []);
+      let matchedArea: string | null = null;
+
+      // Check if location matches any area pattern
+      for (const [area, patterns] of Object.entries(areaPatterns)) {
+        if (patterns.some(pattern => 
+          location.toLowerCase().includes(pattern.toLowerCase()) ||
+          pattern.toLowerCase().includes(location.toLowerCase())
+        )) {
+          matchedArea = area;
+          break;
+        }
       }
-      locationGroups.get(location)!.push(friend);
+
+      if (matchedArea) {
+        // Add to area group
+        if (!areaGroups.has(matchedArea)) {
+          areaGroups.set(matchedArea, []);
+          neighborhoodsByArea.set(matchedArea, new Map());
+        }
+        areaGroups.get(matchedArea)!.push(friend);
+
+        // Also group by specific neighborhood within area
+        const neighborhoods = neighborhoodsByArea.get(matchedArea)!;
+        if (!neighborhoods.has(location)) {
+          neighborhoods.set(location, []);
+        }
+        neighborhoods.get(location)!.push(friend);
+      } else {
+        unmatchedFriends.push(friend);
+      }
+    });
+
+    // Add individual locations for unmatched friends
+    unmatchedFriends.forEach(friend => {
+      const location = friend.location || 'Unknown Location';
+      if (!areaGroups.has(location)) {
+        areaGroups.set(location, []);
+      }
+      areaGroups.get(location)!.push(friend);
     });
 
     const colors = ['coral', 'turquoise', 'mint', 'sky', 'lavender'];
     let colorIndex = 0;
 
-    return Array.from(locationGroups.entries()).map(([location, friendList], index) => {
-      const angle = (index / locationGroups.size) * 2 * Math.PI;
+    const areas = Array.from(areaGroups.entries()).map(([area, friendList], index) => {
+      const angle = (index / areaGroups.size) * 2 * Math.PI;
       const centerX = 200;
       const centerY = 300;
       const radius = 100;
       
       return {
-        location,
+        location: area,
         friends: friendList,
         x: centerX + Math.cos(angle) * radius,
         y: centerY + Math.sin(angle) * radius,
         color: colors[colorIndex++ % colors.length],
+        isArea: areaPatterns.hasOwnProperty(area),
+        neighborhoodCount: neighborhoodsByArea.get(area)?.size || 0
       };
     });
+
+    return { areas, neighborhoods: neighborhoodsByArea };
   }, [friends]);
+
+  const toggleAreaExpansion = (area: string) => {
+    const newExpanded = new Set(expandedAreas);
+    if (newExpanded.has(area)) {
+      newExpanded.delete(area);
+    } else {
+      newExpanded.add(area);
+    }
+    setExpandedAreas(newExpanded);
+  };
 
   // Relationship network data (family tree style)
   const networkData = useMemo(() => {
@@ -354,7 +454,7 @@ export default function NetworkMap() {
                   className="transition-transform duration-200"
                 >
                   {/* Draw location groups */}
-                  {locationData.map((group, index) => (
+                  {locationClusters.areas.map((group, index) => (
                     <g key={index}>
                       {/* Location circle */}
                       <circle
@@ -365,7 +465,8 @@ export default function NetworkMap() {
                         fillOpacity="0.3"
                         stroke={`var(--${group.color})`}
                         strokeWidth="3"
-                        className="cursor-pointer"
+                        className="cursor-pointer hover:fillOpacity-50"
+                        onClick={() => group.isArea && toggleAreaExpansion(group.location)}
                       />
                       
                       {/* Location label */}
@@ -388,18 +489,32 @@ export default function NetworkMap() {
                         {group.friends.length}
                       </text>
                       
-                      {/* Friend names */}
-                      <text
-                        x={group.x}
-                        y={group.y + 15}
-                        textAnchor="middle"
-                        className="text-xs fill-gray-700"
-                      >
-                        {group.friends.length === 1 
-                          ? `${group.friends[0].firstName} ${group.friends[0].lastName || ''}`.trim()
-                          : `${group.friends.length} friends`
-                        }
-                      </text>
+                      {/* Area indicator */}
+                      {group.isArea && (
+                        <text
+                          x={group.x}
+                          y={group.y + 15}
+                          textAnchor="middle"
+                          className="text-xs fill-gray-700"
+                        >
+                          {expandedAreas.has(group.location) ? '▼ Click to collapse' : '▶ Click to expand'}
+                        </text>
+                      )}
+                      
+                      {/* Single location indicator */}
+                      {!group.isArea && (
+                        <text
+                          x={group.x}
+                          y={group.y + 15}
+                          textAnchor="middle"
+                          className="text-xs fill-gray-700"
+                        >
+                          {group.friends.length === 1 
+                            ? `${group.friends[0].firstName} ${group.friends[0].lastName || ''}`.trim()
+                            : `${group.friends.length} friends`
+                          }
+                        </text>
+                      )}
                     </g>
                   ))}
                 </svg>
@@ -408,21 +523,63 @@ export default function NetworkMap() {
               {/* Location breakdown */}
               <div className="mt-6 space-y-3">
                 <h4 className="font-semibold text-gray-800">Location Breakdown</h4>
-                {locationData.map((group, index) => (
-                  <div key={index} className="flex items-center justify-between p-3 bg-white/50 rounded-xl">
-                    <div className="flex items-center space-x-3">
-                      <div 
-                        className="w-4 h-4 rounded-full"
-                        style={{ backgroundColor: `var(--${group.color})` }}
-                      ></div>
-                      <span className="font-medium text-gray-800">{group.location}</span>
-                    </div>
-                    <div className="text-right">
-                      <div className="font-bold text-gray-800">{group.friends.length}</div>
-                      <div className="text-xs text-gray-500">
-                        {group.friends.length === 1 ? 'friend' : 'friends'}
+                {locationClusters.areas.map((group, index) => (
+                  <div key={index} className="space-y-2">
+                    {/* Main area/location */}
+                    <div 
+                      className={`flex items-center justify-between p-3 bg-white/50 rounded-xl ${
+                        group.isArea ? 'cursor-pointer hover:bg-white/70' : ''
+                      }`}
+                      onClick={() => group.isArea && toggleAreaExpansion(group.location)}
+                    >
+                      <div className="flex items-center space-x-3">
+                        <div 
+                          className="w-4 h-4 rounded-full"
+                          style={{ backgroundColor: `var(--${group.color})` }}
+                        ></div>
+                        <span className="font-medium text-gray-800">{group.location}</span>
+                        {group.isArea && (
+                          <span className="text-xs text-gray-500">
+                            {expandedAreas.has(group.location) ? '▼' : '▶'}
+                          </span>
+                        )}
+                      </div>
+                      <div className="text-right">
+                        <div className="font-bold text-gray-800">{group.friends.length}</div>
+                        <div className="text-xs text-gray-500">
+                          {group.friends.length === 1 ? 'friend' : 'friends'}
+                          {group.isArea && ` in ${group.neighborhoodCount} ${group.neighborhoodCount === 1 ? 'area' : 'areas'}`}
+                        </div>
                       </div>
                     </div>
+
+                    {/* Expanded neighborhoods */}
+                    {group.isArea && expandedAreas.has(group.location) && (
+                      <div className="ml-8 space-y-2">
+                        {(() => {
+                          const neighborhoods = locationClusters.neighborhoods.get(group.location);
+                          if (!neighborhoods) return null;
+                          
+                          return Array.from(neighborhoods.entries()).map(([neighborhood, neighborhoodFriends], idx) => (
+                            <div key={`${neighborhood}-${idx}`} className="flex items-center justify-between p-2 bg-white/30 rounded-lg">
+                              <div className="flex items-center space-x-3">
+                                <div 
+                                  className="w-3 h-3 rounded-full"
+                                  style={{ backgroundColor: `var(--${group.color})`, opacity: 0.7 }}
+                                ></div>
+                                <span className="text-sm text-gray-700">{neighborhood}</span>
+                              </div>
+                              <div className="text-right">
+                                <div className="text-sm font-medium text-gray-700">{(neighborhoodFriends as Friend[]).length}</div>
+                                <div className="text-xs text-gray-500">
+                                  {(neighborhoodFriends as Friend[]).map(f => `${f.firstName} ${f.lastName || ''}`.trim()).join(', ')}
+                                </div>
+                              </div>
+                            </div>
+                          ));
+                        })()}
+                      </div>
+                    )}
                   </div>
                 ))}
               </div>
