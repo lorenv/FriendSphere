@@ -22,6 +22,7 @@ export default function AddFriend() {
   const [, setLocation] = useLocation();
   const { toast } = useToast();
   const [selectedInterests, setSelectedInterests] = useState<string[]>([]);
+  const [selectedPhoto, setSelectedPhoto] = useState<string | null>(null);
 
   const { data: existingFriends = [] } = useQuery<Friend[]>({
     queryKey: ["/api/friends"],
@@ -68,7 +69,12 @@ export default function AddFriend() {
   });
 
   const onSubmit = (data: InsertFriend) => {
-    createFriendMutation.mutate(data);
+    const friendData = {
+      ...data,
+      interests: selectedInterests,
+      photo: selectedPhoto || data.photo
+    };
+    createFriendMutation.mutate(friendData);
   };
 
   const toggleInterest = (interest: string) => {
@@ -77,6 +83,31 @@ export default function AddFriend() {
         ? prev.filter(i => i !== interest)
         : [...prev, interest]
     );
+  };
+
+  const handlePhotoSelect = (photoUrl: string) => {
+    setSelectedPhoto(photoUrl);
+    toast({
+      title: "Photo Selected",
+      description: "Instagram photo has been set as profile picture.",
+    });
+  };
+
+  const handleContactImport = (contacts: any[]) => {
+    // Auto-fill form with first contact data
+    if (contacts.length > 0) {
+      const contact = contacts[0];
+      form.setValue('firstName', contact.full_name?.split(' ')[0] || contact.username);
+      form.setValue('lastName', contact.full_name?.split(' ').slice(1).join(' ') || '');
+      if (contact.profile_picture) {
+        setSelectedPhoto(contact.profile_picture);
+      }
+      
+      toast({
+        title: "Contact Imported",
+        description: `Filled form with ${contact.username}'s information.`,
+      });
+    }
   };
 
   return (
@@ -106,11 +137,23 @@ export default function AddFriend() {
               </CardHeader>
               <CardContent className="space-y-4">
                 
-                {/* Photo Upload Placeholder */}
-                <div className="flex justify-center">
-                  <div className="w-24 h-24 rounded-2xl bg-gray-100 flex items-center justify-center cursor-pointer hover:bg-gray-200 transition-colors">
-                    <Camera size={32} className="text-gray-400" />
+                {/* Photo Upload */}
+                <div className="flex flex-col items-center space-y-3">
+                  <div className="w-24 h-24 rounded-2xl bg-gray-100 flex items-center justify-center overflow-hidden">
+                    {selectedPhoto ? (
+                      <img 
+                        src={selectedPhoto} 
+                        alt="Profile" 
+                        className="w-full h-full object-cover"
+                      />
+                    ) : (
+                      <Camera size={32} className="text-gray-400" />
+                    )}
                   </div>
+                  <InstagramIntegration 
+                    onPhotoSelect={handlePhotoSelect}
+                    onContactImport={handleContactImport}
+                  />
                 </div>
 
                 <FormField
