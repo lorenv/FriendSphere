@@ -560,26 +560,24 @@ export default function NetworkMap() {
                           const neighborhoods = locationClusters.neighborhoods.get(group.location);
                           if (!neighborhoods) return null;
                           
-                          return Array.from(neighborhoods.entries()).map((entry, idx) => {
-                            const [neighborhood, neighborhoodFriends] = entry as [string, Friend[]];
-                            return (
-                              <div key={`${neighborhood}-${idx}`} className="flex items-center justify-between p-2 bg-white/30 rounded-lg">
-                                <div className="flex items-center space-x-3">
-                                  <div 
-                                    className="w-3 h-3 rounded-full"
-                                    style={{ backgroundColor: `var(--${group.color})`, opacity: 0.7 }}
-                                  ></div>
-                                  <span className="text-sm text-gray-700">{neighborhood}</span>
-                                </div>
-                                <div className="text-right">
-                                  <div className="text-sm font-medium text-gray-700">{neighborhoodFriends.length}</div>
-                                  <div className="text-xs text-gray-500">
-                                    {neighborhoodFriends.map(f => `${f.firstName} ${f.lastName || ''}`.trim()).join(', ')}
-                                  </div>
+                          const entries = Array.from(neighborhoods.entries()) as [string, Friend[]][];
+                          return entries.map(([neighborhood, neighborhoodFriends], idx) => (
+                            <div key={`${neighborhood}-${idx}`} className="flex items-center justify-between p-2 bg-white/30 rounded-lg">
+                              <div className="flex items-center space-x-3">
+                                <div 
+                                  className="w-3 h-3 rounded-full"
+                                  style={{ backgroundColor: `var(--${group.color})`, opacity: 0.7 }}
+                                ></div>
+                                <span className="text-sm text-gray-700">{neighborhood}</span>
+                              </div>
+                              <div className="text-right">
+                                <div className="text-sm font-medium text-gray-700">{neighborhoodFriends.length}</div>
+                                <div className="text-xs text-gray-500">
+                                  {neighborhoodFriends.map(f => `${f.firstName} ${f.lastName || ''}`.trim()).join(', ')}
                                 </div>
                               </div>
-                            );
-                          });
+                            </div>
+                          ));
                         })()}
                       </div>
                     )}
