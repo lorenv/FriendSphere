@@ -3,9 +3,10 @@ import { useState, useEffect, useMemo } from "react";
 import { Friend, Relationship } from "@shared/schema";
 import { BottomNavigation } from "@/components/bottom-navigation";
 import { FRIEND_CATEGORIES } from "@/lib/constants";
-import { ArrowLeft, ZoomIn, ZoomOut } from "lucide-react";
+import { ArrowLeft, ZoomIn, ZoomOut, MapPin, Users, Network } from "lucide-react";
 import { useLocation } from "wouter";
 import { Button } from "@/components/ui/button";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
 interface NetworkNode {
   id: number;
@@ -21,6 +22,14 @@ interface NetworkLink {
   source: number;
   target: number;
   type: string;
+}
+
+interface LocationGroup {
+  location: string;
+  friends: Friend[];
+  x: number;
+  y: number;
+  color: string;
 }
 
 export default function NetworkMap() {
@@ -53,49 +62,119 @@ export default function NetworkMap() {
     enabled: friends.length > 0,
   });
 
+  // Location-based grouping
+  const locationData = useMemo(() => {
+    if (friends.length === 0) return [];
+    
+    const locationGroups = new Map<string, Friend[]>();
+    
+    friends.forEach(friend => {
+      const location = friend.location || 'Unknown Location';
+      if (!locationGroups.has(location)) {
+        locationGroups.set(location, []);
+      }
+      locationGroups.get(location)!.push(friend);
+    });
+
+    const colors = ['coral', 'turquoise', 'mint', 'sky', 'lavender'];
+    let colorIndex = 0;
+
+    return Array.from(locationGroups.entries()).map(([location, friendList], index) => {
+      const angle = (index / locationGroups.size) * 2 * Math.PI;
+      const centerX = 200;
+      const centerY = 300;
+      const radius = 100;
+      
+      return {
+        location,
+        friends: friendList,
+        x: centerX + Math.cos(angle) * radius,
+        y: centerY + Math.sin(angle) * radius,
+        color: colors[colorIndex++ % colors.length],
+      };
+    });
+  }, [friends]);
+
+  // Relationship network data (family tree style)
   const networkData = useMemo(() => {
     if (friends.length === 0) return { nodes: [], links: [] };
 
-    const centerX = 200;
-    const centerY = 300;
-    const radius = 120;
+    // Create a hierarchical layout based on introduction relationships
+    const levels = new Map<number, number>();
+    const processedFriends = new Set<number>();
+    const rootFriends: Friend[] = [];
+    
+    // Find root friends (not introduced by anyone)
+    friends.forEach(friend => {
+      if (!friend.introducedBy) {
+        rootFriends.push(friend);
+        levels.set(friend.id, 0);
+        processedFriends.add(friend.id);
+      }
+    });
 
-    // Create nodes
-    const nodes: NetworkNode[] = friends.map((friend, index) => {
-      const angle = (index / friends.length) * 2 * Math.PI;
+    // Build levels based on introduction chains
+    let currentLevel = 1;
+    let remainingFriends = friends.filter(f => !processedFriends.has(f.id));
+    
+    while (remainingFriends.length > 0 && currentLevel < 5) {
+      const currentLevelFriends: Friend[] = [];
+      
+      remainingFriends.forEach(friend => {
+        if (friend.introducedBy && processedFriends.has(friend.introducedBy)) {
+          levels.set(friend.id, currentLevel);
+          processedFriends.add(friend.id);
+          currentLevelFriends.push(friend);
+        }
+      });
+      
+      if (currentLevelFriends.length === 0) break;
+      
+      remainingFriends = remainingFriends.filter(f => !processedFriends.has(f.id));
+      currentLevel++;
+    }
+
+    // Position remaining friends at the bottom level
+    remainingFriends.forEach(friend => {
+      levels.set(friend.id, currentLevel);
+    });
+
+    // Create nodes with hierarchical positioning
+    const nodes: NetworkNode[] = friends.map(friend => {
+      const level = levels.get(friend.id) || 0;
+      const friendsAtLevel = friends.filter(f => levels.get(f.id) === level);
+      const indexAtLevel = friendsAtLevel.findIndex(f => f.id === friend.id);
+      
       const category = FRIEND_CATEGORIES[friend.category as keyof typeof FRIEND_CATEGORIES] || FRIEND_CATEGORIES.friends;
+      
+      const x = 50 + (indexAtLevel * 300 / Math.max(1, friendsAtLevel.length - 1));
+      const y = 80 + (level * 80);
       
       return {
         id: friend.id,
         name: `${friend.firstName} ${friend.lastName || ''}`.trim(),
         category: friend.category,
-        x: centerX + Math.cos(angle) * radius,
-        y: centerY + Math.sin(angle) * radius,
+        x: Math.min(350, Math.max(50, x)),
+        y,
         color: category.color,
         connections: [],
       };
     });
 
-    // Create links based on relationships
+    // Create links based on introduction relationships
     const links: NetworkLink[] = [];
-    allRelationships.forEach(rel => {
-      links.push({
-        source: rel.friendId,
-        target: rel.relatedFriendId,
-        type: rel.relationshipType,
-      });
-    });
-
-    // Update connection counts
-    links.forEach(link => {
-      const sourceNode = nodes.find(n => n.id === link.source);
-      const targetNode = nodes.find(n => n.id === link.target);
-      if (sourceNode) sourceNode.connections.push(link.target);
-      if (targetNode) targetNode.connections.push(link.source);
+    friends.forEach(friend => {
+      if (friend.introducedBy) {
+        links.push({
+          source: friend.introducedBy,
+          target: friend.id,
+          type: 'introduced_by',
+        });
+      }
     });
 
     return { nodes, links };
-  }, [friends, allRelationships]);
+  }, [friends]);
 
   const handleNodeClick = (nodeId: number) => {
     if (selectedNode === nodeId) {
@@ -107,24 +186,27 @@ export default function NetworkMap() {
 
   if (friends.length === 0) {
     return (
-      <div className="max-w-md mx-auto bg-white min-h-screen relative overflow-hidden">
-        <div className="gradient-bg px-6 pt-12 pb-6 text-white">
-          <div className="flex items-center justify-between mb-4">
-            <button 
-              onClick={() => setLocation("/")}
-              className="p-2 bg-white/20 rounded-full"
-            >
-              <ArrowLeft size={20} />
-            </button>
-            <h1 className="text-xl font-bold">Network Map</h1>
-            <div className="w-10"></div>
-          </div>
+      <div className="min-h-screen bg-gradient-to-br from-coral via-turquoise to-mint pb-20">
+        <div className="bg-white/10 backdrop-blur-sm px-4 py-3 flex items-center justify-between">
+          <button 
+            onClick={() => setLocation("/")}
+            className="p-2 text-white hover:bg-white/20 rounded-xl"
+          >
+            <ArrowLeft size={24} />
+          </button>
+          <h1 className="text-xl font-bold text-white">Maps</h1>
+          <div className="w-10"></div>
         </div>
         
-        <div className="flex items-center justify-center h-64">
-          <div className="text-center">
-            <div className="text-gray-500 mb-2">No friends to map</div>
-            <p className="text-sm text-gray-400">Add some friends to see your network</p>
+        <div className="p-4">
+          <div className="bg-white/90 rounded-3xl p-6 card-shadow">
+            <div className="text-center py-12">
+              <div className="text-gray-400 mb-4">
+                <Network size={48} className="mx-auto" />
+              </div>
+              <h3 className="text-lg font-semibold text-gray-600 mb-2">No Friends Yet</h3>
+              <p className="text-gray-500">Add some friends to see your maps!</p>
+            </div>
           </div>
         </div>
         <BottomNavigation />
@@ -133,171 +215,220 @@ export default function NetworkMap() {
   }
 
   return (
-    <div className="max-w-md mx-auto bg-white min-h-screen relative overflow-hidden">
+    <div className="min-h-screen bg-gradient-to-br from-coral via-turquoise to-mint pb-20">
       {/* Header */}
-      <div className="gradient-bg px-6 pt-12 pb-6 text-white">
-        <div className="flex items-center justify-between mb-4">
-          <button 
-            onClick={() => setLocation("/")}
-            className="p-2 bg-white/20 rounded-full"
-          >
-            <ArrowLeft size={20} />
-          </button>
-          <h1 className="text-xl font-bold">Network Map</h1>
-          <div className="w-10"></div>
-        </div>
-        
-        <p className="text-white/80 text-sm">Visualize your friend connections</p>
-      </div>
-
-      {/* Controls */}
-      <div className="px-6 py-4 flex justify-between items-center">
+      <div className="bg-white/10 backdrop-blur-sm px-4 py-3 flex items-center justify-between">
+        <button 
+          onClick={() => setLocation("/")}
+          className="p-2 text-white hover:bg-white/20 rounded-xl"
+        >
+          <ArrowLeft size={24} />
+        </button>
+        <h1 className="text-xl font-bold text-white">Maps</h1>
         <div className="flex space-x-2">
-          <Button 
-            variant="outline" 
+          <Button
+            variant="ghost"
             size="sm"
-            onClick={() => setZoom(Math.max(0.5, zoom - 0.1))}
+            onClick={() => setZoom(prev => Math.min(prev + 0.2, 2))}
+            className="text-white hover:bg-white/20"
           >
-            <ZoomOut size={16} />
+            <ZoomIn size={20} />
           </Button>
-          <Button 
-            variant="outline" 
+          <Button
+            variant="ghost"
             size="sm"
-            onClick={() => setZoom(Math.min(2, zoom + 0.1))}
+            onClick={() => setZoom(prev => Math.max(prev - 0.2, 0.5))}
+            className="text-white hover:bg-white/20"
           >
-            <ZoomIn size={16} />
+            <ZoomOut size={20} />
           </Button>
-        </div>
-        <div className="text-sm text-gray-500">
-          {friends.length} friends
         </div>
       </div>
 
-      {/* Network Visualization */}
-      <div className="px-6 pb-24">
-        <div className="bg-gray-50 rounded-3xl p-6 h-96 relative overflow-hidden">
-          <svg 
-            width="100%" 
-            height="100%" 
-            viewBox="0 0 400 600"
-            style={{ transform: `scale(${zoom})` }}
-            className="transition-transform duration-200"
-          >
-            {/* Links */}
-            {networkData.links.map((link, index) => {
-              const sourceNode = networkData.nodes.find(n => n.id === link.source);
-              const targetNode = networkData.nodes.find(n => n.id === link.target);
-              if (!sourceNode || !targetNode) return null;
-              
-              return (
-                <line
-                  key={index}
-                  x1={sourceNode.x}
-                  y1={sourceNode.y}
-                  x2={targetNode.x}
-                  y2={targetNode.y}
-                  stroke="#E5E7EB"
-                  strokeWidth="2"
-                  opacity={selectedNode && (selectedNode === link.source || selectedNode === link.target) ? 1 : 0.3}
-                />
-              );
-            })}
+      {/* Tab Navigation */}
+      <div className="p-4">
+        <Tabs defaultValue="network" className="w-full">
+          <TabsList className="grid w-full grid-cols-2 mb-6">
+            <TabsTrigger value="network" className="flex items-center space-x-2">
+              <Network size={16} />
+              <span>Relationship Tree</span>
+            </TabsTrigger>
+            <TabsTrigger value="location" className="flex items-center space-x-2">
+              <MapPin size={16} />
+              <span>Location Map</span>
+            </TabsTrigger>
+          </TabsList>
 
-            {/* Nodes */}
-            {networkData.nodes.map((node) => {
-              const isSelected = selectedNode === node.id;
-              const isConnected = selectedNode && node.connections.includes(selectedNode);
-              const opacity = selectedNode && !isSelected && !isConnected ? 0.3 : 1;
-              
-              return (
-                <g key={node.id} opacity={opacity}>
-                  <circle
-                    cx={node.x}
-                    cy={node.y}
-                    r={isSelected ? 25 : 20}
-                    fill={`hsl(${node.color === 'coral' ? '2, 100%, 69%' : 
-                                 node.color === 'turquoise' ? '177, 48%, 60%' :
-                                 node.color === 'sky' ? '202, 65%, 56%' :
-                                 node.color === 'mint' ? '146, 33%, 67%' :
-                                 '300, 47%, 72%'})`}
-                    stroke="white"
-                    strokeWidth={isSelected ? 4 : 2}
-                    className="cursor-pointer transition-all duration-200"
-                    onClick={() => handleNodeClick(node.id)}
-                  />
-                  <text
-                    x={node.x}
-                    y={node.y + 35}
-                    textAnchor="middle"
-                    fontSize="12"
-                    fill="#374151"
-                    className="pointer-events-none"
-                  >
-                    {node.name.split(' ')[0]}
-                  </text>
-                </g>
-              );
-            })}
-          </svg>
-
-          {/* Selected Node Info */}
-          {selectedNode && (
-            <div className="absolute bottom-4 left-4 right-4 bg-white rounded-2xl p-4 card-shadow">
-              {(() => {
-                const node = networkData.nodes.find(n => n.id === selectedNode);
-                if (!node) return null;
-                const friend = friends.find(f => f.id === selectedNode);
-                if (!friend) return null;
-                
-                return (
-                  <div>
-                    <h3 className="font-semibold text-dark-gray">{`${friend.firstName} ${friend.lastName || ''}`.trim()}</h3>
-                    <p className="text-sm text-gray-500">
-                      {FRIEND_CATEGORIES[friend.category as keyof typeof FRIEND_CATEGORIES]?.label}
-                    </p>
-                    <p className="text-xs text-gray-400 mt-1">
-                      {node.connections.length} connections
-                    </p>
-                    <Button 
-                      size="sm" 
-                      className="mt-2 w-full bg-coral hover:bg-coral/90"
-                      onClick={() => setLocation(`/friends/${selectedNode}`)}
+          {/* Relationship Network Tab */}
+          <TabsContent value="network">
+            <div className="bg-white/90 rounded-3xl p-6 card-shadow">
+              <div className="mb-4">
+                <h3 className="text-lg font-semibold text-gray-800 mb-2">Relationship Tree</h3>
+                <p className="text-sm text-gray-600">Shows how your friends are connected through introductions</p>
+              </div>
+              <div className="relative overflow-auto" style={{ height: '500px' }}>
+                <svg 
+                  width="400" 
+                  height="600" 
+                  style={{ transform: `scale(${zoom})` }}
+                  className="transition-transform duration-200"
+                >
+                  {/* Arrow marker definition */}
+                  <defs>
+                    <marker
+                      id="arrowhead"
+                      markerWidth="10"
+                      markerHeight="7"
+                      refX="9"
+                      refY="3.5"
+                      orient="auto"
                     >
-                      View Details
-                    </Button>
-                  </div>
-                );
-              })()}
-            </div>
-          )}
-        </div>
+                      <polygon
+                        points="0 0, 10 3.5, 0 7"
+                        fill="#94a3b8"
+                      />
+                    </marker>
+                  </defs>
 
-        {/* Legend */}
-        <div className="mt-4 bg-white rounded-2xl p-4 card-shadow">
-          <h3 className="font-semibold text-dark-gray mb-3">Categories</h3>
-          <div className="grid grid-cols-2 gap-2">
-            {Object.entries(FRIEND_CATEGORIES).map(([key, category]) => {
-              const count = friends.filter(f => f.category === key).length;
-              if (count === 0) return null;
+                  {/* Draw links first (behind nodes) */}
+                  {networkData.links.map((link, index) => {
+                    const sourceNode = networkData.nodes.find(n => n.id === link.source);
+                    const targetNode = networkData.nodes.find(n => n.id === link.target);
+                    if (!sourceNode || !targetNode) return null;
+
+                    return (
+                      <line
+                        key={index}
+                        x1={sourceNode.x}
+                        y1={sourceNode.y}
+                        x2={targetNode.x}
+                        y2={targetNode.y}
+                        stroke="#94a3b8"
+                        strokeWidth="2"
+                        markerEnd="url(#arrowhead)"
+                      />
+                    );
+                  })}
+
+                  {/* Draw nodes */}
+                  {networkData.nodes.map(node => (
+                    <g key={node.id}>
+                      <circle
+                        cx={node.x}
+                        cy={node.y}
+                        r={selectedNode === node.id ? "24" : "20"}
+                        fill={`var(--${node.color})`}
+                        stroke="white"
+                        strokeWidth="3"
+                        className="cursor-pointer transition-all duration-200"
+                        onClick={() => handleNodeClick(node.id)}
+                      />
+                      <text
+                        x={node.x}
+                        y={node.y + 35}
+                        textAnchor="middle"
+                        className="text-xs font-medium fill-gray-700 cursor-pointer"
+                        onClick={() => handleNodeClick(node.id)}
+                      >
+                        {node.name.length > 12 ? node.name.substring(0, 12) + '...' : node.name}
+                      </text>
+                    </g>
+                  ))}
+                </svg>
+              </div>
+            </div>
+          </TabsContent>
+
+          {/* Location Map Tab */}
+          <TabsContent value="location">
+            <div className="bg-white/90 rounded-3xl p-6 card-shadow">
+              <div className="mb-4">
+                <h3 className="text-lg font-semibold text-gray-800 mb-2">Friends by Location</h3>
+                <p className="text-sm text-gray-600">Geographic distribution of your friend network</p>
+              </div>
+              <div className="relative overflow-hidden" style={{ height: '400px' }}>
+                <svg 
+                  width="100%" 
+                  height="100%" 
+                  style={{ transform: `scale(${zoom})` }}
+                  className="transition-transform duration-200"
+                >
+                  {/* Draw location groups */}
+                  {locationData.map((group, index) => (
+                    <g key={index}>
+                      {/* Location circle */}
+                      <circle
+                        cx={group.x}
+                        cy={group.y}
+                        r={Math.max(30, group.friends.length * 8)}
+                        fill={`var(--${group.color})`}
+                        fillOpacity="0.3"
+                        stroke={`var(--${group.color})`}
+                        strokeWidth="3"
+                        className="cursor-pointer"
+                      />
+                      
+                      {/* Location label */}
+                      <text
+                        x={group.x}
+                        y={group.y - Math.max(35, group.friends.length * 8 + 5)}
+                        textAnchor="middle"
+                        className="text-sm font-bold fill-gray-800"
+                      >
+                        {group.location}
+                      </text>
+                      
+                      {/* Friend count */}
+                      <text
+                        x={group.x}
+                        y={group.y}
+                        textAnchor="middle"
+                        className="text-lg font-bold fill-white"
+                      >
+                        {group.friends.length}
+                      </text>
+                      
+                      {/* Friend names */}
+                      <text
+                        x={group.x}
+                        y={group.y + 15}
+                        textAnchor="middle"
+                        className="text-xs fill-gray-700"
+                      >
+                        {group.friends.length === 1 
+                          ? `${group.friends[0].firstName} ${group.friends[0].lastName || ''}`.trim()
+                          : `${group.friends.length} friends`
+                        }
+                      </text>
+                    </g>
+                  ))}
+                </svg>
+              </div>
               
-              return (
-                <div key={key} className="flex items-center space-x-2">
-                  <div 
-                    className="w-4 h-4 rounded-full"
-                    style={{ 
-                      backgroundColor: `hsl(${category.color === 'coral' ? '2, 100%, 69%' : 
-                                                 category.color === 'turquoise' ? '177, 48%, 60%' :
-                                                 category.color === 'sky' ? '202, 65%, 56%' :
-                                                 category.color === 'mint' ? '146, 33%, 67%' :
-                                                 '300, 47%, 72%'})` 
-                    }}
-                  />
-                  <span className="text-sm text-gray-600">{category.label} ({count})</span>
-                </div>
-              );
-            })}
-          </div>
-        </div>
+              {/* Location breakdown */}
+              <div className="mt-6 space-y-3">
+                <h4 className="font-semibold text-gray-800">Location Breakdown</h4>
+                {locationData.map((group, index) => (
+                  <div key={index} className="flex items-center justify-between p-3 bg-white/50 rounded-xl">
+                    <div className="flex items-center space-x-3">
+                      <div 
+                        className="w-4 h-4 rounded-full"
+                        style={{ backgroundColor: `var(--${group.color})` }}
+                      ></div>
+                      <span className="font-medium text-gray-800">{group.location}</span>
+                    </div>
+                    <div className="text-right">
+                      <div className="font-bold text-gray-800">{group.friends.length}</div>
+                      <div className="text-xs text-gray-500">
+                        {group.friends.length === 1 ? 'friend' : 'friends'}
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </TabsContent>
+        </Tabs>
       </div>
 
       <BottomNavigation />
