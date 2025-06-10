@@ -144,7 +144,7 @@ export default function Home() {
               <div className="bg-gradient-to-br from-sky to-sky/80 rounded-3xl p-4 text-white card-shadow cursor-pointer">
                 <div className="flex items-center justify-between mb-3">
                   <Briefcase size={24} />
-                  <span className="text-2xl font-bold">{stats?.categoryBreakdown?.work_friends || 0}</span>
+                  <span className="text-2xl font-bold">{stats.categoryBreakdown?.work_friends || 0}</span>
                 </div>
                 <h3 className="font-semibold">Work Friends</h3>
                 <p className="text-xs text-white/80">Professional network</p>
@@ -155,7 +155,7 @@ export default function Home() {
               <div className="bg-gradient-to-br from-mint to-mint/80 rounded-3xl p-4 text-white card-shadow cursor-pointer">
                 <div className="flex items-center justify-between mb-3">
                   <UserPlus size={24} />
-                  <span className="text-2xl font-bold">{stats?.categoryBreakdown?.new_friends || 0}</span>
+                  <span className="text-2xl font-bold">{stats.categoryBreakdown?.new_friends || 0}</span>
                 </div>
                 <h3 className="font-semibold">New Friends</h3>
                 <p className="text-xs text-white/80">Recently met</p>
