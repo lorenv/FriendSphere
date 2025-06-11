@@ -283,16 +283,13 @@ export default function EditFriend() {
               </Button>
               <h1 className="text-3xl font-bold text-white ml-2">Edit Friend</h1>
             </div>
-            <Button
-              variant="destructive"
-              size="sm"
+            <button 
               onClick={handleDelete}
               disabled={deleteMutation.isPending}
-              className="bg-red-500 hover:bg-red-600"
+              className="p-2 bg-red-500/80 hover:bg-red-600/80 rounded-full transition-colors"
             >
-              <Trash2 size={16} className="mr-2" />
-              Delete
-            </Button>
+              <Trash2 size={20} />
+            </button>
           </div>
         </div>
       </div>
