@@ -34,21 +34,17 @@ export default function Friends() {
 
   // Navigation helper functions
   const navigateToCategory = (category: string) => {
-    const currentParams = new URLSearchParams(window.location.search);
+    // Clear all filters and set only the category filter
     if (category === "all") {
-      currentParams.delete('category');
+      setLocation('/friends');
     } else {
-      currentParams.set('category', category);
+      setLocation(`/friends?category=${category}`);
     }
-    const newUrl = currentParams.toString() ? `/friends?${currentParams.toString()}` : '/friends';
-    setLocation(newUrl);
   };
 
   const navigateToNewFriends = () => {
-    const currentParams = new URLSearchParams(window.location.search);
-    currentParams.delete('category');
-    currentParams.set('view', 'new');
-    setLocation(`/friends?${currentParams.toString()}`);
+    // Clear all filters and set only the new friends view
+    setLocation('/friends?view=new');
   };
 
   // Update filter when URL changes
@@ -63,17 +59,19 @@ export default function Friends() {
     
     console.log('Category filter from URL:', categoryFilter);
     console.log('View filter from URL:', viewFilter);
-    console.log('Current selectedRelationshipLevel:', selectedRelationshipLevel);
     
-    if (categoryFilter && categoryFilter !== selectedRelationshipLevel) {
-      console.log('Setting relationship level to:', categoryFilter);
+    // Update state based on URL parameters
+    if (viewFilter === 'new') {
+      setShowNewFriendsOnly(true);
+      setSelectedRelationshipLevel("all");
+    } else if (categoryFilter) {
       setSelectedRelationshipLevel(categoryFilter);
       setShowNewFriendsOnly(false);
-    } else if (!categoryFilter && selectedRelationshipLevel !== "all") {
-      console.log('No category filter, setting to all');
+    } else {
       setSelectedRelationshipLevel("all");
+      setShowNewFriendsOnly(false);
     }
-  }, [location, selectedRelationshipLevel]);
+  }, [location]);
 
   // Get current URL parameters for use in rendering
   const urlParams = new URLSearchParams(window.location.search);
