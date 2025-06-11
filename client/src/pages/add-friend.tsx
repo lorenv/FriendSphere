@@ -7,6 +7,7 @@ import { insertFriendSchema, type InsertFriend } from "@shared/schema";
 import { queryClient, apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import { INTERESTS, LIFESTYLE_OPTIONS, RELATIONSHIP_LEVELS } from "@/lib/constants";
+import { ContactImportModal } from "@/components/contact-import-modal";
 import { ArrowLeft, Camera, Plus, X, UserPlus, Phone, Mail, Upload, FileText } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -20,13 +21,7 @@ import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "
 import { LocationSearch } from "@/components/location-search";
 import { RelationshipLevelSelector } from "@/components/relationship-level-selector";
 
-interface Contact {
-  id: string;
-  firstName: string;
-  lastName?: string;
-  phoneNumbers: string[];
-  emails: string[];
-}
+
 
 export default function AddFriend() {
   const [, setLocation] = useLocation();
@@ -34,8 +29,6 @@ export default function AddFriend() {
   const [customInterest, setCustomInterest] = useState("");
   const [selectedInterests, setSelectedInterests] = useState<string[]>([]);
   const [showContactImport, setShowContactImport] = useState(false);
-  const [contacts, setContacts] = useState<Contact[]>([]);
-  const [showImportOptions, setShowImportOptions] = useState(false);
 
   const form = useForm<InsertFriend>({
     resolver: zodResolver(insertFriendSchema),
@@ -113,178 +106,21 @@ export default function AddFriend() {
     }
   };
 
-  const importFromContacts = async () => {
-    // Detect browser and platform
-    const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent);
-    const isSafari = /Safari/.test(navigator.userAgent) && !/Chrome/.test(navigator.userAgent);
-    const isAndroidChrome = /Android/.test(navigator.userAgent) && /Chrome/.test(navigator.userAgent);
-
-    // Check for Contact Picker API support
-    if ('contacts' in navigator && 'ContactsManager' in window) {
-      try {
-        const props = ['name', 'tel', 'email'];
-        const contacts = await (navigator as any).contacts.select(props, { multiple: false });
-        
-        if (contacts && contacts.length > 0) {
-          const contact = contacts[0];
-          const firstName = contact.name?.[0] || '';
-          const lastName = contact.name?.slice(1).join(' ') || '';
-          const phone = contact.tel?.[0] || '';
-          const email = contact.email?.[0] || '';
-          
-          form.setValue("firstName", firstName);
-          form.setValue("lastName", lastName);
-          form.setValue("phone", phone);
-          form.setValue("email", email);
-          
-          toast({
-            title: "Contact Imported",
-            description: `Successfully imported ${firstName} ${lastName}`,
-          });
-          return;
-        }
-      } catch (error) {
-        if ((error as Error).name === 'AbortError') {
-          return; // User cancelled
-        }
-      }
-    }
-
-    // Show browser-specific guidance
-    if (isIOS && isSafari) {
-      toast({
-        title: "Contact Import Not Available",
-        description: "Safari on iOS doesn't support contact import. You can manually enter contact details or share a contact via vCard file.",
-      });
-    } else if (isAndroidChrome) {
-      toast({
-        title: "Contact Import Not Available", 
-        description: "Contact access may require enabling permissions in Chrome settings.",
-      });
-    } else {
-      setShowImportOptions(true);
-    }
+  const handleContactImport = (contactData: { firstName: string; lastName: string; phone: string; email: string; }) => {
+    form.setValue("firstName", contactData.firstName);
+    form.setValue("lastName", contactData.lastName);
+    form.setValue("phone", contactData.phone);
+    form.setValue("email", contactData.email);
+    
+    toast({
+      title: "Contact Imported",
+      description: `Successfully imported ${contactData.firstName} ${contactData.lastName}`,
+    });
   };
 
-  const showContactImportFallback = () => {
-    setShowImportOptions(true);
-  };
 
-  const handleFileImport = (event: React.ChangeEvent<HTMLInputElement>) => {
-    const file = event.target.files?.[0];
-    if (file && file.type === 'text/vcard') {
-      const reader = new FileReader();
-      reader.onload = (e) => {
-        const vcardData = e.target?.result as string;
-        parseVCard(vcardData);
-      };
-      reader.readAsText(file);
-    } else {
-      toast({
-        title: "Invalid File",
-        description: "Please select a valid vCard (.vcf) file.",
-        variant: "destructive",
-      });
-    }
-  };
 
-  const parseVCard = (vcardData: string) => {
-    try {
-      const lines = vcardData.split('\n');
-      let firstName = '';
-      let lastName = '';
-      let phone = '';
-      let email = '';
 
-      lines.forEach(line => {
-        if (line.startsWith('FN:')) {
-          const fullName = line.substring(3).trim();
-          const nameParts = fullName.split(' ');
-          firstName = nameParts[0] || '';
-          lastName = nameParts.slice(1).join(' ') || '';
-        } else if (line.startsWith('TEL:')) {
-          phone = line.substring(4).trim();
-        } else if (line.startsWith('EMAIL:')) {
-          email = line.substring(6).trim();
-        }
-      });
-
-      // Populate form fields
-      form.setValue("firstName", firstName);
-      form.setValue("lastName", lastName);
-      form.setValue("phone", phone);
-      form.setValue("email", email);
-
-      setShowImportOptions(false);
-      toast({
-        title: "Contact Imported",
-        description: `Successfully imported ${firstName} ${lastName}`,
-      });
-    } catch (error) {
-      toast({
-        title: "Import Failed",
-        description: "Could not parse the contact file.",
-        variant: "destructive",
-      });
-    }
-  };
-
-  const selectContact = (contact: Contact) => {
-    form.setValue("firstName", contact.firstName);
-    form.setValue("lastName", contact.lastName || "");
-    form.setValue("phone", contact.phoneNumbers[0] || "");
-    form.setValue("email", contact.emails[0] || "");
-    setShowContactImport(false);
-  };
-
-  if (showContactImport) {
-    return (
-      <div className="min-h-screen bg-off-white p-4">
-        <div className="max-w-md mx-auto">
-          <div className="flex items-center mb-6">
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={() => setShowContactImport(false)}
-              className="p-2 text-dark-gray hover:text-coral"
-            >
-              <ArrowLeft size={20} />
-            </Button>
-            <h1 className="text-2xl font-bold text-dark-gray ml-2">Import Contact</h1>
-          </div>
-
-          <div className="space-y-3">
-            {contacts.map((contact) => (
-              <Card key={contact.id} className="cursor-pointer hover:shadow-md transition-shadow" onClick={() => selectContact(contact)}>
-                <CardContent className="p-4">
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <h3 className="font-semibold text-dark-gray">
-                        {contact.firstName} {contact.lastName}
-                      </h3>
-                      {contact.phoneNumbers.length > 0 && (
-                        <p className="text-sm text-gray-500 flex items-center mt-1">
-                          <Phone size={14} className="mr-1" />
-                          {contact.phoneNumbers[0]}
-                        </p>
-                      )}
-                      {contact.emails.length > 0 && (
-                        <p className="text-sm text-gray-500 flex items-center mt-1">
-                          <Mail size={14} className="mr-1" />
-                          {contact.emails[0]}
-                        </p>
-                      )}
-                    </div>
-                    <UserPlus size={20} className="text-coral" />
-                  </div>
-                </CardContent>
-              </Card>
-            ))}
-          </div>
-        </div>
-      </div>
-    );
-  }
 
   return (
     <div className="min-h-screen bg-off-white">
@@ -310,11 +146,11 @@ export default function AddFriend() {
                   <Button
                     type="button"
                     variant="outline"
-                    onClick={importFromContacts}
+                    onClick={() => setShowContactImport(true)}
                     className="w-full"
                   >
                     <UserPlus size={16} className="mr-2" />
-                    Import from Contacts
+                    Import Contact
                   </Button>
                 </div>
 
