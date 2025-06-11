@@ -278,6 +278,72 @@ export default function EditFriend() {
           <CardContent className="p-6">
             <Form {...form}>
               <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
+                {/* Photo Upload Section */}
+                <div className="space-y-4">
+                  <Label className="text-sm font-medium">Profile Photo</Label>
+                  
+                  {currentPhoto ? (
+                    <div className="relative w-32 h-32 mx-auto">
+                      <img 
+                        src={currentPhoto} 
+                        alt="Profile preview" 
+                        className="w-full h-full object-cover rounded-2xl"
+                      />
+                      <Button
+                        type="button"
+                        variant="destructive"
+                        size="sm"
+                        onClick={removePhoto}
+                        className="absolute -top-2 -right-2 w-8 h-8 rounded-full p-0"
+                      >
+                        <X size={16} />
+                      </Button>
+                    </div>
+                  ) : (
+                    <div className="w-32 h-32 mx-auto bg-gray-100 rounded-2xl flex items-center justify-center">
+                      <Camera size={32} className="text-gray-400" />
+                    </div>
+                  )}
+
+                  <div className="flex gap-2">
+                    <Button
+                      type="button"
+                      variant="outline"
+                      onClick={() => fileInputRef.current?.click()}
+                      className="flex-1"
+                    >
+                      <Upload size={16} className="mr-2" />
+                      Upload Photo
+                    </Button>
+                    <Button
+                      type="button"
+                      variant="outline"
+                      onClick={() => cameraInputRef.current?.click()}
+                      className="flex-1"
+                    >
+                      <Camera size={16} className="mr-2" />
+                      Take Photo
+                    </Button>
+                  </div>
+
+                  {/* Hidden file inputs */}
+                  <input
+                    ref={fileInputRef}
+                    type="file"
+                    accept="image/*"
+                    onChange={handleFileUpload}
+                    className="hidden"
+                  />
+                  <input
+                    ref={cameraInputRef}
+                    type="file"
+                    accept="image/*"
+                    capture="user"
+                    onChange={handleCameraCapture}
+                    className="hidden"
+                  />
+                </div>
+
                 {/* Basic Info */}
                 <div className="space-y-4">
                   <FormField
