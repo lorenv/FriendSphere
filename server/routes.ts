@@ -3,7 +3,7 @@ import { createServer, type Server } from "http";
 import { storage } from "./storage";
 import { insertFriendSchema, insertRelationshipSchema, insertActivitySchema } from "@shared/schema";
 import { z } from "zod";
-import { getInstagramAuthUrl, handleInstagramCallback, getInstagramProfile, getInstagramMedia, disconnectInstagram } from "./instagram";
+
 
 export async function registerRoutes(app: Express): Promise<Server> {
   // Friends routes
@@ -177,12 +177,75 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Instagram integration routes
-  app.get("/api/instagram/auth", getInstagramAuthUrl);
-  app.get("/api/instagram/callback", handleInstagramCallback);
-  app.get("/api/instagram/profile", getInstagramProfile);
-  app.get("/api/instagram/media", getInstagramMedia);
-  app.post("/api/instagram/disconnect", disconnectInstagram);
+  // Instagram profile photo scraper
+  app.post("/api/instagram/profile-photo", async (req, res) => {
+    try {
+      const { username } = req.body;
+      
+      if (!username) {
+        return res.status(400).json({ error: "Username is required" });
+      }
+      
+      // Clean username (remove @ if present)
+      const cleanUsername = username.replace(/^@/, '');
+      
+      // Validate username format
+      if (!/^[a-zA-Z0-9_.]+$/.test(cleanUsername)) {
+        return res.status(400).json({ error: "Invalid username format" });
+      }
+      
+      // Use Instagram's public profile photo URL pattern
+      const profileUrl = `https://www.instagram.com/${cleanUsername}/`;
+      
+      try {
+        const response = await fetch(profileUrl, {
+          headers: {
+            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36'
+          }
+        });
+        
+        if (!response.ok) {
+          throw new Error('Profile not found');
+        }
+        
+        const html = await response.text();
+        
+        // Extract profile picture URL from HTML
+        const profilePicMatch = html.match(/"profile_pic_url_hd":"([^"]+)"/);
+        if (profilePicMatch) {
+          const profilePicUrl = profilePicMatch[1].replace(/\\u0026/g, '&');
+          return res.json({ 
+            username: cleanUsername,
+            profilePhotoUrl: profilePicUrl,
+            success: true 
+          });
+        }
+        
+        // Fallback to standard profile pic
+        const fallbackMatch = html.match(/"profile_pic_url":"([^"]+)"/);
+        if (fallbackMatch) {
+          const profilePicUrl = fallbackMatch[1].replace(/\\u0026/g, '&');
+          return res.json({ 
+            username: cleanUsername,
+            profilePhotoUrl: profilePicUrl,
+            success: true 
+          });
+        }
+        
+        throw new Error('Could not extract profile picture');
+        
+      } catch (error) {
+        return res.status(404).json({ 
+          error: "Profile not found or private",
+          username: cleanUsername 
+        });
+      }
+      
+    } catch (error) {
+      console.error('Instagram profile photo error:', error);
+      res.status(500).json({ error: "Failed to fetch profile photo" });
+    }
+  });
 
   // Places search route
   app.post("/api/places/search", async (req, res) => {
