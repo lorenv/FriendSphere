@@ -423,6 +423,12 @@ export default function AddFriend() {
           </CardContent>
         </Card>
       </div>
+
+      <ContactImportModal
+        open={showContactImport}
+        onClose={() => setShowContactImport(false)}
+        onImport={handleContactImport}
+      />
     </div>
   );
 }

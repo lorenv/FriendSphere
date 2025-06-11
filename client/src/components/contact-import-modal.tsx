@@ -5,7 +5,7 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent } from "@/components/ui/card";
-import { Upload, Users, FileText, Copy, Share, Smartphone, Camera, Loader2 } from "lucide-react";
+import { Upload, Users, FileText, Copy, Share, Smartphone, Camera, Loader2, Instagram } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { createWorker } from 'tesseract.js';
 
@@ -21,6 +21,7 @@ export function ContactImportModal({ open, onClose, onImport }: ContactImportMod
   const [textInput, setTextInput] = useState("");
   const [isProcessing, setIsProcessing] = useState(false);
   const [extractedText, setExtractedText] = useState("");
+  const [username, setUsername] = useState("");
 
   const parseContactText = (text: string) => {
     const lines = text.split('\n').map(line => line.trim()).filter(Boolean);
@@ -119,6 +120,64 @@ export function ContactImportModal({ open, onClose, onImport }: ContactImportMod
       });
     }
     setIsProcessing(false);
+  };
+
+  const handleInstagramImport = () => {
+    if (!username.trim()) {
+      toast({
+        title: "No Username",
+        description: "Please enter an Instagram username to import.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    // Clean username (remove @ if present)
+    const cleanUsername = username.replace(/^@/, '').trim();
+    
+    // Basic validation
+    if (!/^[a-zA-Z0-9._]+$/.test(cleanUsername)) {
+      toast({
+        title: "Invalid Username",
+        description: "Please enter a valid Instagram username.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    // Extract potential name from username
+    let firstName = "";
+    let lastName = "";
+    
+    // Try to parse common username patterns
+    const nameParts = cleanUsername.split(/[._]/);
+    if (nameParts.length >= 2) {
+      firstName = nameParts[0];
+      lastName = nameParts.slice(1).join(' ');
+    } else {
+      firstName = cleanUsername;
+    }
+
+    // Capitalize first letters
+    firstName = firstName.charAt(0).toUpperCase() + firstName.slice(1);
+    lastName = lastName.charAt(0).toUpperCase() + lastName.slice(1);
+
+    const contactData = {
+      firstName,
+      lastName,
+      phone: "",
+      email: "",
+    };
+
+    onImport(contactData);
+    onClose();
+    setUsername("");
+    setImportMethod(null);
+
+    toast({
+      title: "Instagram Contact Added",
+      description: `Added ${firstName} ${lastName} from Instagram @${cleanUsername}`,
+    });
   };
 
   const handleTextImport = () => {
@@ -287,6 +346,16 @@ export function ContactImportModal({ open, onClose, onImport }: ContactImportMod
                   </div>
                 </CardContent>
               </Card>
+
+              <Card className="cursor-pointer hover:shadow-md transition-shadow" onClick={() => setImportMethod("instagram")}>
+                <CardContent className="p-4 flex items-center space-x-3">
+                  <Instagram className="text-pink-500" size={24} />
+                  <div>
+                    <h3 className="font-medium">Instagram</h3>
+                    <p className="text-sm text-gray-500">Import by username or connect account</p>
+                  </div>
+                </CardContent>
+              </Card>
             </div>
           </div>
         ) : importMethod === "screenshot" ? (
@@ -376,6 +445,41 @@ export function ContactImportModal({ open, onClose, onImport }: ContactImportMod
             <Button variant="outline" onClick={() => setImportMethod(null)} className="w-full">
               Back
             </Button>
+          </div>
+        ) : importMethod === "instagram" ? (
+          <div className="space-y-4">
+            <div>
+              <Label htmlFor="instagram-username">Instagram Username</Label>
+              <Input
+                id="instagram-username"
+                placeholder="@username or username"
+                value={username}
+                onChange={(e) => setUsername(e.target.value)}
+                className="mt-2"
+              />
+              <p className="text-sm text-gray-500 mt-1">
+                Enter the Instagram username (with or without @)
+              </p>
+            </div>
+            
+            <div className="bg-gradient-to-r from-pink-50 to-purple-50 p-3 rounded-lg">
+              <div className="flex items-center space-x-2 mb-2">
+                <Instagram className="text-pink-500" size={16} />
+                <span className="font-medium text-sm">Instagram Import</span>
+              </div>
+              <p className="text-sm text-gray-600">
+                This creates a contact entry with the username. You can add phone/email details later by editing the contact.
+              </p>
+            </div>
+
+            <div className="flex space-x-2">
+              <Button onClick={handleInstagramImport} className="flex-1">
+                Add Contact
+              </Button>
+              <Button variant="outline" onClick={() => setImportMethod(null)}>
+                Back
+              </Button>
+            </div>
           </div>
         ) : (
           <div className="space-y-4">
