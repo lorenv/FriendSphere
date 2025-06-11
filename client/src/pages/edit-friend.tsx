@@ -130,7 +130,11 @@ export default function EditFriend() {
   });
 
   const onSubmit = (data: InsertFriend) => {
-    updateMutation.mutate({ ...data, interests: selectedInterests });
+    updateMutation.mutate({ 
+      ...data, 
+      interests: selectedInterests, 
+      photo: currentPhoto || data.photo 
+    });
   };
 
   const handleLocationChange = (location: string, neighborhood?: string) => {

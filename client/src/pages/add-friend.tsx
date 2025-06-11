@@ -76,7 +76,11 @@ export default function AddFriend() {
   });
 
   const onSubmit = (data: InsertFriend) => {
-    createFriendMutation.mutate({ ...data, interests: selectedInterests });
+    createFriendMutation.mutate({ 
+      ...data, 
+      interests: selectedInterests, 
+      photo: currentPhoto || data.photo 
+    });
   };
 
   const handleLocationChange = (location: string, neighborhood?: string) => {
