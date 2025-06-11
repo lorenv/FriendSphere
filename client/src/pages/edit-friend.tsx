@@ -118,7 +118,7 @@ export default function EditFriend() {
 
   const deleteMutation = useMutation({
     mutationFn: async () => {
-      return await apiRequest(`/api/friends/${id}`, "DELETE");
+      return await apiRequest("DELETE", `/api/friends/${id}`);
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/friends"] });

@@ -18,7 +18,9 @@ import {
   MessageCircle,
   Star,
   Shield,
-  Briefcase
+  Briefcase,
+  Trash2,
+  MoreVertical
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -78,6 +80,33 @@ export default function FriendDetail() {
       });
     },
   });
+
+  const deleteFriendMutation = useMutation({
+    mutationFn: async () => {
+      return await apiRequest("DELETE", `/api/friends/${friendId}`);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/friends"] });
+      toast({
+        title: "Friend deleted",
+        description: "Your friend has been removed from your network.",
+      });
+      setLocation("/friends");
+    },
+    onError: () => {
+      toast({
+        title: "Error",
+        description: "Failed to delete friend",
+        variant: "destructive",
+      });
+    },
+  });
+
+  const handleDelete = () => {
+    if (window.confirm("Are you sure you want to delete this friend? This action cannot be undone.")) {
+      deleteFriendMutation.mutate();
+    }
+  };
 
   const handleSaveNotes = () => {
     updateFriendMutation.mutate({ notes });
@@ -158,12 +187,21 @@ export default function FriendDetail() {
           >
             <ArrowLeft size={20} />
           </button>
-          <button 
-            onClick={() => setLocation(`/friends/${friendId}/edit`)}
-            className="p-2 bg-white/20 rounded-full"
-          >
-            <Edit size={20} />
-          </button>
+          <div className="flex items-center space-x-2">
+            <button 
+              onClick={() => setLocation(`/friends/${friendId}/edit`)}
+              className="p-2 bg-white/20 rounded-full"
+            >
+              <Edit size={20} />
+            </button>
+            <button 
+              onClick={handleDelete}
+              disabled={deleteFriendMutation.isPending}
+              className="p-2 bg-red-500/80 hover:bg-red-600/80 rounded-full transition-colors"
+            >
+              <Trash2 size={20} />
+            </button>
+          </div>
         </div>
 
         {/* Profile */}
