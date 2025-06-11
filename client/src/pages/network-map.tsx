@@ -102,19 +102,40 @@ export default function NetworkMap() {
     }, [])
     .sort((a, b) => b.introducedFriends.length - a.introducedFriends.length);
 
-  // Get location-based connections
-  const locationGroups = friends.reduce((acc: { [key: string]: Friend[] }, friend) => {
+  // Get hierarchical location-based connections
+  const locationHierarchy = friends.reduce((acc: { [key: string]: { [key: string]: Friend[] } }, friend) => {
     if (friend.location) {
-      const key = friend.neighborhood ? `${friend.neighborhood}, ${friend.location}` : friend.location;
-      if (!acc[key]) acc[key] = [];
-      acc[key].push(friend);
+      const city = friend.location;
+      const neighborhood = friend.neighborhood || 'Other areas';
+      
+      if (!acc[city]) acc[city] = {};
+      if (!acc[city][neighborhood]) acc[city][neighborhood] = [];
+      acc[city][neighborhood].push(friend);
     }
     return acc;
   }, {});
 
-  const topLocations = Object.entries(locationGroups)
-    .filter(([, friends]) => friends.length > 1)
-    .sort(([, a], [, b]) => b.length - a.length)
+  // Build hierarchical clusters
+  const locationClusters = Object.entries(locationHierarchy)
+    .map(([city, neighborhoods]) => {
+      const totalFriends = Object.values(neighborhoods).flat().length;
+      const neighborhoodCount = Object.keys(neighborhoods).length;
+      
+      return {
+        city,
+        totalFriends,
+        neighborhoodCount,
+        neighborhoods: Object.entries(neighborhoods)
+          .sort(([, a], [, b]) => b.length - a.length)
+          .map(([neighborhood, friends]) => ({
+            neighborhood,
+            friends,
+            count: friends.length
+          }))
+      };
+    })
+    .filter(cluster => cluster.totalFriends > 1)
+    .sort((a, b) => b.totalFriends - a.totalFriends)
     .slice(0, 5);
 
   const renderOverview = () => (
@@ -214,57 +235,106 @@ export default function NetworkMap() {
       )}
 
       {/* Location Clusters */}
-      {topLocations.length > 0 && (
+      {locationClusters.length > 0 && (
         <div className="bg-white rounded-2xl p-6 card-shadow">
           <div className="flex items-center space-x-3 mb-4">
             <div className="p-2 bg-purple-100 rounded-xl">
               <Users className="text-purple-600" size={20} />
             </div>
             <div>
-              <h3 className="font-semibold text-dark-gray">Friend Clusters</h3>
-              <p className="text-sm text-gray-500">Areas where you have multiple connections</p>
+              <h3 className="font-semibold text-dark-gray">Geographic Clusters</h3>
+              <p className="text-sm text-gray-500">Cities and neighborhoods with multiple connections</p>
             </div>
           </div>
 
-          <div className="space-y-3">
-            {topLocations.map(([location, locationFriends]) => (
-              <div 
-                key={location}
-                className="flex items-center justify-between p-3 bg-gray-50 rounded-xl"
-              >
-                <div className="flex-1">
-                  <p className="font-medium text-dark-gray">{location}</p>
-                  <p className="text-sm text-gray-500">{locationFriends.length} friends</p>
+          <div className="space-y-4">
+            {locationClusters.map((cluster) => (
+              <div key={cluster.city} className="space-y-2">
+                {/* City Header */}
+                <div className="flex items-center justify-between p-3 bg-gray-50 rounded-xl">
+                  <div className="flex-1">
+                    <p className="font-medium text-dark-gray">{cluster.city}</p>
+                    <p className="text-sm text-gray-500">
+                      {cluster.totalFriends} friends in {cluster.neighborhoodCount} area{cluster.neighborhoodCount !== 1 ? 's' : ''}
+                    </p>
+                  </div>
+                  <div className="flex -space-x-2">
+                    {cluster.neighborhoods.flatMap(n => n.friends).slice(0, 4).map((friend) => {
+                      const { color } = getRelationshipColors(friend.relationshipLevel || 'acquaintance');
+                      return (
+                        <div 
+                          key={friend.id}
+                          className={`w-8 h-8 rounded-full bg-gradient-to-br ${color} flex items-center justify-center border-2 border-white overflow-hidden`}
+                        >
+                          {friend.photo ? (
+                            <img 
+                              src={friend.photo} 
+                              alt={friend.firstName}
+                              className="w-full h-full object-cover"
+                            />
+                          ) : (
+                            <span className="text-white font-semibold text-xs">
+                              {friend.firstName.charAt(0)}
+                            </span>
+                          )}
+                        </div>
+                      );
+                    })}
+                    {cluster.totalFriends > 4 && (
+                      <div className="w-8 h-8 rounded-full bg-gray-300 flex items-center justify-center border-2 border-white">
+                        <span className="text-gray-600 font-semibold text-xs">
+                          +{cluster.totalFriends - 4}
+                        </span>
+                      </div>
+                    )}
+                  </div>
                 </div>
-                <div className="flex -space-x-2">
-                  {locationFriends.slice(0, 3).map((friend) => {
-                    const { color } = getRelationshipColors(friend.relationshipLevel || 'acquaintance');
-                    return (
-                      <div 
-                        key={friend.id}
-                        className={`w-8 h-8 rounded-full bg-gradient-to-br ${color} flex items-center justify-center border-2 border-white overflow-hidden`}
-                      >
-                        {friend.photo ? (
-                          <img 
-                            src={friend.photo} 
-                            alt={friend.firstName}
-                            className="w-full h-full object-cover"
-                          />
-                        ) : (
-                          <span className="text-white font-semibold text-xs">
-                            {friend.firstName.charAt(0)}
-                          </span>
+
+                {/* Neighborhoods */}
+                <div className="ml-4 space-y-2">
+                  {cluster.neighborhoods.map((neighborhood) => (
+                    <div 
+                      key={neighborhood.neighborhood}
+                      className="flex items-center justify-between p-2 bg-gray-100 rounded-lg"
+                    >
+                      <div className="flex-1">
+                        <p className="text-sm font-medium text-dark-gray">
+                          {neighborhood.neighborhood === 'Other areas' ? 'Other areas' : neighborhood.neighborhood}
+                        </p>
+                        <p className="text-xs text-gray-500">{neighborhood.count} friend{neighborhood.count !== 1 ? 's' : ''}</p>
+                      </div>
+                      <div className="flex -space-x-1">
+                        {neighborhood.friends.slice(0, 3).map((friend) => {
+                          const { color } = getRelationshipColors(friend.relationshipLevel || 'acquaintance');
+                          return (
+                            <div 
+                              key={friend.id}
+                              className={`w-6 h-6 rounded-full bg-gradient-to-br ${color} flex items-center justify-center border border-white overflow-hidden`}
+                            >
+                              {friend.photo ? (
+                                <img 
+                                  src={friend.photo} 
+                                  alt={friend.firstName}
+                                  className="w-full h-full object-cover"
+                                />
+                              ) : (
+                                <span className="text-white font-semibold text-xs">
+                                  {friend.firstName.charAt(0)}
+                                </span>
+                              )}
+                            </div>
+                          );
+                        })}
+                        {neighborhood.count > 3 && (
+                          <div className="w-6 h-6 rounded-full bg-gray-200 flex items-center justify-center border border-white">
+                            <span className="text-gray-600 font-bold text-xs">
+                              +{neighborhood.count - 3}
+                            </span>
+                          </div>
                         )}
                       </div>
-                    );
-                  })}
-                  {locationFriends.length > 3 && (
-                    <div className="w-8 h-8 rounded-full bg-gray-300 flex items-center justify-center border-2 border-white">
-                      <span className="text-gray-600 font-semibold text-xs">
-                        +{locationFriends.length - 3}
-                      </span>
                     </div>
-                  )}
+                  ))}
                 </div>
               </div>
             ))}
