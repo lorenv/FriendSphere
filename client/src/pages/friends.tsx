@@ -42,15 +42,15 @@ export default function Friends() {
     console.log('Category filter from URL:', categoryFilter);
     console.log('Current selectedRelationshipLevel:', selectedRelationshipLevel);
     
-    if (categoryFilter && categoryFilter !== selectedRelationshipLevel) {
+    if (categoryFilter) {
       console.log('Setting relationship level to:', categoryFilter);
       setSelectedRelationshipLevel(categoryFilter);
       setShowNewFriendsOnly(false);
-    } else if (!categoryFilter && selectedRelationshipLevel !== "all") {
+    } else {
       console.log('No category filter, setting to all');
       setSelectedRelationshipLevel("all");
     }
-  }, [location, selectedRelationshipLevel]);
+  }, [location]);
 
   // Get current URL parameters for use in rendering
   const urlParams = new URLSearchParams(location.split('?')[1] || '');
