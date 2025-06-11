@@ -59,19 +59,24 @@ export default function Friends() {
     
     console.log('Category filter from URL:', categoryFilter);
     console.log('View filter from URL:', viewFilter);
+    console.log('Previous selectedRelationshipLevel:', selectedRelationshipLevel);
+    console.log('Previous showNewFriendsOnly:', showNewFriendsOnly);
     
     // Update state based on URL parameters
     if (viewFilter === 'new') {
+      console.log('Setting new friends view');
       setShowNewFriendsOnly(true);
       setSelectedRelationshipLevel("all");
     } else if (categoryFilter) {
+      console.log('Setting category to:', categoryFilter);
       setSelectedRelationshipLevel(categoryFilter);
       setShowNewFriendsOnly(false);
     } else {
+      console.log('Setting to all friends');
       setSelectedRelationshipLevel("all");
       setShowNewFriendsOnly(false);
     }
-  }, [location]);
+  }, [location, window.location.search]);
 
   // Get current URL parameters for use in rendering
   const urlParams = new URLSearchParams(window.location.search);
