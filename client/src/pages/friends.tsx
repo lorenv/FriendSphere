@@ -6,7 +6,7 @@ import { BottomNavigation } from "@/components/bottom-navigation";
 import { FloatingActionButton } from "@/components/floating-action-button";
 import { FriendCard } from "@/components/friend-card";
 import { RELATIONSHIP_LEVELS } from "@/lib/constants";
-import { Search, Filter, Star, Shield, Heart, Briefcase } from "lucide-react";
+import { Search, Filter, Star, Shield, Heart, Briefcase, Sparkles } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 
@@ -33,6 +33,7 @@ export default function Friends() {
   
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedRelationshipLevel, setSelectedRelationshipLevel] = useState<string>(categoryFilter || "all");
+  const [showNewFriendsOnly, setShowNewFriendsOnly] = useState(false);
 
   const { data: friends = [], isLoading } = useQuery<Friend[]>({
     queryKey: ["/api/friends"],
@@ -43,7 +44,8 @@ export default function Friends() {
     const matchesSearch = fullName.toLowerCase().includes(searchTerm.toLowerCase()) ||
                          (friend.location || "").toLowerCase().includes(searchTerm.toLowerCase());
     const matchesRelationshipLevel = selectedRelationshipLevel === "all" || friend.relationshipLevel === selectedRelationshipLevel;
-    return matchesSearch && matchesRelationshipLevel;
+    const matchesNewFriendFilter = !showNewFriendsOnly || friend.isNewFriend;
+    return matchesSearch && matchesRelationshipLevel && matchesNewFriendFilter;
   });
 
   // Group friends by location if location view is requested
@@ -97,23 +99,45 @@ export default function Friends() {
           {/* Relationship Level Filter Tabs */}
           <div className="flex space-x-2 overflow-x-auto pb-2">
             <Button
-              variant={selectedRelationshipLevel === "all" ? "secondary" : "ghost"}
+              variant={selectedRelationshipLevel === "all" && !showNewFriendsOnly ? "secondary" : "ghost"}
               size="sm"
-              onClick={() => setSelectedRelationshipLevel("all")}
-              className={selectedRelationshipLevel === "all" ? "bg-white text-dark-gray" : "text-white/80 hover:bg-white/20"}
+              onClick={() => {
+                setSelectedRelationshipLevel("all");
+                setShowNewFriendsOnly(false);
+              }}
+              className={selectedRelationshipLevel === "all" && !showNewFriendsOnly ? "bg-white text-dark-gray" : "text-white/80 hover:bg-white/20"}
             >
               All
+            </Button>
+            <Button
+              variant={showNewFriendsOnly ? "secondary" : "ghost"}
+              size="sm"
+              onClick={() => {
+                setShowNewFriendsOnly(!showNewFriendsOnly);
+                if (!showNewFriendsOnly) setSelectedRelationshipLevel("all");
+              }}
+              className={`flex items-center space-x-1 ${
+                showNewFriendsOnly 
+                  ? "bg-white text-dark-gray" 
+                  : "text-white/80 hover:bg-white/20"
+              }`}
+            >
+              <Sparkles size={14} />
+              <span>New</span>
             </Button>
             {Object.entries(RELATIONSHIP_LEVELS).map(([key, relationshipLevel]) => {
               const IconComponent = iconMap[relationshipLevel.icon as keyof typeof iconMap];
               return (
                 <Button
                   key={key}
-                  variant={selectedRelationshipLevel === key ? "secondary" : "ghost"}
+                  variant={selectedRelationshipLevel === key && !showNewFriendsOnly ? "secondary" : "ghost"}
                   size="sm"
-                  onClick={() => setSelectedRelationshipLevel(key)}
+                  onClick={() => {
+                    setSelectedRelationshipLevel(key);
+                    setShowNewFriendsOnly(false);
+                  }}
                   className={`flex items-center space-x-1 ${
-                    selectedRelationshipLevel === key 
+                    selectedRelationshipLevel === key && !showNewFriendsOnly
                       ? "bg-white text-dark-gray" 
                       : "text-white/80 hover:bg-white/20"
                   }`}

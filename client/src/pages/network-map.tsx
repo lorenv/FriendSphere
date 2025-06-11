@@ -245,7 +245,7 @@ export default function NetworkMap() {
       const friendsAtLevel = friends.filter(f => levels.get(f.id) === level);
       const indexAtLevel = friendsAtLevel.findIndex(f => f.id === friend.id);
       
-      const relationshipLevel = RELATIONSHIP_LEVELS[friend.relationshipLevel as keyof typeof RELATIONSHIP_LEVELS] || RELATIONSHIP_LEVELS.new;
+      const relationshipLevel = RELATIONSHIP_LEVELS[friend.relationshipLevel as keyof typeof RELATIONSHIP_LEVELS] || RELATIONSHIP_LEVELS.acquaintance;
       
       const x = 50 + (indexAtLevel * 300 / Math.max(1, friendsAtLevel.length - 1));
       const y = 80 + (level * 80);
@@ -256,7 +256,7 @@ export default function NetworkMap() {
         category: friend.relationshipLevel,
         x: Math.min(350, Math.max(50, x)),
         y,
-        color: relationshipLevel.color,
+        color: relationshipLevel.color || '#10b981',
         connections: [],
       };
     });
