@@ -47,13 +47,28 @@ export function InstagramImportModal({ open, onClose, onImport }: InstagramImpor
           description: `Found profile photo for @${data.username}`,
         });
       } else {
-        throw new Error(data.error || 'Profile not found');
+        throw new Error(JSON.stringify(data));
       }
     } catch (error) {
+      let errorMessage = "Could not find profile or account may be private. Try uploading the photo manually instead.";
+      let errorTitle = "Profile Not Found";
+      
+      try {
+        const errorData = JSON.parse(error.message);
+        if (errorData.suggestion) {
+          errorMessage = errorData.suggestion;
+        }
+        if (errorData.details) {
+          errorMessage += ` (${errorData.details})`;
+        }
+      } catch {
+        // Use default message if JSON parsing fails
+      }
+      
       toast({
         variant: "destructive",
-        title: "Profile Not Found",
-        description: "Could not find profile or account may be private.",
+        title: errorTitle,
+        description: errorMessage,
       });
       setProfilePhoto("");
       setFoundUsername("");
