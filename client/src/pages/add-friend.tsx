@@ -57,13 +57,17 @@ export default function AddFriend() {
       return await apiRequest("/api/friends", "POST", { ...friendData, interests: selectedInterests });
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["/api/friends"] });
-      queryClient.invalidateQueries({ queryKey: ["/api/stats"] });
-      toast({
-        title: "Friend added successfully!",
-        description: "Your new friend has been added to your network.",
-      });
-      setLocation("/friends");
+      try {
+        queryClient.invalidateQueries({ queryKey: ["/api/friends"] });
+        queryClient.invalidateQueries({ queryKey: ["/api/stats"] });
+        toast({
+          title: "Friend added successfully!",
+          description: "Your new friend has been added to your network.",
+        });
+        setLocation("/friends");
+      } catch (error) {
+        console.error("Error in onSuccess:", error);
+      }
     },
     onError: (error: Error) => {
       toast({
@@ -79,8 +83,14 @@ export default function AddFriend() {
   };
 
   const handleLocationChange = (location: string, neighborhood?: string) => {
-    form.setValue("location", location);
-    form.setValue("neighborhood", neighborhood);
+    try {
+      form.setValue("location", location);
+      if (neighborhood) {
+        form.setValue("neighborhood", neighborhood);
+      }
+    } catch (error) {
+      console.error("Error setting location:", error);
+    }
   };
 
   const addCustomInterest = () => {
