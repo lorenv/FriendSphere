@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useParams, useLocation } from "wouter";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { useForm } from "react-hook-form";
@@ -16,7 +16,7 @@ import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { INTERESTS, LIFESTYLE_OPTIONS } from "@/lib/constants";
-import { ArrowLeft, X, Plus, Trash2 } from "lucide-react";
+import { ArrowLeft, X, Plus, Trash2, Camera, Upload } from "lucide-react";
 import { LocationSearch } from "@/components/location-search";
 import { RelationshipLevelSelector } from "@/components/relationship-level-selector";
 
@@ -26,6 +26,9 @@ export default function EditFriend() {
   const { toast } = useToast();
   const [customInterest, setCustomInterest] = useState("");
   const [selectedInterests, setSelectedInterests] = useState<string[]>([]);
+  const [currentPhoto, setCurrentPhoto] = useState<string>("");
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const cameraInputRef = useRef<HTMLInputElement>(null);
 
   const { data: friend, isLoading } = useQuery<Friend>({
     queryKey: [`/api/friends/${id}`],
@@ -74,8 +77,9 @@ export default function EditFriend() {
         howWeMet: friend.howWeMet || "",
       };
       
-      // Set interests
+      // Set interests and photo
       setSelectedInterests(friend.interests || []);
+      setCurrentPhoto(friend.photo || "");
       
       // Reset form with the friend data
       form.reset(formData);
@@ -143,6 +147,59 @@ export default function EditFriend() {
 
   const removeInterest = (interest: string) => {
     setSelectedInterests(selectedInterests.filter(i => i !== interest));
+  };
+
+  const handleFileUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (file) {
+      // Check file size (limit to 5MB)
+      if (file.size > 5 * 1024 * 1024) {
+        toast({
+          title: "File Too Large",
+          description: "Please select an image under 5MB",
+          variant: "destructive",
+        });
+        return;
+      }
+
+      // Check file type
+      if (!file.type.startsWith('image/')) {
+        toast({
+          title: "Invalid File Type",
+          description: "Please select an image file",
+          variant: "destructive",
+        });
+        return;
+      }
+
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        const base64 = e.target?.result as string;
+        setCurrentPhoto(base64);
+        form.setValue("photo", base64);
+      };
+      reader.readAsDataURL(file);
+    }
+  };
+
+  const handleCameraCapture = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (file) {
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        const base64 = e.target?.result as string;
+        setCurrentPhoto(base64);
+        form.setValue("photo", base64);
+      };
+      reader.readAsDataURL(file);
+    }
+  };
+
+  const removePhoto = () => {
+    setCurrentPhoto("");
+    form.setValue("photo", "");
+    if (fileInputRef.current) fileInputRef.current.value = "";
+    if (cameraInputRef.current) cameraInputRef.current.value = "";
   };
 
   const toggleInterest = (interest: string) => {

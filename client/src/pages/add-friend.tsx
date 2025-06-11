@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useRef } from "react";
 import { useForm, useFieldArray } from "react-hook-form";
 import { useMutation } from "@tanstack/react-query";
 import { useLocation } from "wouter";
@@ -8,7 +8,7 @@ import { queryClient, apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import { INTERESTS, LIFESTYLE_OPTIONS, RELATIONSHIP_LEVELS } from "@/lib/constants";
 import { ContactImportModal } from "@/components/contact-import-modal";
-import { ArrowLeft, Camera, Plus, X, UserPlus, Phone, Mail, Upload, FileText } from "lucide-react";
+import { ArrowLeft, Camera, Plus, X, UserPlus, Phone, Mail, Upload, FileText, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -29,6 +29,9 @@ export default function AddFriend() {
   const [customInterest, setCustomInterest] = useState("");
   const [selectedInterests, setSelectedInterests] = useState<string[]>([]);
   const [showContactImport, setShowContactImport] = useState(false);
+  const [currentPhoto, setCurrentPhoto] = useState<string>("");
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const cameraInputRef = useRef<HTMLInputElement>(null);
 
   const form = useForm<InsertFriend>({
     resolver: zodResolver(insertFriendSchema),
@@ -111,7 +114,10 @@ export default function AddFriend() {
     form.setValue("lastName", contactData.lastName);
     form.setValue("phone", contactData.phone);
     form.setValue("email", contactData.email);
-    if (contactData.photo) form.setValue("photo", contactData.photo);
+    if (contactData.photo) {
+      form.setValue("photo", contactData.photo);
+      setCurrentPhoto(contactData.photo);
+    }
     if (contactData.birthday) form.setValue("birthday", contactData.birthday);
     
     const importedFields = [];
@@ -125,6 +131,59 @@ export default function AddFriend() {
       title: "Contact Imported",
       description: `Successfully imported ${importedFields.join(", ")} for ${contactData.firstName} ${contactData.lastName}`,
     });
+  };
+
+  const handleFileUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (file) {
+      // Check file size (limit to 5MB)
+      if (file.size > 5 * 1024 * 1024) {
+        toast({
+          title: "File Too Large",
+          description: "Please select an image under 5MB",
+          variant: "destructive",
+        });
+        return;
+      }
+
+      // Check file type
+      if (!file.type.startsWith('image/')) {
+        toast({
+          title: "Invalid File Type",
+          description: "Please select an image file",
+          variant: "destructive",
+        });
+        return;
+      }
+
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        const base64 = e.target?.result as string;
+        setCurrentPhoto(base64);
+        form.setValue("photo", base64);
+      };
+      reader.readAsDataURL(file);
+    }
+  };
+
+  const handleCameraCapture = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (file) {
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        const base64 = e.target?.result as string;
+        setCurrentPhoto(base64);
+        form.setValue("photo", base64);
+      };
+      reader.readAsDataURL(file);
+    }
+  };
+
+  const removePhoto = () => {
+    setCurrentPhoto("");
+    form.setValue("photo", "");
+    if (fileInputRef.current) fileInputRef.current.value = "";
+    if (cameraInputRef.current) cameraInputRef.current.value = "";
   };
 
 
@@ -161,6 +220,72 @@ export default function AddFriend() {
                     <UserPlus size={16} className="mr-2" />
                     Import Contact
                   </Button>
+                </div>
+
+                {/* Photo Upload Section */}
+                <div className="space-y-4">
+                  <Label className="text-sm font-medium">Profile Photo</Label>
+                  
+                  {currentPhoto ? (
+                    <div className="relative w-32 h-32 mx-auto">
+                      <img 
+                        src={currentPhoto} 
+                        alt="Profile preview" 
+                        className="w-full h-full object-cover rounded-2xl"
+                      />
+                      <Button
+                        type="button"
+                        variant="destructive"
+                        size="sm"
+                        onClick={removePhoto}
+                        className="absolute -top-2 -right-2 w-8 h-8 rounded-full p-0"
+                      >
+                        <X size={16} />
+                      </Button>
+                    </div>
+                  ) : (
+                    <div className="w-32 h-32 mx-auto bg-gray-100 rounded-2xl flex items-center justify-center">
+                      <Camera size={32} className="text-gray-400" />
+                    </div>
+                  )}
+
+                  <div className="flex gap-2">
+                    <Button
+                      type="button"
+                      variant="outline"
+                      onClick={() => fileInputRef.current?.click()}
+                      className="flex-1"
+                    >
+                      <Upload size={16} className="mr-2" />
+                      Upload Photo
+                    </Button>
+                    <Button
+                      type="button"
+                      variant="outline"
+                      onClick={() => cameraInputRef.current?.click()}
+                      className="flex-1"
+                    >
+                      <Camera size={16} className="mr-2" />
+                      Take Photo
+                    </Button>
+                  </div>
+
+                  {/* Hidden file inputs */}
+                  <input
+                    ref={fileInputRef}
+                    type="file"
+                    accept="image/*"
+                    onChange={handleFileUpload}
+                    className="hidden"
+                  />
+                  <input
+                    ref={cameraInputRef}
+                    type="file"
+                    accept="image/*"
+                    capture="user"
+                    onChange={handleCameraCapture}
+                    className="hidden"
+                  />
                 </div>
 
                 {/* Basic Info */}
