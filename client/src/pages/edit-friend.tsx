@@ -27,6 +27,7 @@ export default function EditFriend() {
   const [customInterest, setCustomInterest] = useState("");
   const [selectedInterests, setSelectedInterests] = useState<string[]>([]);
   const [currentPhoto, setCurrentPhoto] = useState<string>("");
+  const [initialLoad, setInitialLoad] = useState<boolean>(true);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const cameraInputRef = useRef<HTMLInputElement>(null);
 
@@ -79,8 +80,10 @@ export default function EditFriend() {
       
       // Set interests and photo (only if currentPhoto hasn't been manually set)
       setSelectedInterests(friend.interests || []);
-      if (!currentPhoto || currentPhoto === friend.photo) {
+      // Only update currentPhoto on initial load or if it's empty
+      if (initialLoad) {
         setCurrentPhoto(friend.photo || "");
+        setInitialLoad(false);
       }
       
       // Reset form with the friend data (preserve manually set photo)
