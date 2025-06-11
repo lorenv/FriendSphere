@@ -126,7 +126,7 @@ export default function FriendDetail() {
           bg: 'bg-blue-50',
           border: 'border-blue-200'
         };
-      case 'professional':
+      case 'work':
         return {
           gradient: 'bg-gradient-to-br from-slate-400 to-slate-600',
           icon: 'text-slate-500',

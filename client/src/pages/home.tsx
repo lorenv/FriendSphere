@@ -218,7 +218,7 @@ export default function Home() {
                       return { bg: 'bg-rose-50', border: 'border-rose-200', icon: 'text-rose-500' };
                     case 'friend':
                       return { bg: 'bg-blue-50', border: 'border-blue-200', icon: 'text-blue-500' };
-                    case 'professional':
+                    case 'work':
                       return { bg: 'bg-slate-50', border: 'border-slate-200', icon: 'text-slate-500' };
                     default:
                       return { bg: 'bg-emerald-50', border: 'border-emerald-200', icon: 'text-emerald-500' };

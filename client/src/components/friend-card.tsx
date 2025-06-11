@@ -31,7 +31,7 @@ const getColorClasses = (level: string) => {
         icon: 'text-blue-500',
         accent: 'bg-blue-500'
       };
-    case 'professional':
+    case 'work':
       return {
         bg: 'bg-slate-50',
         border: 'border-slate-200',
