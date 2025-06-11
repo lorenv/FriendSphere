@@ -5,10 +5,25 @@ import { Friend } from "@shared/schema";
 import { BottomNavigation } from "@/components/bottom-navigation";
 import { FloatingActionButton } from "@/components/floating-action-button";
 import { FriendCard } from "@/components/friend-card";
-import { FRIEND_CATEGORIES } from "@/lib/constants";
-import { Search, Filter } from "lucide-react";
+import { RELATIONSHIP_LEVELS } from "@/lib/constants";
+import { Search, Filter, Star, Shield, Heart, Briefcase } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+
+const iconMap = {
+  star: Star,
+  shield: Shield,
+  heart: Heart,
+  briefcase: Briefcase,
+};
+
+const gradientColors = {
+  all: "from-coral via-turquoise to-sage",
+  new: "from-blue-400 via-blue-500 to-blue-600",
+  friend: "from-green-400 via-green-500 to-green-600", 
+  close: "from-red-400 via-red-500 to-red-600",
+  work: "from-purple-400 via-purple-500 to-purple-600",
+};
 
 export default function Friends() {
   const [location] = useLocation();
@@ -17,7 +32,7 @@ export default function Friends() {
   const viewFilter = urlParams.get('view');
   
   const [searchTerm, setSearchTerm] = useState("");
-  const [selectedCategory, setSelectedCategory] = useState<string>(categoryFilter || "all");
+  const [selectedRelationshipLevel, setSelectedRelationshipLevel] = useState<string>(categoryFilter || "all");
 
   const { data: friends = [], isLoading } = useQuery<Friend[]>({
     queryKey: ["/api/friends"],
@@ -27,8 +42,8 @@ export default function Friends() {
     const fullName = `${friend.firstName} ${friend.lastName || ''}`.trim();
     const matchesSearch = fullName.toLowerCase().includes(searchTerm.toLowerCase()) ||
                          (friend.location || "").toLowerCase().includes(searchTerm.toLowerCase());
-    const matchesCategory = selectedCategory === "all" || friend.category === selectedCategory;
-    return matchesSearch && matchesCategory;
+    const matchesRelationshipLevel = selectedRelationshipLevel === "all" || friend.relationshipLevel === selectedRelationshipLevel;
+    return matchesSearch && matchesRelationshipLevel;
   });
 
   // Group friends by location if location view is requested
@@ -51,49 +66,64 @@ export default function Friends() {
     );
   }
 
+  const currentGradient = gradientColors[selectedRelationshipLevel as keyof typeof gradientColors] || gradientColors.all;
+
   return (
     <div className="max-w-md mx-auto bg-white min-h-screen relative overflow-hidden">
-      {/* Header */}
-      <div className="gradient-bg px-6 pt-12 pb-6 text-white">
-        <div className="flex items-center justify-between mb-4">
-          <div>
-            <h1 className="text-2xl font-bold">Friends</h1>
-            <p className="text-white/80 text-sm">{filteredFriends.length} friends</p>
+      {/* Header with dynamic gradient */}
+      <div className={`bg-gradient-to-br ${currentGradient} pt-12 pb-8 transition-all duration-500 ease-in-out`}>
+        <div className="px-6">
+          <div className="flex items-center justify-between mb-6">
+            <h1 className="text-3xl font-bold text-white">Friends</h1>
+            <div className="text-right">
+              <div className="text-2xl font-bold text-white">{filteredFriends.length}</div>
+              <div className="text-sm text-white/80">
+                {selectedRelationshipLevel === "all" ? "Total" : RELATIONSHIP_LEVELS[selectedRelationshipLevel as keyof typeof RELATIONSHIP_LEVELS]?.label || ""}
+              </div>
+            </div>
           </div>
-        </div>
-        
-        {/* Search */}
-        <div className="relative mb-4">
-          <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-white/60" size={20} />
-          <Input
-            placeholder="Search friends..."
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-            className="pl-10 bg-white/20 border-white/30 text-white placeholder-white/60"
-          />
-        </div>
 
-        {/* Category Filter */}
-        <div className="flex space-x-2 overflow-x-auto pb-2">
-          <Button
-            variant={selectedCategory === "all" ? "secondary" : "ghost"}
-            size="sm"
-            onClick={() => setSelectedCategory("all")}
-            className={selectedCategory === "all" ? "bg-white text-dark-gray" : "text-white/80 hover:bg-white/20"}
-          >
-            All
-          </Button>
-          {Object.entries(FRIEND_CATEGORIES).map(([key, category]) => (
+          {/* Search */}
+          <div className="relative mb-4">
+            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" size={20} />
+            <Input
+              placeholder="Search friends..."
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              className="pl-10 bg-white/95 border-none"
+            />
+          </div>
+
+          {/* Relationship Level Filter Tabs */}
+          <div className="flex space-x-2 overflow-x-auto pb-2">
             <Button
-              key={key}
-              variant={selectedCategory === key ? "secondary" : "ghost"}
+              variant={selectedRelationshipLevel === "all" ? "secondary" : "ghost"}
               size="sm"
-              onClick={() => setSelectedCategory(key)}
-              className={selectedCategory === key ? "bg-white text-dark-gray" : "text-white/80 hover:bg-white/20"}
+              onClick={() => setSelectedRelationshipLevel("all")}
+              className={selectedRelationshipLevel === "all" ? "bg-white text-dark-gray" : "text-white/80 hover:bg-white/20"}
             >
-              {category.label}
+              All
             </Button>
-          ))}
+            {Object.entries(RELATIONSHIP_LEVELS).map(([key, relationshipLevel]) => {
+              const IconComponent = iconMap[relationshipLevel.icon as keyof typeof iconMap];
+              return (
+                <Button
+                  key={key}
+                  variant={selectedRelationshipLevel === key ? "secondary" : "ghost"}
+                  size="sm"
+                  onClick={() => setSelectedRelationshipLevel(key)}
+                  className={`flex items-center space-x-1 ${
+                    selectedRelationshipLevel === key 
+                      ? "bg-white text-dark-gray" 
+                      : "text-white/80 hover:bg-white/20"
+                  }`}
+                >
+                  <IconComponent size={14} />
+                  <span>{relationshipLevel.label}</span>
+                </Button>
+              );
+            })}
+          </div>
         </div>
       </div>
 
@@ -118,10 +148,18 @@ export default function Friends() {
           <div className="space-y-3 pt-4">
             {filteredFriends.length === 0 ? (
               <div className="text-center py-12">
-                <div className="text-gray-400 mb-2">No friends found</div>
-                <p className="text-sm text-gray-500">
-                  {searchTerm ? "Try a different search term" : "Add your first friend to get started"}
-                </p>
+                <div className="text-gray-400 mb-4">
+                  {searchTerm ? "No friends found matching your search" : 
+                   selectedRelationshipLevel === "all" ? "No friends added yet" :
+                   `No ${RELATIONSHIP_LEVELS[selectedRelationshipLevel as keyof typeof RELATIONSHIP_LEVELS]?.label?.toLowerCase()} friends`}
+                </div>
+                {!searchTerm && (
+                  <p className="text-gray-500 text-sm">
+                    {selectedRelationshipLevel === "all" ? 
+                      "Add your first friend to get started!" :
+                      "Try selecting 'All' or add new friends"}
+                  </p>
+                )}
               </div>
             ) : (
               filteredFriends.map((friend) => (
@@ -132,8 +170,8 @@ export default function Friends() {
         )}
       </div>
 
-      <BottomNavigation />
       <FloatingActionButton />
+      <BottomNavigation />
     </div>
   );
 }
