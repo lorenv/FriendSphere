@@ -7,7 +7,7 @@ import { insertFriendSchema, type InsertFriend } from "@shared/schema";
 import { queryClient, apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import { INTERESTS, LIFESTYLE_OPTIONS, RELATIONSHIP_LEVELS } from "@/lib/constants";
-import { ArrowLeft, Camera, Plus, X, UserPlus, Phone, Mail } from "lucide-react";
+import { ArrowLeft, Camera, Plus, X, UserPlus, Phone, Mail, Upload, FileText } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -35,6 +35,7 @@ export default function AddFriend() {
   const [selectedInterests, setSelectedInterests] = useState<string[]>([]);
   const [showContactImport, setShowContactImport] = useState(false);
   const [contacts, setContacts] = useState<Contact[]>([]);
+  const [showImportOptions, setShowImportOptions] = useState(false);
 
   const form = useForm<InsertFriend>({
     resolver: zodResolver(insertFriendSchema),
@@ -113,6 +114,11 @@ export default function AddFriend() {
   };
 
   const importFromContacts = async () => {
+    // Detect browser and platform
+    const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent);
+    const isSafari = /Safari/.test(navigator.userAgent) && !/Chrome/.test(navigator.userAgent);
+    const isAndroidChrome = /Android/.test(navigator.userAgent) && /Chrome/.test(navigator.userAgent);
+
     // Check for Contact Picker API support
     if ('contacts' in navigator && 'ContactsManager' in window) {
       try {
@@ -126,7 +132,6 @@ export default function AddFriend() {
           const phone = contact.tel?.[0] || '';
           const email = contact.email?.[0] || '';
           
-          // Populate form fields directly
           form.setValue("firstName", firstName);
           form.setValue("lastName", lastName);
           form.setValue("phone", phone);
@@ -136,22 +141,89 @@ export default function AddFriend() {
             title: "Contact Imported",
             description: `Successfully imported ${firstName} ${lastName}`,
           });
+          return;
         }
       } catch (error) {
         if ((error as Error).name === 'AbortError') {
-          // User cancelled the contact picker
-          return;
+          return; // User cancelled
         }
-        toast({
-          title: "Contact Access Unavailable",
-          description: "Contact access is not available on this device or browser.",
-          variant: "destructive",
-        });
       }
+    }
+
+    // Show browser-specific guidance
+    if (isIOS && isSafari) {
+      toast({
+        title: "Contact Import Not Available",
+        description: "Safari on iOS doesn't support contact import. You can manually enter contact details or share a contact via vCard file.",
+      });
+    } else if (isAndroidChrome) {
+      toast({
+        title: "Contact Import Not Available", 
+        description: "Contact access may require enabling permissions in Chrome settings.",
+      });
+    } else {
+      setShowImportOptions(true);
+    }
+  };
+
+  const showContactImportFallback = () => {
+    setShowImportOptions(true);
+  };
+
+  const handleFileImport = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (file && file.type === 'text/vcard') {
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        const vcardData = e.target?.result as string;
+        parseVCard(vcardData);
+      };
+      reader.readAsText(file);
     } else {
       toast({
-        title: "Feature Not Available",
-        description: "Contact import requires a supported mobile browser with contact access permissions.",
+        title: "Invalid File",
+        description: "Please select a valid vCard (.vcf) file.",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const parseVCard = (vcardData: string) => {
+    try {
+      const lines = vcardData.split('\n');
+      let firstName = '';
+      let lastName = '';
+      let phone = '';
+      let email = '';
+
+      lines.forEach(line => {
+        if (line.startsWith('FN:')) {
+          const fullName = line.substring(3).trim();
+          const nameParts = fullName.split(' ');
+          firstName = nameParts[0] || '';
+          lastName = nameParts.slice(1).join(' ') || '';
+        } else if (line.startsWith('TEL:')) {
+          phone = line.substring(4).trim();
+        } else if (line.startsWith('EMAIL:')) {
+          email = line.substring(6).trim();
+        }
+      });
+
+      // Populate form fields
+      form.setValue("firstName", firstName);
+      form.setValue("lastName", lastName);
+      form.setValue("phone", phone);
+      form.setValue("email", email);
+
+      setShowImportOptions(false);
+      toast({
+        title: "Contact Imported",
+        description: `Successfully imported ${firstName} ${lastName}`,
+      });
+    } catch (error) {
+      toast({
+        title: "Import Failed",
+        description: "Could not parse the contact file.",
         variant: "destructive",
       });
     }
