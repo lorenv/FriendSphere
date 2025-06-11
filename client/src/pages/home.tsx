@@ -119,47 +119,47 @@ export default function Home() {
           <h2 className="text-lg font-semibold text-dark-gray mb-4">Friend Categories</h2>
           <div className="grid grid-cols-2 gap-4">
             
-            <Link href="/friends?category=close_friends">
-              <div className="bg-gradient-to-br from-coral to-coral/80 rounded-3xl p-4 text-white card-shadow cursor-pointer">
+            <Link href="/friends?category=close">
+              <div className="bg-gradient-to-br from-rose-400 to-rose-600 rounded-3xl p-4 text-white card-shadow cursor-pointer hover:shadow-lg transition-all duration-200">
                 <div className="flex items-center justify-between mb-3">
                   <Heart size={24} />
-                  <span className="text-2xl font-bold">{stats.categoryBreakdown?.close_friends || 0}</span>
+                  <span className="text-2xl font-bold">{stats.categoryBreakdown?.close || 0}</span>
                 </div>
-                <h3 className="font-semibold">Close Friends</h3>
+                <h3 className="font-semibold">Close</h3>
                 <p className="text-xs text-white/80">Your inner circle</p>
               </div>
             </Link>
             
-            <Link href="/friends?category=friends">
-              <div className="bg-gradient-to-br from-turquoise to-turquoise/80 rounded-3xl p-4 text-white card-shadow cursor-pointer">
+            <Link href="/friends?category=friend">
+              <div className="bg-gradient-to-br from-blue-400 to-blue-600 rounded-3xl p-4 text-white card-shadow cursor-pointer hover:shadow-lg transition-all duration-200">
                 <div className="flex items-center justify-between mb-3">
-                  <Users size={24} />
-                  <span className="text-2xl font-bold">{stats.categoryBreakdown?.friends || 0}</span>
+                  <Shield size={24} />
+                  <span className="text-2xl font-bold">{stats.categoryBreakdown?.friend || 0}</span>
                 </div>
                 <h3 className="font-semibold">Friends</h3>
                 <p className="text-xs text-white/80">Regular friends</p>
               </div>
             </Link>
             
-            <Link href="/friends?category=work_friends">
-              <div className="bg-gradient-to-br from-sky to-sky/80 rounded-3xl p-4 text-white card-shadow cursor-pointer">
+            <Link href="/friends?category=work">
+              <div className="bg-gradient-to-br from-slate-400 to-slate-600 rounded-3xl p-4 text-white card-shadow cursor-pointer hover:shadow-lg transition-all duration-200">
                 <div className="flex items-center justify-between mb-3">
                   <Briefcase size={24} />
-                  <span className="text-2xl font-bold">{stats.categoryBreakdown?.work_friends || 0}</span>
+                  <span className="text-2xl font-bold">{stats.categoryBreakdown?.work || 0}</span>
                 </div>
-                <h3 className="font-semibold">Work Friends</h3>
+                <h3 className="font-semibold">Work</h3>
                 <p className="text-xs text-white/80">Professional network</p>
               </div>
             </Link>
             
-            <Link href="/friends?category=new_friends">
-              <div className="bg-gradient-to-br from-mint to-mint/80 rounded-3xl p-4 text-white card-shadow cursor-pointer">
+            <Link href="/friends?category=acquaintance">
+              <div className="bg-gradient-to-br from-emerald-400 to-emerald-600 rounded-3xl p-4 text-white card-shadow cursor-pointer hover:shadow-lg transition-all duration-200">
                 <div className="flex items-center justify-between mb-3">
-                  <UserPlus size={24} />
-                  <span className="text-2xl font-bold">{stats.categoryBreakdown?.new_friends || 0}</span>
+                  <Star size={24} />
+                  <span className="text-2xl font-bold">{stats.categoryBreakdown?.acquaintance || 0}</span>
                 </div>
-                <h3 className="font-semibold">New Friends</h3>
-                <p className="text-xs text-white/80">Recently met</p>
+                <h3 className="font-semibold">Acquaintance</h3>
+                <p className="text-xs text-white/80">New connections</p>
               </div>
             </Link>
           </div>
