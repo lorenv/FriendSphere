@@ -20,6 +20,7 @@ import { Badge } from "@/components/ui/badge";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { LocationSearch } from "@/components/location-search";
 import { RelationshipLevelSelector } from "@/components/relationship-level-selector";
+import { IntroducedBySelector } from "@/components/introduced-by-selector";
 
 
 
@@ -410,7 +411,46 @@ export default function AddFriend() {
                       <FormLabel>Relationship Level</FormLabel>
                       <FormControl>
                         <RelationshipLevelSelector
-                          value={field.value || "new"}
+                          value={field.value || "acquaintance"}
+                          onChange={field.onChange}
+                        />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+
+                {/* New Friend Toggle */}
+                <FormField
+                  control={form.control}
+                  name="isNewFriend"
+                  render={({ field }) => (
+                    <FormItem className="flex flex-row items-center justify-between rounded-lg border p-4">
+                      <div className="space-y-0.5">
+                        <FormLabel className="text-base">New Friend</FormLabel>
+                        <div className="text-sm text-muted-foreground">
+                          Mark as a new connection to your network
+                        </div>
+                      </div>
+                      <FormControl>
+                        <Switch
+                          checked={field.value}
+                          onCheckedChange={field.onChange}
+                        />
+                      </FormControl>
+                    </FormItem>
+                  )}
+                />
+
+                {/* Introduced By */}
+                <FormField
+                  control={form.control}
+                  name="introducedBy"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormControl>
+                        <IntroducedBySelector
+                          value={field.value || undefined}
                           onChange={field.onChange}
                         />
                       </FormControl>
