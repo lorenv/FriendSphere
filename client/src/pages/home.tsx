@@ -210,7 +210,7 @@ export default function Home() {
             <div>
               {recentFriends.map((friend) => {
                 const fullName = `${friend.firstName} ${friend.lastName || ''}`.trim();
-                const relationshipLevel = RELATIONSHIP_LEVELS[friend.relationshipLevel as keyof typeof RELATIONSHIP_LEVELS] || RELATIONSHIP_LEVELS.new;
+                const relationshipLevel = RELATIONSHIP_LEVELS[friend.relationshipLevel as keyof typeof RELATIONSHIP_LEVELS] || RELATIONSHIP_LEVELS.acquaintance;
                 
                 const getColorClasses = (level: string) => {
                   switch (level) {

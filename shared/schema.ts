@@ -9,7 +9,8 @@ export const friends = pgTable("friends", {
   photo: text("photo"),
   location: text("location"), // City, State format
   neighborhood: text("neighborhood"), // Specific neighborhood within location
-  relationshipLevel: text("relationship_level").default("new").notNull(), // new, friend, close, work
+  relationshipLevel: text("relationship_level").default("acquaintance").notNull(), // acquaintance, friend, close, work
+  isNewFriend: boolean("is_new_friend").default(true), // Toggle to mark as new connection
   interests: text("interests").array().default([]), // Array of interests
   lifestyle: text("lifestyle"),
   hasKids: boolean("has_kids").default(false),

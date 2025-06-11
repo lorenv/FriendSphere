@@ -38,7 +38,7 @@ const getColorClasses = (level: string) => {
         icon: 'text-slate-500',
         accent: 'bg-slate-500'
       };
-    default: // new
+    default: // acquaintance
       return {
         bg: 'bg-emerald-50',
         border: 'border-emerald-200',
@@ -49,7 +49,7 @@ const getColorClasses = (level: string) => {
 };
 
 export function FriendCard({ friend }: FriendCardProps) {
-  const relationshipLevel = RELATIONSHIP_LEVELS[friend.relationshipLevel as keyof typeof RELATIONSHIP_LEVELS] || RELATIONSHIP_LEVELS.new;
+  const relationshipLevel = RELATIONSHIP_LEVELS[friend.relationshipLevel as keyof typeof RELATIONSHIP_LEVELS] || RELATIONSHIP_LEVELS.acquaintance;
   const RelationshipIcon = iconMap[relationshipLevel.icon as keyof typeof iconMap];
   const fullName = `${friend.firstName} ${friend.lastName || ''}`.trim();
   const colors = getColorClasses(friend.relationshipLevel);

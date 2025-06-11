@@ -38,7 +38,8 @@ export default function AddFriend() {
     defaultValues: {
       firstName: "",
       lastName: "",
-      relationshipLevel: "new",
+      relationshipLevel: "acquaintance",
+      isNewFriend: true,
       interests: [],
       hasKids: false,
       contactInfo: "",

@@ -136,7 +136,7 @@ export default function FriendDetail() {
   }
 
   // Remove category reference since it doesn't exist in the schema
-  const relationshipLevel = RELATIONSHIP_LEVELS[friend.relationshipLevel as keyof typeof RELATIONSHIP_LEVELS] || RELATIONSHIP_LEVELS.new;
+  const relationshipLevel = RELATIONSHIP_LEVELS[friend.relationshipLevel as keyof typeof RELATIONSHIP_LEVELS] || RELATIONSHIP_LEVELS.acquaintance;
   
   // Color mapping for relationship levels
   const getColorClasses = (level: string) => {
@@ -162,7 +162,7 @@ export default function FriendDetail() {
           bg: 'bg-slate-50',
           border: 'border-slate-200'
         };
-      default: // new
+      default: // acquaintance
         return {
           gradient: 'bg-gradient-to-br from-emerald-400 to-emerald-600',
           icon: 'text-emerald-500',

@@ -30,7 +30,7 @@ export const INTERESTS = [
 ] as const;
 
 export const RELATIONSHIP_LEVELS = {
-  new: { label: "New", icon: "star", color: "emerald" },
+  acquaintance: { label: "Acquaintance", icon: "star", color: "emerald" },
   friend: { label: "Friend", icon: "shield", color: "blue" },
   close: { label: "Close", icon: "heart", color: "rose" },
   work: { label: "Work", icon: "briefcase", color: "slate" },

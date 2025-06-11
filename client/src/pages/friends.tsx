@@ -19,7 +19,7 @@ const iconMap = {
 
 const gradientClasses = {
   all: "gradient-coral-turquoise-sage",
-  new: "bg-gradient-to-br from-emerald-400 to-emerald-600",
+  acquaintance: "bg-gradient-to-br from-emerald-400 to-emerald-600",
   friend: "bg-gradient-to-br from-blue-400 to-blue-600", 
   close: "bg-gradient-to-br from-rose-400 to-rose-600",
   work: "bg-gradient-to-br from-slate-400 to-slate-600",
