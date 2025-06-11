@@ -49,25 +49,39 @@ export function ContactImportModal({ open, onClose, onImport }: ContactImportMod
     const possibleNames: NameCandidate[] = [];
     
     lines.forEach((line, index) => {
-      // Skip obvious non-name lines
-      if (line.match(/^(mobile|cell|phone|email|home|work|main|tel|contact|message|call|video|facetime|add to|notes|share|edit)/i)) return;
+      // Skip obvious non-name lines and contact app interface elements
+      if (line.match(/^(mobile|cell|phone|email|home|work|main|tel|contact|message|call|video|facetime|add to|notes|share|edit|birthday|address|company|job|department)/i)) return;
       if (line.match(/^[0-9\+\-\.\s\(\)@]+$/)) return; // Skip pure number/email lines
       if (line.length < 2) return; // Skip single characters
       if (line.match(/^(www\.|http|\.com|\.org)/i)) return; // Skip URLs
+      if (line.match(/^(shared by|contact photo|poster|september|january|february|march|april|may|june|july|august|october|november|december)/i)) return; // Skip contact app labels
+      if (line.match(/^[A-Z\s]+$/)) return; // Skip all-caps lines (often labels like "JULIAS FRIEND MIAMA")
       
       // Collect potential names with priority scoring
       if (line.match(/^[a-zA-Z\s\.'-]+$/)) {
         const cleanName = line.replace(/^(contact|name)[:\s]*/gi, '').trim();
         const wordCount = cleanName.split(/\s+/).length;
         
-        // Priority scoring: shorter lines (1-3 words) are more likely to be names
-        // First few lines in contact apps are usually the name
+        // Priority scoring system optimized for contact apps
         let priority = 0;
-        if (index <= 2) priority += 10; // First 3 lines get priority
-        if (wordCount >= 2 && wordCount <= 3) priority += 8; // 2-3 words ideal for names
-        if (wordCount === 1) priority += 5; // Single word could be first name
-        if (cleanName.match(/^[A-Z][a-z]+ [A-Z][a-z]+$/)) priority += 15; // Perfect name pattern
-        if (cleanName.length > 20) priority -= 5; // Very long lines less likely to be names
+        
+        // Perfect name pattern (Title Case with 2-3 words)
+        if (cleanName.match(/^[A-Z][a-z]+ [A-Z][a-z]+( [A-Z][a-z]+)?$/)) priority += 20;
+        
+        // Good name patterns
+        if (wordCount >= 2 && wordCount <= 3) priority += 10; // 2-3 words ideal for names
+        if (cleanName.match(/^[A-Z][a-z]+$/)) priority += 8; // Single title case word (first name)
+        
+        // Position-based scoring (real names often appear after labels in contact apps)
+        if (index >= 2 && index <= 5) priority += 8; // Names often in middle of contact info
+        if (index <= 1) priority += 2; // First lines sometimes have labels
+        
+        // Length-based scoring
+        if (cleanName.length >= 6 && cleanName.length <= 25) priority += 5; // Good name length
+        if (cleanName.length > 30) priority -= 10; // Very long lines unlikely to be names
+        
+        // Penalize lines that look like labels or descriptions
+        if (cleanName.includes('FRIEND') || cleanName.includes('FAMILY') || cleanName.includes('WORK')) priority -= 15;
         
         possibleNames.push({
           name: cleanName,
@@ -471,10 +485,11 @@ export function ContactImportModal({ open, onClose, onImport }: ContactImportMod
             <div className="bg-gray-50 p-3 rounded-lg">
               <h4 className="font-medium text-sm mb-2">Tips for best results:</h4>
               <ul className="text-xs text-gray-600 space-y-1">
-                <li>• Take clear, well-lit screenshots</li>
+                <li>• <strong>Use the contact edit screen</strong> instead of the main contact card</li>
+                <li>• Take clear, well-lit screenshots with good contrast</li>
                 <li>• Ensure text is not blurry or too small</li>
-                <li>• Include name, phone, and email in the image</li>
-                <li>• Works with contact apps, business cards, notes</li>
+                <li>• Contact edit screens have cleaner text layouts</li>
+                <li>• Works with contact apps, business cards, notes, text messages</li>
               </ul>
             </div>
 
