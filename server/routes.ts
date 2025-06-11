@@ -177,53 +177,50 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Instagram profile photo utility - generates profile photo URL patterns
-  app.post("/api/instagram/profile-photo", async (req, res) => {
+
+  // Gravatar photo lookup
+  app.post("/api/gravatar/lookup", async (req, res) => {
     try {
-      const { username } = req.body;
+      const { email } = req.body;
       
-      if (!username) {
-        return res.status(400).json({ error: "Username is required" });
+      if (!email) {
+        return res.status(400).json({ error: "Email is required" });
       }
       
-      // Clean username (remove @ if present)
-      const cleanUsername = username.replace(/^@/, '');
+      // Create MD5 hash of email for Gravatar
+      const crypto = await import('crypto');
+      const hash = crypto.createHash('md5').update(email.toLowerCase().trim()).digest('hex');
+      const gravatarUrl = `https://www.gravatar.com/avatar/${hash}?s=200&d=404`;
       
-      // Validate username format
-      if (!/^[a-zA-Z0-9_.]+$/.test(cleanUsername)) {
-        return res.status(400).json({ error: "Invalid username format" });
+      // Check if Gravatar exists by making a request
+      try {
+        const response = await fetch(gravatarUrl);
+        if (response.ok) {
+          return res.json({
+            success: true,
+            email,
+            photoUrl: `https://www.gravatar.com/avatar/${hash}?s=200`,
+            highResUrl: `https://www.gravatar.com/avatar/${hash}?s=400`
+          });
+        } else {
+          return res.status(404).json({
+            success: false,
+            email,
+            message: "No Gravatar found for this email address"
+          });
+        }
+      } catch (fetchError) {
+        return res.status(404).json({
+          success: false,
+          email,
+          message: "Unable to check Gravatar availability"
+        });
       }
-      
-      // Since Instagram actively blocks scraping, we'll generate likely profile photo URLs
-      // These are based on Instagram's CDN patterns for profile pictures
-      const possibleUrls = [
-        `https://instagram.com/${cleanUsername}`, // Direct profile link
-        `https://www.instagram.com/${cleanUsername}/`, // Web profile
-      ];
-      
-      // For development/testing, we'll return a success response with the username
-      // In practice, users would manually save and upload profile photos
-      console.log(`Profile photo request for: ${cleanUsername}`);
-      
-      // Instead of scraping (which Instagram blocks), provide guidance
-      return res.json({
-        success: true,
-        username: cleanUsername,
-        profilePhotoUrl: '', // Empty since we can't reliably scrape
-        profileUrl: `https://www.instagram.com/${cleanUsername}/`,
-        message: "Instagram blocks automated profile photo access. Please save the profile photo manually.",
-        instructions: [
-          `1. Visit https://www.instagram.com/${cleanUsername}/`,
-          "2. Right-click on the profile photo",
-          "3. Select 'Save image as...'",
-          "4. Upload the saved image when adding the friend"
-        ]
-      });
       
     } catch (error: unknown) {
       const errorMessage = error instanceof Error ? error.message : 'Server error';
-      console.error('Instagram profile photo error:', errorMessage);
-      res.status(500).json({ error: "Failed to process request" });
+      console.error('Gravatar lookup error:', errorMessage);
+      res.status(500).json({ error: "Failed to lookup Gravatar" });
     }
   });
 
