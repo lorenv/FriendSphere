@@ -34,17 +34,23 @@ export default function Friends() {
 
   // Update filter when URL changes
   useEffect(() => {
+    console.log('Location changed:', location);
     const urlParams = new URLSearchParams(location.split('?')[1] || '');
     const categoryFilter = urlParams.get('category');
     const viewFilter = urlParams.get('view');
     
-    if (categoryFilter) {
+    console.log('Category filter from URL:', categoryFilter);
+    console.log('Current selectedRelationshipLevel:', selectedRelationshipLevel);
+    
+    if (categoryFilter && categoryFilter !== selectedRelationshipLevel) {
+      console.log('Setting relationship level to:', categoryFilter);
       setSelectedRelationshipLevel(categoryFilter);
       setShowNewFriendsOnly(false);
-    } else {
+    } else if (!categoryFilter && selectedRelationshipLevel !== "all") {
+      console.log('No category filter, setting to all');
       setSelectedRelationshipLevel("all");
     }
-  }, [location]);
+  }, [location, selectedRelationshipLevel]);
 
   // Get current URL parameters for use in rendering
   const urlParams = new URLSearchParams(location.split('?')[1] || '');
@@ -63,6 +69,14 @@ export default function Friends() {
     
     return matchesSearch && matchesRelationshipLevel && matchesNewFriendFilter;
   });
+
+  console.log('Selected relationship level:', selectedRelationshipLevel);
+  console.log('Total friends:', friends.length);
+  console.log('Filtered friends:', filteredFriends.length);
+  console.log('Friends by relationship level:', friends.reduce((acc, f) => {
+    acc[f.relationshipLevel] = (acc[f.relationshipLevel] || 0) + 1;
+    return acc;
+  }, {} as Record<string, number>));
 
   // Group friends by location if location view is requested
   const groupedByLocation = viewFilter === 'location' ? 
