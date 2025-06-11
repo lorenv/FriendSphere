@@ -28,7 +28,7 @@ export default function EditFriend() {
   const [selectedInterests, setSelectedInterests] = useState<string[]>([]);
 
   const { data: friend, isLoading } = useQuery<Friend>({
-    queryKey: ["/api/friends", id],
+    queryKey: [`/api/friends/${id}`],
     enabled: !!id,
   });
 
@@ -56,7 +56,6 @@ export default function EditFriend() {
   // Update form and interests when friend data loads
   useEffect(() => {
     if (friend) {
-      console.log('Loading friend data:', friend);
       const formData = {
         firstName: friend.firstName || "",
         lastName: friend.lastName || "",
@@ -75,32 +74,17 @@ export default function EditFriend() {
         howWeMet: friend.howWeMet || "",
       };
       
-      console.log('Form data to populate:', formData);
-      
-      // Set interests first
+      // Set interests
       setSelectedInterests(friend.interests || []);
       
-      // Use setTimeout to ensure form is ready
-      setTimeout(() => {
-        form.reset(formData);
-        
-        // Force update each field individually as fallback
-        setTimeout(() => {
-          Object.entries(formData).forEach(([key, value]) => {
-            form.setValue(key as keyof InsertFriend, value, { 
-              shouldValidate: false,
-              shouldDirty: false,
-              shouldTouch: false
-            });
-          });
-        }, 100);
-      }, 50);
+      // Reset form with the friend data
+      form.reset(formData);
     }
   }, [friend, form]);
 
   const updateMutation = useMutation({
     mutationFn: async (friendData: InsertFriend) => {
-      return await apiRequest(`/api/friends/${id}`, "PATCH", { ...friendData, interests: selectedInterests });
+      return await apiRequest("PATCH", `/api/friends/${id}`, { ...friendData, interests: selectedInterests });
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/friends"] });
