@@ -1,5 +1,5 @@
 import { useQuery } from "@tanstack/react-query";
-import { User, Settings, Download, Upload, Trash2, BarChart3, Users, MapPin, Calendar, Shield } from "lucide-react";
+import { User, Settings, Download, Upload, BarChart3, Users, MapPin, Calendar, Shield } from "lucide-react";
 import { BottomNavigation } from "@/components/bottom-navigation";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
@@ -66,14 +66,7 @@ export default function Profile() {
     URL.revokeObjectURL(url);
   };
 
-  const clearAllData = () => {
-    if (window.confirm("Are you sure you want to delete all your data? This action cannot be undone.")) {
-      if (window.confirm("This will permanently delete all friends and activities. Type 'DELETE' to confirm.")) {
-        // This would need API endpoints to actually clear data
-        alert("Data clearing functionality would be implemented here with proper API endpoints.");
-      }
-    }
-  };
+
 
   return (
     <div className="max-w-md mx-auto bg-gray-50 min-h-screen relative">
@@ -191,28 +184,7 @@ export default function Profile() {
           </div>
         </Card>
 
-        {/* Danger Zone */}
-        <Card className="p-6 border-red-200">
-          <div className="flex items-center space-x-3 mb-4">
-            <div className="p-2 bg-red-100 rounded-xl">
-              <Trash2 className="text-red-600" size={20} />
-            </div>
-            <h2 className="text-lg font-semibold text-red-700">Danger Zone</h2>
-          </div>
-          
-          <p className="text-sm text-gray-600 mb-4">
-            Permanently delete all your data. This action cannot be undone.
-          </p>
-          
-          <Button 
-            onClick={clearAllData}
-            variant="destructive" 
-            size="sm"
-            className="w-full"
-          >
-            Delete All Data
-          </Button>
-        </Card>
+
 
         {/* App Info */}
         <Card className="p-6 bg-gray-100">
