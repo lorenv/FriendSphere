@@ -1,7 +1,8 @@
 import { Friend } from "@shared/schema";
 import { RELATIONSHIP_LEVELS } from "@/lib/constants";
-import { ChevronRight, Star, Shield, Heart, Briefcase } from "lucide-react";
+import { ChevronRight, Star, Shield, Heart, Briefcase, Sparkles } from "lucide-react";
 import { Link } from "wouter";
+import { Badge } from "@/components/ui/badge";
 
 interface FriendCardProps {
   friend: Friend;
@@ -75,6 +76,12 @@ export function FriendCard({ friend }: FriendCardProps) {
           <div className="flex items-center space-x-2 mb-1">
             <h3 className="font-semibold text-gray-900 truncate">{fullName}</h3>
             <RelationshipIcon size={14} className={colors.icon} />
+            {friend.isNewFriend && (
+              <Badge variant="secondary" className="bg-amber-100 text-amber-800 text-xs px-2 py-0.5 font-medium">
+                <Sparkles size={10} className="mr-1" />
+                New
+              </Badge>
+            )}
           </div>
           
           {friend.location && (

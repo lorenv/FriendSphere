@@ -45,7 +45,9 @@ export default function EditFriend() {
       photo: "",
       location: "",
       neighborhood: "",
-      relationshipLevel: "new",
+      relationshipLevel: "acquaintance",
+      isNewFriend: false,
+      introducedBy: undefined,
       interests: [],
       lifestyle: "",
       hasKids: false,
@@ -67,7 +69,9 @@ export default function EditFriend() {
         photo: friend.photo || "",
         location: friend.location || "",
         neighborhood: friend.neighborhood || "",
-        relationshipLevel: friend.relationshipLevel || "new",
+        relationshipLevel: friend.relationshipLevel || "acquaintance",
+        isNewFriend: Boolean(friend.isNewFriend),
+        introducedBy: friend.introducedBy || undefined,
         interests: friend.interests || [],
         lifestyle: friend.lifestyle || "",
         hasKids: Boolean(friend.hasKids),
@@ -455,8 +459,48 @@ export default function EditFriend() {
                       <FormLabel>Relationship Level</FormLabel>
                       <FormControl>
                         <RelationshipLevelSelector
-                          value={field.value || "new"}
+                          value={field.value || "acquaintance"}
                           onChange={field.onChange}
+                        />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+
+                {/* New Friend Toggle */}
+                <FormField
+                  control={form.control}
+                  name="isNewFriend"
+                  render={({ field }) => (
+                    <FormItem className="flex flex-row items-center justify-between rounded-lg border p-4">
+                      <div className="space-y-0.5">
+                        <FormLabel className="text-base">New Friend</FormLabel>
+                        <div className="text-sm text-muted-foreground">
+                          Mark as a new connection to your network
+                        </div>
+                      </div>
+                      <FormControl>
+                        <Switch
+                          checked={Boolean(field.value)}
+                          onCheckedChange={field.onChange}
+                        />
+                      </FormControl>
+                    </FormItem>
+                  )}
+                />
+
+                {/* Introduced By */}
+                <FormField
+                  control={form.control}
+                  name="introducedBy"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormControl>
+                        <IntroducedBySelector
+                          value={field.value || undefined}
+                          onChange={field.onChange}
+                          excludeId={friend?.id}
                         />
                       </FormControl>
                       <FormMessage />
