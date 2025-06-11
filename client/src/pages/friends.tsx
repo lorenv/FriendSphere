@@ -6,7 +6,7 @@ import { BottomNavigation } from "@/components/bottom-navigation";
 import { FloatingActionButton } from "@/components/floating-action-button";
 import { FriendCard } from "@/components/friend-card";
 import { RELATIONSHIP_LEVELS } from "@/lib/constants";
-import { Search, Filter, Star, Shield, Heart, Briefcase, Sparkles } from "lucide-react";
+import { Search, Filter, Star, Shield, Heart, Briefcase, Circle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 
@@ -122,7 +122,7 @@ export default function Friends() {
                   : "text-white/80 hover:bg-white/20"
               }`}
             >
-              <Sparkles size={14} />
+              <Circle size={14} className="fill-current" />
               <span>New</span>
             </Button>
             {Object.entries(RELATIONSHIP_LEVELS).map(([key, relationshipLevel]) => {

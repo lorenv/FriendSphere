@@ -1,8 +1,7 @@
 import { Friend } from "@shared/schema";
 import { RELATIONSHIP_LEVELS } from "@/lib/constants";
-import { ChevronRight, Star, Shield, Heart, Briefcase, Sparkles } from "lucide-react";
+import { ChevronRight, Star, Shield, Heart, Briefcase, Stars } from "lucide-react";
 import { Link } from "wouter";
-import { Badge } from "@/components/ui/badge";
 
 interface FriendCardProps {
   friend: Friend;
@@ -58,7 +57,7 @@ export function FriendCard({ friend }: FriendCardProps) {
   return (
     <Link href={`/friends/${friend.id}`}>
       <div className={`${colors.bg} ${colors.border} border rounded-2xl p-4 flex items-center space-x-4 cursor-pointer hover:shadow-md transition-all duration-200 mb-3`}>
-        <div className="w-14 h-14 rounded-xl bg-white flex items-center justify-center overflow-hidden shadow-sm">
+        <div className={`w-14 h-14 rounded-xl bg-white flex items-center justify-center overflow-hidden shadow-sm ${friend.isNewFriend ? 'ring-2 ring-blue-300 ring-opacity-60' : ''}`}>
           {friend.photo ? (
             <img 
               src={friend.photo} 
@@ -77,10 +76,7 @@ export function FriendCard({ friend }: FriendCardProps) {
             <h3 className="font-semibold text-gray-900 truncate">{fullName}</h3>
             <RelationshipIcon size={14} className={colors.icon} />
             {friend.isNewFriend && (
-              <Badge variant="secondary" className="bg-amber-100 text-amber-800 text-xs px-2 py-0.5 font-medium">
-                <Sparkles size={10} className="mr-1" />
-                New
-              </Badge>
+              <span className="text-xs font-medium text-blue-600 bg-blue-50 px-2 py-0.5 rounded-full">New</span>
             )}
           </div>
           
