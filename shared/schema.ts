@@ -19,6 +19,7 @@ export const friends = pgTable("friends", {
   notes: text("notes"),
   phone: text("phone"), // Phone number
   email: text("email"), // Email address
+  birthday: text("birthday"), // Birthday in YYYY-MM-DD format
   contactInfo: text("contact_info"), // JSON string for additional social media
   lastInteraction: timestamp("last_interaction"),
 });

@@ -106,15 +106,24 @@ export default function AddFriend() {
     }
   };
 
-  const handleContactImport = (contactData: { firstName: string; lastName: string; phone: string; email: string; }) => {
+  const handleContactImport = (contactData: { firstName: string; lastName: string; phone: string; email: string; photo?: string; birthday?: string; }) => {
     form.setValue("firstName", contactData.firstName);
     form.setValue("lastName", contactData.lastName);
     form.setValue("phone", contactData.phone);
     form.setValue("email", contactData.email);
+    if (contactData.photo) form.setValue("photo", contactData.photo);
+    if (contactData.birthday) form.setValue("birthday", contactData.birthday);
+    
+    const importedFields = [];
+    if (contactData.firstName) importedFields.push("name");
+    if (contactData.phone) importedFields.push("phone");
+    if (contactData.email) importedFields.push("email");
+    if (contactData.birthday) importedFields.push("birthday");
+    if (contactData.photo) importedFields.push("photo");
     
     toast({
       title: "Contact Imported",
-      description: `Successfully imported ${contactData.firstName} ${contactData.lastName}`,
+      description: `Successfully imported ${importedFields.join(", ")} for ${contactData.firstName} ${contactData.lastName}`,
     });
   };
 
@@ -207,6 +216,34 @@ export default function AddFriend() {
                         <FormLabel>Email</FormLabel>
                         <FormControl>
                           <Input placeholder="Enter email address" type="email" {...field} value={field.value || ""} />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+
+                  <FormField
+                    control={form.control}
+                    name="birthday"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Birthday</FormLabel>
+                        <FormControl>
+                          <Input placeholder="Enter birthday" type="date" {...field} value={field.value || ""} />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+
+                  <FormField
+                    control={form.control}
+                    name="photo"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Photo URL</FormLabel>
+                        <FormControl>
+                          <Input placeholder="Profile photo URL" {...field} value={field.value || ""} />
                         </FormControl>
                         <FormMessage />
                       </FormItem>

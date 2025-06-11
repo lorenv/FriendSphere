@@ -12,7 +12,7 @@ import { createWorker } from 'tesseract.js';
 interface ContactImportModalProps {
   open: boolean;
   onClose: () => void;
-  onImport: (contactData: { firstName: string; lastName: string; phone: string; email: string; }) => void;
+  onImport: (contactData: { firstName: string; lastName: string; phone: string; email: string; photo?: string; birthday?: string; }) => void;
 }
 
 export function ContactImportModal({ open, onClose, onImport }: ContactImportModalProps) {
@@ -29,6 +29,7 @@ export function ContactImportModal({ open, onClose, onImport }: ContactImportMod
     let lastName = "";
     let phone = "";
     let email = "";
+    let birthday = "";
 
     // Enhanced patterns for different contact formats
     const phonePatterns = [
@@ -38,6 +39,13 @@ export function ContactImportModal({ open, onClose, onImport }: ContactImportMod
     ];
     
     const emailPattern = /([a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,})/g;
+    
+    // Birthday patterns
+    const birthdayPatterns = [
+      /(january|february|march|april|may|june|july|august|september|october|november|december)\s+\d{1,2}(,?\s+\d{4})?/gi,
+      /\d{1,2}[\/\-]\d{1,2}[\/\-]\d{2,4}/g,
+      /\d{4}[\/\-]\d{1,2}[\/\-]\d{1,2}/g,
+    ];
     
     // Priority-based name extraction for contact app screenshots
     let nameFound = false;
@@ -118,7 +126,17 @@ export function ContactImportModal({ open, onClose, onImport }: ContactImportMod
       email = emailMatch[0];
     }
 
-    return { firstName, lastName, phone, email };
+    // Extract birthday
+    birthdayPatterns.forEach(pattern => {
+      if (!birthday) {
+        const matches = allText.match(pattern);
+        if (matches) {
+          birthday = matches[0];
+        }
+      }
+    });
+
+    return { firstName, lastName, phone, email, birthday };
   };
 
   const processScreenshot = async (file: File) => {
@@ -155,6 +173,7 @@ export function ContactImportModal({ open, onClose, onImport }: ContactImportMod
       if (contactData.firstName) extractedInfo.push(`Name: ${contactData.firstName} ${contactData.lastName}`.trim());
       if (contactData.phone) extractedInfo.push(`Phone: ${contactData.phone}`);
       if (contactData.email) extractedInfo.push(`Email: ${contactData.email}`);
+      if (contactData.birthday) extractedInfo.push(`Birthday: ${contactData.birthday}`);
 
       toast({
         title: "Contact Extracted!",
@@ -277,27 +296,63 @@ export function ContactImportModal({ open, onClose, onImport }: ContactImportMod
       const content = e.target?.result as string;
       
       if (file.name.endsWith('.vcf')) {
-        // Parse vCard format
+        // Parse vCard format with enhanced field support
         const lines = content.split('\n');
         let firstName = '';
         let lastName = '';
         let phone = '';
         let email = '';
+        let birthday = '';
+        let photo = '';
 
         lines.forEach(line => {
-          if (line.startsWith('FN:')) {
-            const fullName = line.substring(3).trim();
+          const trimmedLine = line.trim();
+          
+          // Parse name fields
+          if (trimmedLine.startsWith('FN:')) {
+            const fullName = trimmedLine.substring(3).trim();
             const nameParts = fullName.split(' ');
             firstName = nameParts[0] || '';
             lastName = nameParts.slice(1).join(' ') || '';
-          } else if (line.startsWith('TEL:') || line.includes('TYPE=CELL')) {
-            phone = line.split(':')[1]?.trim() || '';
-          } else if (line.startsWith('EMAIL:')) {
-            email = line.split(':')[1]?.trim() || '';
+          } else if (trimmedLine.startsWith('N:')) {
+            // Structured name: Last;First;Middle;Prefix;Suffix
+            const nameParts = trimmedLine.substring(2).split(';');
+            if (nameParts[1]) firstName = nameParts[1].trim();
+            if (nameParts[0]) lastName = nameParts[0].trim();
+          }
+          
+          // Parse phone numbers with better pattern matching
+          else if (trimmedLine.startsWith('TEL:') || 
+                   trimmedLine.includes('TYPE=CELL') || 
+                   trimmedLine.includes('TYPE=MOBILE') ||
+                   trimmedLine.includes('TYPE=HOME') ||
+                   trimmedLine.includes('TYPE=WORK')) {
+            const phoneMatch = trimmedLine.match(/TEL[^:]*:(.+)$/);
+            if (phoneMatch) {
+              phone = phoneMatch[1].trim();
+            }
+          }
+          
+          // Parse email
+          else if (trimmedLine.startsWith('EMAIL:')) {
+            email = trimmedLine.substring(6).trim();
+          }
+          
+          // Parse birthday
+          else if (trimmedLine.startsWith('BDAY:')) {
+            birthday = trimmedLine.substring(5).trim();
+          }
+          
+          // Parse photo (base64 or URL)
+          else if (trimmedLine.startsWith('PHOTO:') || trimmedLine.startsWith('PHOTO;')) {
+            const photoData = trimmedLine.substring(trimmedLine.indexOf(':') + 1).trim();
+            if (photoData.startsWith('http') || photoData.startsWith('data:')) {
+              photo = photoData;
+            }
           }
         });
 
-        onImport({ firstName, lastName, phone, email });
+        onImport({ firstName, lastName, phone, email, birthday, photo });
       } else {
         // Parse as plain text
         const contactData = parseContactText(content);
