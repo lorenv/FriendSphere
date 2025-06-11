@@ -1,9 +1,26 @@
-import { pgTable, text, serial, integer, boolean, timestamp } from "drizzle-orm/pg-core";
+import { pgTable, text, serial, integer, boolean, timestamp, varchar } from "drizzle-orm/pg-core";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod";
 
+// Users table for authentication and profiles
+export const users = pgTable("users", {
+  id: serial("id").primaryKey(),
+  email: varchar("email", { length: 255 }).notNull().unique(),
+  passwordHash: text("password_hash").notNull(),
+  firstName: text("first_name").notNull(),
+  lastName: text("last_name").notNull(),
+  photo: text("photo"), // Gravatar URL or uploaded photo
+  phone: text("phone"),
+  location: text("location"),
+  bio: text("bio"),
+  isPublic: boolean("is_public").default(false), // Whether profile is discoverable by other users
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
 export const friends = pgTable("friends", {
   id: serial("id").primaryKey(),
+  userId: integer("user_id").notNull(),
   firstName: text("first_name").notNull(),
   lastName: text("last_name"),
   photo: text("photo"),
@@ -27,6 +44,7 @@ export const friends = pgTable("friends", {
 
 export const relationships = pgTable("relationships", {
   id: serial("id").primaryKey(),
+  userId: integer("user_id").notNull(),
   friendId: integer("friend_id").notNull(),
   relatedFriendId: integer("related_friend_id").notNull(),
   relationshipType: text("relationship_type").notNull(), // introduced_by, partner, friend_of, etc.
@@ -34,25 +52,75 @@ export const relationships = pgTable("relationships", {
 
 export const activities = pgTable("activities", {
   id: serial("id").primaryKey(),
+  userId: integer("user_id").notNull(),
   friendId: integer("friend_id").notNull(),
   activityType: text("activity_type").notNull(), // updated, moved, added, etc.
   description: text("description").notNull(),
   timestamp: timestamp("timestamp").defaultNow(),
 });
 
+// Contact sharing table for users to share their info with each other
+export const contactShares = pgTable("contact_shares", {
+  id: serial("id").primaryKey(),
+  fromUserId: integer("from_user_id").notNull(),
+  toUserId: integer("to_user_id").notNull(),
+  shareData: text("share_data").notNull(), // JSON with contact info to share
+  message: text("message"), // Optional message with the contact share
+  timestamp: timestamp("timestamp").defaultNow(),
+  isAccepted: boolean("is_accepted").default(false),
+});
+
+// User schemas
+export const insertUserSchema = createInsertSchema(users).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
+export const registerUserSchema = insertUserSchema.omit({
+  passwordHash: true,
+}).extend({
+  password: z.string().min(8, "Password must be at least 8 characters"),
+  confirmPassword: z.string(),
+}).refine((data) => data.password === data.confirmPassword, {
+  message: "Passwords don't match",
+  path: ["confirmPassword"],
+});
+
+export const loginUserSchema = z.object({
+  email: z.string().email("Invalid email address"),
+  password: z.string().min(1, "Password is required"),
+});
+
+// Update existing schemas to include userId
 export const insertFriendSchema = createInsertSchema(friends).omit({
   id: true,
+  userId: true,
   lastInteraction: true,
 });
 
 export const insertRelationshipSchema = createInsertSchema(relationships).omit({
   id: true,
+  userId: true,
 });
 
 export const insertActivitySchema = createInsertSchema(activities).omit({
   id: true,
+  userId: true,
   timestamp: true,
 });
+
+export const insertContactShareSchema = createInsertSchema(contactShares).omit({
+  id: true,
+  timestamp: true,
+  isAccepted: true,
+});
+
+// Types
+export type User = typeof users.$inferSelect;
+export type InsertUser = z.infer<typeof insertUserSchema>;
+export type RegisterUser = z.infer<typeof registerUserSchema>;
+export type LoginUser = z.infer<typeof loginUserSchema>;
 
 export type InsertFriend = z.infer<typeof insertFriendSchema>;
 export type Friend = typeof friends.$inferSelect;
@@ -60,5 +128,5 @@ export type InsertRelationship = z.infer<typeof insertRelationshipSchema>;
 export type Relationship = typeof relationships.$inferSelect;
 export type InsertActivity = z.infer<typeof insertActivitySchema>;
 export type Activity = typeof activities.$inferSelect;
-
-// Remove the users table from the original schema since we're not implementing authentication
+export type InsertContactShare = z.infer<typeof insertContactShareSchema>;
+export type ContactShare = typeof contactShares.$inferSelect;
