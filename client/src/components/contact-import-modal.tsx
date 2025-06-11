@@ -359,9 +359,22 @@ export function ContactImportModal({ open, onClose, onImport }: ContactImportMod
             }
           }
           
-          // Parse birthday
-          else if (trimmedLine.startsWith('BDAY:')) {
-            birthday = trimmedLine.substring(5).trim();
+          // Parse birthday with more flexible matching
+          else if (trimmedLine.includes('BDAY')) {
+            const colonIndex = trimmedLine.indexOf(':');
+            if (colonIndex > -1) {
+              birthday = trimmedLine.substring(colonIndex + 1).trim();
+              // Convert Apple's format to standard date
+              if (birthday.includes('-')) {
+                const parts = birthday.split('-');
+                if (parts.length === 3 && parts[0] !== '1604') { // Skip Apple's default year
+                  birthday = `${parts[0]}-${parts[1].padStart(2, '0')}-${parts[2].padStart(2, '0')}`;
+                } else if (parts.length === 3) {
+                  birthday = `${parts[1].padStart(2, '0')}-${parts[2].padStart(2, '0')}`;
+                }
+              }
+              console.log('Found birthday in vCard:', birthday);
+            }
           }
           
           // Parse photo with more flexible matching
@@ -374,35 +387,38 @@ export function ContactImportModal({ open, onClose, onImport }: ContactImportMod
               if (photoData.length > 0 && !photoData.startsWith('http')) {
                 // This is likely base64 data, possibly spanning multiple lines
                 let photoLines = [photoData];
-                let nextLineIndex = index + 1;
+                let currentIndex = index;
                 
                 // Look ahead for continuation lines until we hit another vCard field or END
-                while (nextLineIndex < lines.length) {
-                  const nextLine = lines[nextLineIndex].trim();
+                while (currentIndex + 1 < lines.length) {
+                  const nextLine = lines[currentIndex + 1].trim();
                   if (nextLine.includes(':') || nextLine.startsWith('END:')) {
                     break;
                   }
                   photoLines.push(nextLine);
-                  nextLineIndex++;
+                  currentIndex++;
                 }
                 
                 photoData = photoLines.join('');
+                console.log('Assembled photo data length:', photoData.length);
                 
                 // Only use if it looks like valid base64 or URL
                 if (photoData.startsWith('http') || photoData.startsWith('data:') || 
                    (photoData.length > 100 && /^[A-Za-z0-9+/=]+$/.test(photoData))) {
                   
-                  // Skip very large photos (over 100KB base64) to avoid server errors
-                  if (photoData.length > 100000) {
-                    console.log('Skipping large photo to avoid server size limit:', photoData.length);
+                  // Allow photos up to 1MB base64 since server limit is 10MB
+                  if (photoData.length > 1000000) {
+                    console.log('Skipping extremely large photo to avoid server size limit:', photoData.length);
                     toast({
                       title: "Large Photo Skipped",
-                      description: "Profile photo was too large to import (over 100KB). Contact imported without photo.",
+                      description: "Profile photo was too large to import (over 1MB). Contact imported without photo.",
                     });
                   } else {
                     photo = photoData.startsWith('data:') ? photoData : `data:image/jpeg;base64,${photoData}`;
-                    console.log('Found photo in vCard (length):', photoData.length);
+                    console.log('Successfully prepared photo for import (length):', photoData.length);
                   }
+                } else {
+                  console.log('Photo data did not pass validation checks');
                 }
               }
             }
