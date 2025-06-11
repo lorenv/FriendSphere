@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useParams, useLocation } from "wouter";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { useForm } from "react-hook-form";
@@ -9,34 +9,31 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Checkbox } from "@/components/ui/checkbox";
+import { Switch } from "@/components/ui/switch";
 import { Badge } from "@/components/ui/badge";
+import { Card, CardContent } from "@/components/ui/card";
+import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest, queryClient } from "@/lib/queryClient";
-import { INTERESTS, LIFESTYLE_OPTIONS, RELATIONSHIP_LEVELS } from "@/lib/constants";
-import { ArrowLeft, MapPin, X, Plus, Trash2 } from "lucide-react";
-import { Link } from "wouter";
-import { RelationshipLevelSelector } from "@/components/relationship-level-selector";
+import { INTERESTS, LIFESTYLE_OPTIONS } from "@/lib/constants";
+import { ArrowLeft, X, Plus, Trash2 } from "lucide-react";
 import { LocationSearch } from "@/components/location-search";
+import { RelationshipLevelSelector } from "@/components/relationship-level-selector";
 
 export default function EditFriend() {
   const { id } = useParams();
   const [, setLocation] = useLocation();
   const { toast } = useToast();
   const [customInterest, setCustomInterest] = useState("");
+  const [selectedInterests, setSelectedInterests] = useState<string[]>([]);
 
   const { data: friend, isLoading } = useQuery<Friend>({
     queryKey: ["/api/friends", id],
     enabled: !!id,
   });
 
-  const editSchema = insertFriendSchema.extend({
-    firstName: insertFriendSchema.shape.firstName,
-    lastName: insertFriendSchema.shape.lastName.optional(),
-  });
-
   const form = useForm<InsertFriend>({
-    resolver: zodResolver(editSchema),
+    resolver: zodResolver(insertFriendSchema),
     defaultValues: {
       firstName: "",
       lastName: "",
@@ -56,8 +53,8 @@ export default function EditFriend() {
     },
   });
 
-  // Update form when friend data loads
-  useState(() => {
+  // Update form and interests when friend data loads
+  useEffect(() => {
     if (friend) {
       form.reset({
         firstName: friend.firstName,
@@ -76,12 +73,13 @@ export default function EditFriend() {
         contactInfo: friend.contactInfo || "",
         howWeMet: friend.howWeMet || "",
       });
+      setSelectedInterests(friend.interests || []);
     }
-  });
+  }, [friend, form]);
 
   const updateMutation = useMutation({
     mutationFn: async (friendData: InsertFriend) => {
-      return await apiRequest(`/api/friends/${id}`, "PATCH", friendData);
+      return await apiRequest(`/api/friends/${id}`, "PATCH", { ...friendData, interests: selectedInterests });
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/friends"] });
@@ -109,7 +107,7 @@ export default function EditFriend() {
       queryClient.invalidateQueries({ queryKey: ["/api/friends"] });
       toast({
         title: "Friend deleted",
-        description: "Your friend has been removed from your contacts.",
+        description: "Your friend has been removed from your network.",
       });
       setLocation("/friends");
     },
@@ -123,387 +121,361 @@ export default function EditFriend() {
   });
 
   const onSubmit = (data: InsertFriend) => {
-    updateMutation.mutate(data);
+    updateMutation.mutate({ ...data, interests: selectedInterests });
   };
 
-  const handleDeleteFriend = () => {
-    if (confirm("Are you sure you want to delete this friend? This action cannot be undone.")) {
-      deleteMutation.mutate();
-    }
+  const handleLocationChange = (location: string, neighborhood?: string) => {
+    form.setValue("location", location);
+    form.setValue("neighborhood", neighborhood);
   };
 
   const addCustomInterest = () => {
-    if (customInterest.trim()) {
-      const currentInterests = form.getValues("interests") || [];
-      if (!currentInterests.includes(customInterest.trim())) {
-        form.setValue("interests", [...currentInterests, customInterest.trim()]);
-      }
+    if (customInterest.trim() && !selectedInterests.includes(customInterest.trim())) {
+      setSelectedInterests([...selectedInterests, customInterest.trim()]);
       setCustomInterest("");
     }
   };
 
-  const removeInterest = (interestToRemove: string) => {
-    const currentInterests = form.getValues("interests") || [];
-    form.setValue("interests", currentInterests.filter(interest => interest !== interestToRemove));
+  const removeInterest = (interest: string) => {
+    setSelectedInterests(selectedInterests.filter(i => i !== interest));
   };
 
   const toggleInterest = (interest: string) => {
-    const currentInterests = form.getValues("interests") || [];
-    if (currentInterests.includes(interest)) {
-      form.setValue("interests", currentInterests.filter(i => i !== interest));
+    if (selectedInterests.includes(interest)) {
+      removeInterest(interest);
     } else {
-      form.setValue("interests", [...currentInterests, interest]);
+      setSelectedInterests([...selectedInterests, interest]);
+    }
+  };
+
+  const handleDelete = () => {
+    if (window.confirm("Are you sure you want to delete this friend? This action cannot be undone.")) {
+      deleteMutation.mutate();
     }
   };
 
   if (isLoading) {
     return (
-      <div className="flex justify-center items-center min-h-screen">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-coral"></div>
+      <div className="min-h-screen bg-off-white flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-coral mx-auto mb-4"></div>
+          <p className="text-gray-600">Loading friend details...</p>
+        </div>
       </div>
     );
   }
 
   if (!friend) {
     return (
-      <div className="flex flex-col items-center justify-center min-h-screen p-6">
-        <h1 className="text-2xl font-bold text-dark-gray mb-4">Friend not found</h1>
-        <Link href="/friends">
-          <Button>Back to Friends</Button>
-        </Link>
+      <div className="min-h-screen bg-off-white flex items-center justify-center">
+        <div className="text-center">
+          <p className="text-gray-600 mb-4">Friend not found</p>
+          <Button onClick={() => setLocation("/friends")} variant="outline">
+            Back to Friends
+          </Button>
+        </div>
       </div>
     );
   }
 
-  const selectedInterests = form.watch("interests") || [];
-
   return (
-    <div className="min-h-screen bg-gradient-to-br from-coral via-turquoise to-sky">
-      {/* Header */}
-      <div className="bg-white/10 backdrop-blur-sm border-b border-white/20">
-        <div className="max-w-2xl mx-auto px-6 py-4">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center space-x-4">
-              <Link href={`/friends/${id}`}>
-                <Button variant="ghost" size="sm" className="text-white hover:bg-white/20">
-                  <ArrowLeft size={16} />
-                </Button>
-              </Link>
-              <h1 className="text-xl font-bold text-white">Edit Friend</h1>
-            </div>
+    <div className="min-h-screen bg-off-white">
+      <div className="max-w-md mx-auto p-4">
+        <div className="flex items-center justify-between mb-6">
+          <div className="flex items-center">
             <Button
               variant="ghost"
               size="sm"
-              onClick={handleDeleteFriend}
-              className="text-white hover:bg-red-500/20"
-              disabled={deleteMutation.isPending}
+              onClick={() => setLocation(`/friends/${id}`)}
+              className="p-2 text-dark-gray hover:text-coral"
             >
-              <Trash2 size={16} />
+              <ArrowLeft size={20} />
             </Button>
+            <h1 className="text-2xl font-bold text-dark-gray ml-2">Edit Friend</h1>
           </div>
+          <Button
+            variant="destructive"
+            size="sm"
+            onClick={handleDelete}
+            disabled={deleteMutation.isPending}
+          >
+            <Trash2 size={16} className="mr-2" />
+            Delete
+          </Button>
         </div>
-      </div>
 
-      {/* Form Content */}
-      <div className="max-w-2xl mx-auto p-6">
-        <Form {...form}>
-          <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
-            
-            {/* Personal Information */}
-            <div className="bg-white rounded-3xl p-6 card-shadow">
-              <h2 className="text-lg font-semibold text-dark-gray mb-4">Personal Information</h2>
-              
-              <div className="grid grid-cols-2 gap-4 mb-4">
+        <Card>
+          <CardContent className="p-6">
+            <Form {...form}>
+              <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
+                {/* Basic Info */}
+                <div className="space-y-4">
+                  <FormField
+                    control={form.control}
+                    name="firstName"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>First Name</FormLabel>
+                        <FormControl>
+                          <Input placeholder="Enter first name" {...field} />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+
+                  <FormField
+                    control={form.control}
+                    name="lastName"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Last Name</FormLabel>
+                        <FormControl>
+                          <Input placeholder="Enter last name" {...field} value={field.value || ""} />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+
+                  {/* Contact Info */}
+                  <FormField
+                    control={form.control}
+                    name="phone"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Phone Number</FormLabel>
+                        <FormControl>
+                          <Input placeholder="Enter phone number" {...field} value={field.value || ""} />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+
+                  <FormField
+                    control={form.control}
+                    name="email"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Email</FormLabel>
+                        <FormControl>
+                          <Input placeholder="Enter email address" type="email" {...field} value={field.value || ""} />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                </div>
+
+                {/* Location */}
                 <FormField
                   control={form.control}
-                  name="firstName"
+                  name="location"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>First Name</FormLabel>
+                      <FormLabel>Location</FormLabel>
                       <FormControl>
-                        <Input placeholder="Enter first name" {...field} />
+                        <LocationSearch
+                          value={field.value || ""}
+                          onChange={handleLocationChange}
+                          placeholder="Search for city, neighborhood..."
+                        />
                       </FormControl>
                       <FormMessage />
                     </FormItem>
                   )}
                 />
-                
+
+                {/* Relationship Level */}
                 <FormField
                   control={form.control}
-                  name="lastName"
+                  name="relationshipLevel"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>Last Name</FormLabel>
+                      <FormLabel>Relationship Level</FormLabel>
                       <FormControl>
-                        <Input placeholder="Enter last name" {...field} value={field.value || ""} />
+                        <RelationshipLevelSelector
+                          value={field.value || "new"}
+                          onChange={field.onChange}
+                        />
                       </FormControl>
                       <FormMessage />
                     </FormItem>
                   )}
                 />
-              </div>
 
-              <FormField
-                control={form.control}
-                name="photo"
-                render={({ field }) => (
-                  <FormItem className="mb-4">
-                    <FormLabel>Photo URL</FormLabel>
-                    <FormControl>
-                      <Input placeholder="https://..." {...field} value={field.value || ""} />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
+                {/* Interests */}
+                <div className="space-y-3">
+                  <Label>Interests</Label>
+                  <div className="flex flex-wrap gap-2">
+                    {INTERESTS.map((interest) => (
+                      <Badge
+                        key={interest}
+                        variant={selectedInterests.includes(interest) ? "default" : "outline"}
+                        className={`cursor-pointer transition-colors ${
+                          selectedInterests.includes(interest)
+                            ? "bg-coral text-white hover:bg-coral/90"
+                            : "hover:bg-coral/10"
+                        }`}
+                        onClick={() => toggleInterest(interest as string)}
+                      >
+                        {interest}
+                      </Badge>
+                    ))}
+                  </div>
+                  
+                  {/* Custom interests */}
+                  {selectedInterests.filter(i => !INTERESTS.includes(i as any)).map((interest) => (
+                    <Badge
+                      key={interest}
+                      variant="default"
+                      className="bg-blue-500 text-white mr-2 mb-2"
+                    >
+                      {interest}
+                      <X
+                        size={14}
+                        className="ml-1 cursor-pointer hover:text-red-200"
+                        onClick={() => removeInterest(interest)}
+                      />
+                    </Badge>
+                  ))}
 
-              <FormField
-                control={form.control}
-                name="location"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Location</FormLabel>
-                    <FormControl>
-                      <div className="relative">
-                        <MapPin size={16} className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" />
-                        <Input 
-                          placeholder="e.g., San Francisco, CA" 
-                          className="pl-10"
+                  {/* Add custom interest */}
+                  <div className="flex gap-2">
+                    <Input
+                      placeholder="Add custom interest"
+                      value={customInterest}
+                      onChange={(e) => setCustomInterest(e.target.value)}
+                      onKeyDown={(e) => {
+                        if (e.key === "Enter") {
+                          e.preventDefault();
+                          addCustomInterest();
+                        }
+                      }}
+                    />
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      onClick={addCustomInterest}
+                      disabled={!customInterest.trim()}
+                    >
+                      <Plus size={16} />
+                    </Button>
+                  </div>
+                </div>
+
+                {/* Additional Info */}
+                <FormField
+                  control={form.control}
+                  name="lifestyle"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Lifestyle</FormLabel>
+                      <Select onValueChange={field.onChange} value={field.value || ""}>
+                        <FormControl>
+                          <SelectTrigger>
+                            <SelectValue placeholder="Select lifestyle" />
+                          </SelectTrigger>
+                        </FormControl>
+                        <SelectContent>
+                          {LIFESTYLE_OPTIONS.map((option) => (
+                            <SelectItem key={option} value={option}>
+                              {option}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+
+                <FormField
+                  control={form.control}
+                  name="hasKids"
+                  render={({ field }) => (
+                    <FormItem className="flex flex-row items-center justify-between rounded-lg border p-4">
+                      <div className="space-y-0.5">
+                        <FormLabel className="text-base">Has Kids</FormLabel>
+                        <div className="text-sm text-muted-foreground">
+                          Does this person have children?
+                        </div>
+                      </div>
+                      <FormControl>
+                        <Switch
+                          checked={Boolean(field.value)}
+                          onCheckedChange={field.onChange}
+                        />
+                      </FormControl>
+                    </FormItem>
+                  )}
+                />
+
+                <FormField
+                  control={form.control}
+                  name="partner"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Partner/Spouse</FormLabel>
+                      <FormControl>
+                        <Input placeholder="Partner's name (optional)" {...field} value={field.value || ""} />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+
+                <FormField
+                  control={form.control}
+                  name="howWeMet"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>How We Met</FormLabel>
+                      <FormControl>
+                        <Textarea
+                          placeholder="Tell the story of how you met..."
+                          className="resize-none"
                           {...field}
                           value={field.value || ""}
                         />
-                      </div>
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-            </div>
-
-            {/* Relationship Details */}
-            <div className="bg-white rounded-3xl p-6 card-shadow">
-              <h2 className="text-lg font-semibold text-dark-gray mb-4">Relationship</h2>
-              
-              <FormField
-                control={form.control}
-                name="relationshipLevel"
-                render={({ field }) => (
-                  <FormItem className="mb-4">
-                    <FormLabel>Relationship Level</FormLabel>
-                    <FormControl>
-                      <RelationshipLevelSelector
-                        value={field.value || "new"}
-                        onChange={field.onChange}
-                      />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-
-              <FormField
-                control={form.control}
-                name="howWeMet"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>How did you meet?</FormLabel>
-                    <FormControl>
-                      <Input 
-                        placeholder="e.g., College, work, through friends..." 
-                        {...field}
-                        value={field.value || ""}
-                      />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-            </div>
-
-            {/* Personal Details */}
-            <div className="bg-white rounded-3xl p-6 card-shadow">
-              <h2 className="text-lg font-semibold text-dark-gray mb-4">Personal Details</h2>
-              
-              <FormField
-                control={form.control}
-                name="lifestyle"
-                render={({ field }) => (
-                  <FormItem className="mb-4">
-                    <FormLabel>Lifestyle</FormLabel>
-                    <Select onValueChange={field.onChange} defaultValue={field.value || ""}>
-                      <FormControl>
-                        <SelectTrigger>
-                          <SelectValue placeholder="Select lifestyle" />
-                        </SelectTrigger>
                       </FormControl>
-                      <SelectContent>
-                        {LIFESTYLE_OPTIONS.map((lifestyle) => (
-                          <SelectItem key={lifestyle} value={lifestyle}>
-                            {lifestyle}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-
-              <FormField
-                control={form.control}
-                name="partner"
-                render={({ field }) => (
-                  <FormItem className="mb-4">
-                    <FormLabel>Partner/Spouse</FormLabel>
-                    <FormControl>
-                      <Input placeholder="Partner's name" {...field} value={field.value || ""} />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-
-              <FormField
-                control={form.control}
-                name="hasKids"
-                render={({ field }) => (
-                  <FormItem className="flex flex-row items-start space-x-3 space-y-0">
-                    <FormControl>
-                      <Checkbox
-                        checked={field.value || false}
-                        onCheckedChange={field.onChange}
-                      />
-                    </FormControl>
-                    <div className="space-y-1 leading-none">
-                      <FormLabel>Has children</FormLabel>
-                    </div>
-                  </FormItem>
-                )}
-              />
-            </div>
-
-            {/* Interests */}
-            <div className="bg-white rounded-3xl p-6 card-shadow">
-              <h2 className="text-lg font-semibold text-dark-gray mb-4">Interests</h2>
-              
-              {/* Selected Interests */}
-              {selectedInterests.length > 0 && (
-                <div className="flex flex-wrap gap-2 mb-4">
-                  {selectedInterests.map((interest) => (
-                    <Badge
-                      key={interest}
-                      variant="secondary"
-                      className="bg-turquoise/10 text-turquoise flex items-center gap-1"
-                    >
-                      {interest}
-                      <button
-                        type="button"
-                        onClick={() => removeInterest(interest)}
-                        className="ml-1 hover:text-red-500"
-                      >
-                        <X size={12} />
-                      </button>
-                    </Badge>
-                  ))}
-                </div>
-              )}
-
-              {/* Add Custom Interest */}
-              <div className="flex gap-2 mb-4">
-                <Input
-                  placeholder="Add custom interest..."
-                  value={customInterest}
-                  onChange={(e) => setCustomInterest(e.target.value)}
-                  onKeyPress={(e) => e.key === 'Enter' && (e.preventDefault(), addCustomInterest())}
+                      <FormMessage />
+                    </FormItem>
+                  )}
                 />
+
+                <FormField
+                  control={form.control}
+                  name="notes"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Notes</FormLabel>
+                      <FormControl>
+                        <Textarea
+                          placeholder="Any additional notes about this person..."
+                          className="resize-none"
+                          {...field}
+                          value={field.value || ""}
+                        />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+
                 <Button
-                  type="button"
-                  variant="outline"
-                  size="sm"
-                  onClick={addCustomInterest}
+                  type="submit"
+                  className="w-full bg-coral hover:bg-coral/90 text-white"
+                  disabled={updateMutation.isPending}
                 >
-                  <Plus size={16} />
+                  {updateMutation.isPending ? "Updating Friend..." : "Update Friend"}
                 </Button>
-              </div>
-
-              {/* Predefined Interests */}
-              <div className="grid grid-cols-3 gap-2">
-                {INTERESTS.map((interest) => (
-                  <button
-                    key={interest}
-                    type="button"
-                    onClick={() => toggleInterest(interest)}
-                    className={`p-2 text-sm rounded-xl border transition-colors ${
-                      selectedInterests.includes(interest)
-                        ? "bg-turquoise/10 border-turquoise text-turquoise"
-                        : "bg-gray-50 border-gray-200 text-gray-600 hover:bg-gray-100"
-                    }`}
-                  >
-                    {interest}
-                  </button>
-                ))}
-              </div>
-            </div>
-
-            {/* Notes */}
-            <div className="bg-white rounded-3xl p-6 card-shadow">
-              <h2 className="text-lg font-semibold text-dark-gray mb-4">Notes</h2>
-              
-              <FormField
-                control={form.control}
-                name="notes"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormControl>
-                      <Textarea 
-                        placeholder="Add any additional notes about your friend..."
-                        rows={4}
-                        {...field}
-                        value={field.value || ""}
-                      />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-            </div>
-
-            {/* Contact Information */}
-            <div className="bg-white rounded-3xl p-6 card-shadow">
-              <h2 className="text-lg font-semibold text-dark-gray mb-4">Contact Information</h2>
-              
-              <FormField
-                control={form.control}
-                name="contactInfo"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Contact Info</FormLabel>
-                    <FormControl>
-                      <Textarea 
-                        placeholder="Phone, email, social media handles..."
-                        rows={3}
-                        {...field}
-                        value={field.value || ""}
-                      />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-            </div>
-
-            {/* Submit Button */}
-            <div className="bg-white rounded-3xl p-6 card-shadow">
-              <Button 
-                type="submit" 
-                className="w-full bg-gradient-to-r from-coral to-coral/80 hover:from-coral/90 hover:to-coral/70 text-white font-semibold py-3 rounded-2xl"
-                disabled={updateMutation.isPending}
-              >
-                {updateMutation.isPending ? "Updating..." : "Update Friend"}
-              </Button>
-            </div>
-          </form>
-        </Form>
+              </form>
+            </Form>
+          </CardContent>
+        </Card>
       </div>
     </div>
   );
