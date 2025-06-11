@@ -19,6 +19,7 @@ import { INTERESTS, LIFESTYLE_OPTIONS } from "@/lib/constants";
 import { ArrowLeft, X, Plus, Trash2, Camera, Upload } from "lucide-react";
 import { LocationSearch } from "@/components/location-search";
 import { RelationshipLevelSelector } from "@/components/relationship-level-selector";
+import { IntroducedBySelector } from "@/components/introduced-by-selector";
 
 export default function EditFriend() {
   const { id } = useParams();
