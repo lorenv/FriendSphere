@@ -13,12 +13,14 @@ interface LocationSuggestion {
 
 interface LocationSearchProps {
   value?: string;
+  neighborhood?: string;
   onChange: (location: string, neighborhood?: string) => void;
   placeholder?: string;
 }
 
 export function LocationSearch({ 
   value = "", 
+  neighborhood = "",
   onChange,
   placeholder = "Search neighborhoods..."
 }: LocationSearchProps) {
@@ -29,10 +31,12 @@ export function LocationSearch({
   const inputRef = useRef<HTMLInputElement>(null);
   const debounceRef = useRef<NodeJS.Timeout>();
 
-  // Update searchQuery when value prop changes
+  // Update searchQuery when value or neighborhood prop changes
   useEffect(() => {
-    setSearchQuery(value || "");
-  }, [value]);
+    // If there's a neighborhood, show it in the input field
+    // Otherwise show the location value
+    setSearchQuery(neighborhood || value || "");
+  }, [value, neighborhood]);
 
   const searchPlaces = async (query: string) => {
     if (!query || query.length < 2) {
@@ -83,15 +87,17 @@ export function LocationSearch({
 
   const handleLocationSelect = (suggestion: LocationSuggestion) => {
     const selectedLocation = suggestion.fullLocation;
-    setSearchQuery(selectedLocation);
     
     if (suggestion.type === "neighborhood" || suggestion.type === "sublocality") {
-      // Extract neighborhood and city from the suggestion
+      // For neighborhoods, show the neighborhood name in the input field
       const parts = selectedLocation.split(", ");
       const neighborhood = parts[0];
       const city = parts.slice(1).join(", ");
-      onChange(city, neighborhood);
+      setSearchQuery(neighborhood); // Show neighborhood in input
+      onChange(city, neighborhood); // Pass city as location, neighborhood separately
     } else {
+      // For cities/other locations, show the full location
+      setSearchQuery(selectedLocation);
       onChange(selectedLocation);
     }
     

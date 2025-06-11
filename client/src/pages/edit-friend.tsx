@@ -414,6 +414,7 @@ export default function EditFriend() {
                       <FormControl>
                         <LocationSearch
                           value={field.value || ""}
+                          neighborhood={form.watch("neighborhood") || ""}
                           onChange={handleLocationChange}
                           placeholder="Search for city, neighborhood..."
                         />
