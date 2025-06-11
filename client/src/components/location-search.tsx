@@ -29,6 +29,11 @@ export function LocationSearch({
   const inputRef = useRef<HTMLInputElement>(null);
   const debounceRef = useRef<NodeJS.Timeout>();
 
+  // Update searchQuery when value prop changes
+  useEffect(() => {
+    setSearchQuery(value || "");
+  }, [value]);
+
   const searchPlaces = async (query: string) => {
     if (!query || query.length < 2) {
       setSuggestions([]);
