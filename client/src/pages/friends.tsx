@@ -35,14 +35,13 @@ export default function Friends() {
   // Update filter when URL changes
   useEffect(() => {
     console.log('Location changed:', location);
+    console.log('Full URL search:', window.location.search);
     
-    // Parse URL more carefully - location should include full path with query params
-    const [, queryString] = location.includes('?') ? location.split('?') : [location, ''];
-    const urlParams = new URLSearchParams(queryString);
+    // Use window.location.search to get query parameters
+    const urlParams = new URLSearchParams(window.location.search);
     const categoryFilter = urlParams.get('category');
     const viewFilter = urlParams.get('view');
     
-    console.log('Query string:', queryString);
     console.log('Category filter from URL:', categoryFilter);
     console.log('View filter from URL:', viewFilter);
     console.log('Current selectedRelationshipLevel:', selectedRelationshipLevel);
@@ -55,11 +54,10 @@ export default function Friends() {
       console.log('No category filter, setting to all');
       setSelectedRelationshipLevel("all");
     }
-  }, [location]);
+  }, [location, selectedRelationshipLevel]);
 
   // Get current URL parameters for use in rendering
-  const [, queryString] = location.includes('?') ? location.split('?') : [location, ''];
-  const urlParams = new URLSearchParams(queryString);
+  const urlParams = new URLSearchParams(window.location.search);
   const viewFilter = urlParams.get('view');
 
   const { data: friends = [], isLoading } = useQuery<Friend[]>({
