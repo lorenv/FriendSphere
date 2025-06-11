@@ -145,7 +145,7 @@ export default function Friends() {
           </div>
         ) : (
           // Regular list view
-          <div className="space-y-3 pt-4">
+          <div className="pt-4">
             {filteredFriends.length === 0 ? (
               <div className="text-center py-12">
                 <div className="text-gray-400 mb-4">
