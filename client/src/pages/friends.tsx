@@ -35,46 +35,62 @@ export default function Friends() {
   // Navigation helper functions
   const navigateToCategory = (category: string) => {
     // Clear all filters and set only the category filter
-    if (category === "all") {
-      setLocation('/friends');
-    } else {
-      setLocation(`/friends?category=${category}`);
-    }
+    const newUrl = category === "all" ? '/friends' : `/friends?category=${category}`;
+    setLocation(newUrl);
+    // Trigger popstate event to ensure state updates
+    window.dispatchEvent(new PopStateEvent('popstate'));
   };
 
   const navigateToNewFriends = () => {
     // Clear all filters and set only the new friends view
-    setLocation('/friends?view=new');
+    const newUrl = '/friends?view=new';
+    setLocation(newUrl);
+    // Trigger popstate event to ensure state updates
+    window.dispatchEvent(new PopStateEvent('popstate'));
   };
 
   // Update filter when URL changes
   useEffect(() => {
-    console.log('Location changed:', location);
+    const updateFromURL = () => {
+      console.log('URL changed:', window.location.href);
+      
+      // Extract URL parameters using the browser's current search params
+      const urlParams = new URLSearchParams(window.location.search);
+      const categoryFilter = urlParams.get('category');
+      const viewFilter = urlParams.get('view');
+      
+      console.log('Category filter from URL:', categoryFilter);
+      console.log('View filter from URL:', viewFilter);
+      
+      // Update state based on URL parameters
+      if (viewFilter === 'new') {
+        console.log('Setting new friends view');
+        setShowNewFriendsOnly(true);
+        setSelectedRelationshipLevel("all");
+      } else if (categoryFilter) {
+        console.log('Setting category to:', categoryFilter);
+        setSelectedRelationshipLevel(categoryFilter);
+        setShowNewFriendsOnly(false);
+      } else {
+        console.log('Setting to all friends');
+        setSelectedRelationshipLevel("all");
+        setShowNewFriendsOnly(false);
+      }
+    };
+
+    // Initial load
+    updateFromURL();
+
+    // Listen for URL changes (both programmatic navigation and browser back/forward)
+    const handlePopState = () => {
+      updateFromURL();
+    };
+
+    window.addEventListener('popstate', handlePopState);
     
-    // Extract URL parameters using the browser's current search params
-    const urlParams = new URLSearchParams(window.location.search);
-    const categoryFilter = urlParams.get('category');
-    const viewFilter = urlParams.get('view');
-    
-    console.log('Category filter from URL:', categoryFilter);
-    console.log('View filter from URL:', viewFilter);
-    console.log('Previous selectedRelationshipLevel:', selectedRelationshipLevel);
-    console.log('Previous showNewFriendsOnly:', showNewFriendsOnly);
-    
-    // Update state based on URL parameters
-    if (viewFilter === 'new') {
-      console.log('Setting new friends view');
-      setShowNewFriendsOnly(true);
-      setSelectedRelationshipLevel("all");
-    } else if (categoryFilter) {
-      console.log('Setting category to:', categoryFilter);
-      setSelectedRelationshipLevel(categoryFilter);
-      setShowNewFriendsOnly(false);
-    } else {
-      console.log('Setting to all friends');
-      setSelectedRelationshipLevel("all");
-      setShowNewFriendsOnly(false);
-    }
+    return () => {
+      window.removeEventListener('popstate', handlePopState);
+    };
   }, [location]);
 
   // Get current URL parameters for use in rendering
