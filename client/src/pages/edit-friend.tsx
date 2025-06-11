@@ -77,14 +77,19 @@ export default function EditFriend() {
         howWeMet: friend.howWeMet || "",
       };
       
-      // Set interests and photo
+      // Set interests and photo (only if currentPhoto hasn't been manually set)
       setSelectedInterests(friend.interests || []);
-      setCurrentPhoto(friend.photo || "");
+      if (!currentPhoto || currentPhoto === friend.photo) {
+        setCurrentPhoto(friend.photo || "");
+      }
       
-      // Reset form with the friend data
-      form.reset(formData);
+      // Reset form with the friend data (preserve manually set photo)
+      form.reset({
+        ...formData,
+        photo: currentPhoto || friend.photo || ""
+      });
     }
-  }, [friend, form]);
+  }, [friend, form, currentPhoto]);
 
   const updateMutation = useMutation({
     mutationFn: async (friendData: InsertFriend) => {
