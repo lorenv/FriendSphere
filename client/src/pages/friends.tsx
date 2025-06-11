@@ -35,25 +35,31 @@ export default function Friends() {
   // Update filter when URL changes
   useEffect(() => {
     console.log('Location changed:', location);
-    const urlParams = new URLSearchParams(location.split('?')[1] || '');
+    
+    // Parse URL more carefully - location should include full path with query params
+    const [, queryString] = location.includes('?') ? location.split('?') : [location, ''];
+    const urlParams = new URLSearchParams(queryString);
     const categoryFilter = urlParams.get('category');
     const viewFilter = urlParams.get('view');
     
+    console.log('Query string:', queryString);
     console.log('Category filter from URL:', categoryFilter);
+    console.log('View filter from URL:', viewFilter);
     console.log('Current selectedRelationshipLevel:', selectedRelationshipLevel);
     
-    if (categoryFilter) {
+    if (categoryFilter && categoryFilter !== selectedRelationshipLevel) {
       console.log('Setting relationship level to:', categoryFilter);
       setSelectedRelationshipLevel(categoryFilter);
       setShowNewFriendsOnly(false);
-    } else {
+    } else if (!categoryFilter && selectedRelationshipLevel !== "all") {
       console.log('No category filter, setting to all');
       setSelectedRelationshipLevel("all");
     }
   }, [location]);
 
   // Get current URL parameters for use in rendering
-  const urlParams = new URLSearchParams(location.split('?')[1] || '');
+  const [, queryString] = location.includes('?') ? location.split('?') : [location, ''];
+  const urlParams = new URLSearchParams(queryString);
   const viewFilter = urlParams.get('view');
 
   const { data: friends = [], isLoading } = useQuery<Friend[]>({
