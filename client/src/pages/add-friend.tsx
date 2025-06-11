@@ -55,7 +55,7 @@ export default function AddFriend() {
 
   const createFriendMutation = useMutation({
     mutationFn: async (friendData: InsertFriend) => {
-      return await apiRequest("/api/friends", "POST", { ...friendData, interests: selectedInterests });
+      return await apiRequest("POST", "/api/friends", { ...friendData, interests: selectedInterests });
     },
     onSuccess: () => {
       try {
