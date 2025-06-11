@@ -1,6 +1,6 @@
 import { useQuery } from "@tanstack/react-query";
 import { useState, useEffect } from "react";
-import { useLocation, useRoute } from "wouter";
+import { useLocation } from "wouter";
 import { Friend } from "@shared/schema";
 import { BottomNavigation } from "@/components/bottom-navigation";
 import { FloatingActionButton } from "@/components/floating-action-button";
@@ -51,8 +51,8 @@ export default function Friends() {
   useEffect(() => {
     console.log('Location changed:', location);
     
-    // Extract URL parameters from the current location
-    const urlParams = new URLSearchParams(location.split('?')[1] || '');
+    // Extract URL parameters using the browser's current search params
+    const urlParams = new URLSearchParams(window.location.search);
     const categoryFilter = urlParams.get('category');
     const viewFilter = urlParams.get('view');
     
