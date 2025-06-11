@@ -40,10 +40,14 @@ export function BottomNavigation() {
           </button>
         </Link>
         
-        <button className="flex flex-col items-center space-y-1 text-gray-400">
-          <User size={20} />
-          <span className="text-xs font-medium">Profile</span>
-        </button>
+        <Link href="/profile">
+          <button className={`flex flex-col items-center space-y-1 ${
+            isActive("/profile") ? "text-coral" : "text-gray-400"
+          }`}>
+            <User size={20} />
+            <span className="text-xs font-medium">Profile</span>
+          </button>
+        </Link>
       </div>
     </div>
   );

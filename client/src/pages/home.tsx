@@ -78,7 +78,7 @@ export default function Home() {
         <div className="bg-white rounded-3xl p-6 card-shadow mb-6 relative z-10">
           <div className="flex items-center justify-between mb-4">
             <h2 className="text-lg font-semibold text-dark-gray">Recent Activity</h2>
-            <Link href="/activities">
+            <Link href="/activity">
               <button className="text-coral text-sm font-medium">View All</button>
             </Link>
           </div>
