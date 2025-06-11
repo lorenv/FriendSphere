@@ -40,7 +40,7 @@ export default function AddFriend() {
       firstName: "",
       lastName: "",
       relationshipLevel: "acquaintance",
-      isNewFriend: true,
+      isNewFriend: false,
       interests: [],
       hasKids: false,
       contactInfo: "",
