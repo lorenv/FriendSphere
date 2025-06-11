@@ -179,30 +179,38 @@ export default function EditFriend() {
   }
 
   return (
-    <div className="min-h-screen bg-off-white">
-      <div className="max-w-md mx-auto p-4">
-        <div className="flex items-center justify-between mb-6">
-          <div className="flex items-center">
+    <div className="max-w-md mx-auto bg-white min-h-screen relative overflow-hidden">
+      {/* Header */}
+      <div className="gradient-coral-turquoise-sage pt-12 pb-8">
+        <div className="px-6">
+          <div className="flex items-center justify-between mb-6">
+            <div className="flex items-center">
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => setLocation(`/friends/${id}`)}
+                className="p-2 text-white hover:bg-white/20"
+              >
+                <ArrowLeft size={20} />
+              </Button>
+              <h1 className="text-3xl font-bold text-white ml-2">Edit Friend</h1>
+            </div>
             <Button
-              variant="ghost"
+              variant="destructive"
               size="sm"
-              onClick={() => setLocation(`/friends/${id}`)}
-              className="p-2 text-dark-gray hover:text-coral"
+              onClick={handleDelete}
+              disabled={deleteMutation.isPending}
+              className="bg-red-500 hover:bg-red-600"
             >
-              <ArrowLeft size={20} />
+              <Trash2 size={16} className="mr-2" />
+              Delete
             </Button>
-            <h1 className="text-2xl font-bold text-dark-gray ml-2">Edit Friend</h1>
           </div>
-          <Button
-            variant="destructive"
-            size="sm"
-            onClick={handleDelete}
-            disabled={deleteMutation.isPending}
-          >
-            <Trash2 size={16} className="mr-2" />
-            Delete
-          </Button>
         </div>
+      </div>
+
+      {/* Content */}
+      <div className="px-6 -mt-2 pb-8">
 
         <Card>
           <CardContent className="p-6">

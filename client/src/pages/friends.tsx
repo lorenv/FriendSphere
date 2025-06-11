@@ -17,12 +17,12 @@ const iconMap = {
   briefcase: Briefcase,
 };
 
-const gradientColors = {
-  all: "from-coral via-turquoise to-sage",
-  new: "from-blue-400 via-blue-500 to-blue-600",
-  friend: "from-green-400 via-green-500 to-green-600", 
-  close: "from-red-400 via-red-500 to-red-600",
-  work: "from-purple-400 via-purple-500 to-purple-600",
+const gradientClasses = {
+  all: "gradient-coral-turquoise-sage",
+  new: "gradient-blue",
+  friend: "gradient-green", 
+  close: "gradient-red",
+  work: "gradient-purple",
 };
 
 export default function Friends() {
@@ -66,12 +66,12 @@ export default function Friends() {
     );
   }
 
-  const currentGradient = gradientColors[selectedRelationshipLevel as keyof typeof gradientColors] || gradientColors.all;
+  const currentGradientClass = gradientClasses[selectedRelationshipLevel as keyof typeof gradientClasses] || gradientClasses.all;
 
   return (
     <div className="max-w-md mx-auto bg-white min-h-screen relative overflow-hidden">
       {/* Header with dynamic gradient */}
-      <div className={`bg-gradient-to-br ${currentGradient} pt-12 pb-8 transition-all duration-500 ease-in-out`}>
+      <div className={`${currentGradientClass} pt-12 pb-8 transition-all duration-500 ease-in-out`}>
         <div className="px-6">
           <div className="flex items-center justify-between mb-6">
             <h1 className="text-3xl font-bold text-white">Friends</h1>
