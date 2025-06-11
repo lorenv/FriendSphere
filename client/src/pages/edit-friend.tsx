@@ -135,10 +135,15 @@ export default function EditFriend() {
   });
 
   const onSubmit = (data: InsertFriend) => {
+    console.log("Edit form submission - currentPhoto:", currentPhoto?.substring(0, 50) + "...");
+    console.log("Edit form submission - data.photo:", data.photo?.substring(0, 50) + "...");
+    const photoToSubmit = currentPhoto || data.photo;
+    console.log("Photo being submitted:", photoToSubmit?.substring(0, 50) + "...");
+    
     updateMutation.mutate({ 
       ...data, 
       interests: selectedInterests, 
-      photo: currentPhoto || data.photo 
+      photo: photoToSubmit 
     });
   };
 
@@ -161,6 +166,8 @@ export default function EditFriend() {
   const handleFileUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
     if (file) {
+      console.log("File upload started in edit mode:", file.name, file.size);
+      
       // Check file size (limit to 5MB)
       if (file.size > 5 * 1024 * 1024) {
         toast({
@@ -184,8 +191,10 @@ export default function EditFriend() {
       const reader = new FileReader();
       reader.onload = (e) => {
         const base64 = e.target?.result as string;
+        console.log("Setting photo in edit mode:", base64.substring(0, 50) + "...");
         setCurrentPhoto(base64);
         form.setValue("photo", base64);
+        console.log("Form photo value after setting:", form.getValues("photo")?.substring(0, 50) + "...");
       };
       reader.readAsDataURL(file);
     }
