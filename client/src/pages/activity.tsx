@@ -93,7 +93,7 @@ export default function ActivityPage() {
 
   // Group activities by date
   const groupedActivities = enrichedActivities.reduce((acc: { [key: string]: EnrichedActivity[] }, activity) => {
-    const date = format(new Date(activity.createdAt), 'yyyy-MM-dd');
+    const date = format(new Date(activity.timestamp || new Date()), 'yyyy-MM-dd');
     if (!acc[date]) acc[date] = [];
     acc[date].push(activity);
     return acc;
@@ -150,7 +150,11 @@ export default function ActivityPage() {
                 {/* Activities for this date */}
                 <div className="space-y-3">
                   {groupedActivities[date]
-                    .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
+                    .sort((a, b) => {
+                      const timeA = new Date(a.timestamp || new Date()).getTime();
+                      const timeB = new Date(b.timestamp || new Date()).getTime();
+                      return timeB - timeA;
+                    })
                     .map((activity) => {
                       const IconComponent = getActivityIcon(activity.activityType);
                       const colorClasses = getActivityColor(activity.activityType);
@@ -175,11 +179,11 @@ export default function ActivityPage() {
                                 {getActivityText(activity)}
                               </p>
                               <p className="text-xs text-gray-500 mt-1">
-                                {formatDistanceToNow(new Date(activity.createdAt), { addSuffix: true })}
+                                {formatDistanceToNow(new Date(activity.timestamp || new Date()), { addSuffix: true })}
                               </p>
-                              {activity.notes && (
+                              {activity.description && (
                                 <p className="text-xs text-gray-600 mt-2 bg-gray-50 rounded-lg p-2">
-                                  {activity.notes}
+                                  {activity.description}
                                 </p>
                               )}
                             </div>
