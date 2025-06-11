@@ -57,7 +57,7 @@ export function FriendCard({ friend }: FriendCardProps) {
   return (
     <Link href={`/friends/${friend.id}`}>
       <div className={`${colors.bg} ${colors.border} border rounded-2xl p-4 flex items-center space-x-4 cursor-pointer hover:shadow-md transition-all duration-200 mb-3`}>
-        <div className="relative w-14 h-14 rounded-xl bg-white flex items-center justify-center overflow-hidden shadow-sm">
+        <div className="w-14 h-14 rounded-xl bg-white flex items-center justify-center overflow-hidden shadow-sm">
           {friend.photo ? (
             <img 
               src={friend.photo} 
@@ -69,10 +69,6 @@ export function FriendCard({ friend }: FriendCardProps) {
               {friend.firstName.charAt(0).toUpperCase()}
             </div>
           )}
-          {/* Subtle relationship indicator dot */}
-          <div className={`absolute -top-1 -right-1 w-4 h-4 rounded-full ${colors.accent} flex items-center justify-center`}>
-            <RelationshipIcon size={8} className="text-white" />
-          </div>
         </div>
         
         <div className="flex-1 min-w-0">

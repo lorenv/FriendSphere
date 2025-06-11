@@ -1,10 +1,11 @@
 import { useQuery } from "@tanstack/react-query";
-import { Search, Heart, Users, Briefcase, UserPlus, Gamepad2, Network, MapPin, Download } from "lucide-react";
+import { Search, Heart, Users, Briefcase, UserPlus, Gamepad2, Network, MapPin, Download, Star, Shield } from "lucide-react";
 import { Link } from "wouter";
 import { BottomNavigation } from "@/components/bottom-navigation";
 import { FloatingActionButton } from "@/components/floating-action-button";
 import { Friend, Activity } from "@shared/schema";
 import { formatDistanceToNow } from "date-fns";
+import { RELATIONSHIP_LEVELS } from "@/lib/constants";
 
 interface EnrichedActivity extends Activity {
   friend?: Friend;
@@ -206,13 +207,32 @@ export default function Home() {
               </Link>
             </div>
             
-            <div className="space-y-3">
+            <div>
               {recentFriends.map((friend) => {
                 const fullName = `${friend.firstName} ${friend.lastName || ''}`.trim();
+                const relationshipLevel = RELATIONSHIP_LEVELS[friend.relationshipLevel as keyof typeof RELATIONSHIP_LEVELS] || RELATIONSHIP_LEVELS.new;
+                
+                const getColorClasses = (level: string) => {
+                  switch (level) {
+                    case 'close':
+                      return { bg: 'bg-rose-50', border: 'border-rose-200', icon: 'text-rose-500' };
+                    case 'friend':
+                      return { bg: 'bg-blue-50', border: 'border-blue-200', icon: 'text-blue-500' };
+                    case 'professional':
+                      return { bg: 'bg-gray-50', border: 'border-gray-200', icon: 'text-gray-500' };
+                    default:
+                      return { bg: 'bg-green-50', border: 'border-green-200', icon: 'text-green-500' };
+                  }
+                };
+                
+                const colors = getColorClasses(friend.relationshipLevel);
+                const IconMap = { star: Star, shield: Shield, heart: Heart, briefcase: Briefcase };
+                const RelationshipIcon = IconMap[relationshipLevel.icon as keyof typeof IconMap];
+                
                 return (
                   <Link key={friend.id} href={`/friends/${friend.id}`}>
-                    <div className="bg-white rounded-2xl p-4 card-shadow flex items-center space-x-4 cursor-pointer">
-                      <div className="w-16 h-16 rounded-2xl bg-gray-200 flex items-center justify-center overflow-hidden">
+                    <div className={`${colors.bg} ${colors.border} border rounded-2xl p-4 flex items-center space-x-4 cursor-pointer hover:shadow-md transition-all duration-200 mb-3`}>
+                      <div className="w-14 h-14 rounded-xl bg-white flex items-center justify-center overflow-hidden shadow-sm">
                         {friend.photo ? (
                           <img 
                             src={friend.photo} 
@@ -220,26 +240,26 @@ export default function Home() {
                             className="w-full h-full object-cover"
                           />
                         ) : (
-                          <div className="text-2xl font-bold text-gray-400">
+                          <div className="text-lg font-semibold text-gray-500">
                             {friend.firstName.charAt(0).toUpperCase()}
                           </div>
                         )}
                       </div>
-                      <div className="flex-1">
-                        <h3 className="font-semibold text-dark-gray">{fullName}</h3>
-                        {friend.location && (
-                          <p className="text-sm text-gray-500 mb-1">{friend.location}</p>
-                        )}
-                        <div className="flex items-center space-x-2">
-                          <span className="bg-coral/10 text-coral text-xs px-2 py-1 rounded-full font-medium">
-                            {friend.relationshipLevel.replace('_', ' ').replace(/\b\w/g, (l: string) => l.toUpperCase())}
-                          </span>
-                          {friend.interests && friend.interests.length > 0 && (
-                            <span className="bg-turquoise/10 text-turquoise text-xs px-2 py-1 rounded-full font-medium">
-                              {friend.interests[0]}
-                            </span>
-                          )}
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center space-x-2 mb-1">
+                          <h3 className="font-semibold text-gray-900 truncate">{fullName}</h3>
+                          <RelationshipIcon size={14} className={colors.icon} />
                         </div>
+                        {friend.location && (
+                          <p className="text-sm text-gray-600 truncate mb-1">
+                            {friend.neighborhood ? friend.neighborhood : friend.location}
+                          </p>
+                        )}
+                        {friend.interests && friend.interests.length > 0 && (
+                          <span className="inline-block bg-white text-gray-600 text-xs px-2 py-1 rounded-md font-medium">
+                            {friend.interests[0]}
+                          </span>
+                        )}
                       </div>
                     </div>
                   </Link>

@@ -3,7 +3,7 @@ import { useParams, useLocation } from "wouter";
 import { useState } from "react";
 import { Friend } from "@shared/schema";
 import { BottomNavigation } from "@/components/bottom-navigation";
-import { FRIEND_CATEGORIES, INTERESTS } from "@/lib/constants";
+import { FRIEND_CATEGORIES, INTERESTS, RELATIONSHIP_LEVELS } from "@/lib/constants";
 import { queryClient, apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import { 
@@ -15,7 +15,10 @@ import {
   Mail, 
   Edit,
   Calendar,
-  MessageCircle
+  MessageCircle,
+  Star,
+  Shield,
+  Briefcase
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -46,8 +49,12 @@ export default function FriendDetail() {
 
   const updateFriendMutation = useMutation({
     mutationFn: async (updateData: Partial<Friend>) => {
-      const response = await apiRequest(`/api/friends/${friendId}`, {
+      const response = await fetch(`/api/friends/${friendId}`, {
         method: "PATCH",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        credentials: "include",
         body: JSON.stringify(updateData),
       });
       if (!response.ok) {
@@ -99,12 +106,51 @@ export default function FriendDetail() {
     );
   }
 
-  const category = FRIEND_CATEGORIES[friend.category as keyof typeof FRIEND_CATEGORIES] || FRIEND_CATEGORIES.friends;
+  // Remove category reference since it doesn't exist in the schema
+  const relationshipLevel = RELATIONSHIP_LEVELS[friend.relationshipLevel as keyof typeof RELATIONSHIP_LEVELS] || RELATIONSHIP_LEVELS.new;
+  
+  // Color mapping for relationship levels
+  const getColorClasses = (level: string) => {
+    switch (level) {
+      case 'close':
+        return {
+          gradient: 'bg-gradient-to-br from-rose-400 to-rose-600',
+          icon: 'text-rose-500',
+          bg: 'bg-rose-50',
+          border: 'border-rose-200'
+        };
+      case 'friend':
+        return {
+          gradient: 'bg-gradient-to-br from-blue-400 to-blue-600',
+          icon: 'text-blue-500',
+          bg: 'bg-blue-50',
+          border: 'border-blue-200'
+        };
+      case 'professional':
+        return {
+          gradient: 'bg-gradient-to-br from-gray-400 to-gray-600',
+          icon: 'text-gray-500',
+          bg: 'bg-gray-50',
+          border: 'border-gray-200'
+        };
+      default: // new
+        return {
+          gradient: 'bg-gradient-to-br from-green-400 to-green-600',
+          icon: 'text-green-500',
+          bg: 'bg-green-50',
+          border: 'border-green-200'
+        };
+    }
+  };
+  
+  const colors = getColorClasses(friend.relationshipLevel);
+  const iconMap = { star: Star, shield: Shield, heart: Heart, briefcase: Briefcase };
+  const RelationshipIcon = iconMap[relationshipLevel.icon as keyof typeof iconMap];
 
   return (
     <div className="max-w-md mx-auto bg-white min-h-screen relative overflow-hidden">
-      {/* Header */}
-      <div className="gradient-bg px-6 pt-12 pb-8 text-white relative">
+      {/* Header with relationship-based gradient */}
+      <div className={`${colors.gradient} px-6 pt-12 pb-8 text-white relative`}>
         <div className="flex items-center justify-between mb-6">
           <button 
             onClick={() => setLocation("/friends")}
@@ -136,16 +182,19 @@ export default function FriendDetail() {
             )}
           </div>
           <div className="flex-1">
-            <h1 className="text-2xl font-bold">{`${friend.firstName} ${friend.lastName || ''}`.trim()}</h1>
+            <div className="flex items-center space-x-2 mb-1">
+              <h1 className="text-2xl font-bold">{`${friend.firstName} ${friend.lastName || ''}`.trim()}</h1>
+              <RelationshipIcon size={20} className="text-white" />
+            </div>
             {friend.location && (
               <div className="flex items-center text-white/80 text-sm mt-1">
                 <MapPin size={14} className="mr-1" />
-                {friend.location}
+                {friend.neighborhood ? `${friend.neighborhood}, ${friend.location}` : friend.location}
               </div>
             )}
             <div className="mt-2">
-              <Badge className={`bg-${category.color}/20 text-white border-white/30`}>
-                {category.label}
+              <Badge className="bg-white/20 text-white border-white/30">
+                {relationshipLevel.label}
               </Badge>
             </div>
           </div>
