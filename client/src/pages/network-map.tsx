@@ -134,7 +134,7 @@ export default function NetworkMap() {
           }))
       };
     })
-    .filter(cluster => cluster.totalFriends > 1)
+    .filter(cluster => cluster.totalFriends >= 1)
     .sort((a, b) => b.totalFriends - a.totalFriends)
     .slice(0, 5);
 
