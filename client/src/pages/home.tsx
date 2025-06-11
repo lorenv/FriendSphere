@@ -121,9 +121,7 @@ export default function Home() {
           <div className="grid grid-cols-2 gap-4">
             
             <div 
-              onClick={() => {
-                window.location.assign("/friends?category=close");
-              }}
+              onClick={() => setLocation("/friends?category=close")}
               className="bg-gradient-to-br from-rose-400 to-rose-600 rounded-3xl p-4 text-white card-shadow cursor-pointer hover:shadow-lg transition-all duration-200"
             >
               <div className="flex items-center justify-between mb-3">
@@ -135,7 +133,7 @@ export default function Home() {
             </div>
             
             <div 
-              onClick={() => window.location.assign("/friends?category=friend")}
+              onClick={() => setLocation("/friends?category=friend")}
               className="bg-gradient-to-br from-blue-400 to-blue-600 rounded-3xl p-4 text-white card-shadow cursor-pointer hover:shadow-lg transition-all duration-200"
             >
               <div className="flex items-center justify-between mb-3">
@@ -147,7 +145,7 @@ export default function Home() {
             </div>
             
             <div 
-              onClick={() => window.location.assign("/friends?category=work")}
+              onClick={() => setLocation("/friends?category=work")}
               className="bg-gradient-to-br from-slate-400 to-slate-600 rounded-3xl p-4 text-white card-shadow cursor-pointer hover:shadow-lg transition-all duration-200"
             >
               <div className="flex items-center justify-between mb-3">
@@ -159,7 +157,7 @@ export default function Home() {
             </div>
             
             <div 
-              onClick={() => window.location.assign("/friends?category=acquaintance")}
+              onClick={() => setLocation("/friends?category=acquaintance")}
               className="bg-gradient-to-br from-emerald-400 to-emerald-600 rounded-3xl p-4 text-white card-shadow cursor-pointer hover:shadow-lg transition-all duration-200"
             >
               <div className="flex items-center justify-between mb-3">
