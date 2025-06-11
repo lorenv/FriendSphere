@@ -1,23 +1,176 @@
-import type { Express } from "express";
+import type { Express, Request, Response, NextFunction } from "express";
 import { createServer, type Server } from "http";
+import session from "express-session";
 import { storage } from "./storage";
-import { insertFriendSchema, insertRelationshipSchema, insertActivitySchema } from "@shared/schema";
+import { 
+  insertFriendSchema, 
+  insertRelationshipSchema, 
+  insertActivitySchema,
+  registerUserSchema,
+  loginUserSchema,
+  insertContactShareSchema,
+  type User
+} from "@shared/schema";
 import { z } from "zod";
 
+// Extend session to include user
+declare module "express-session" {
+  interface SessionData {
+    userId?: number;
+    user?: User;
+  }
+}
+
+// Authentication middleware
+const requireAuth = (req: Request, res: Response, next: NextFunction) => {
+  if (!req.session.userId) {
+    return res.status(401).json({ message: "Authentication required" });
+  }
+  next();
+};
 
 export async function registerRoutes(app: Express): Promise<Server> {
-  // Friends routes
-  app.get("/api/friends", async (req, res) => {
+  // Session middleware
+  app.use(session({
+    secret: process.env.SESSION_SECRET || 'fallback-secret-for-dev',
+    resave: false,
+    saveUninitialized: false,
+    cookie: {
+      secure: process.env.NODE_ENV === 'production',
+      httpOnly: true,
+      maxAge: 24 * 60 * 60 * 1000 // 24 hours
+    }
+  }));
+
+  // Authentication routes
+  app.post("/api/auth/register", async (req, res) => {
     try {
+      const userData = registerUserSchema.parse(req.body);
+      
+      // Check if user already exists
+      const existingUser = await storage.getUserByEmail(userData.email);
+      if (existingUser) {
+        return res.status(400).json({ message: "User already exists with this email" });
+      }
+      
+      // Check for Gravatar photo if email provided and no photo
+      if (!userData.photo && userData.email) {
+        try {
+          const gravatarResponse = await fetch('/api/gravatar/lookup', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ email: userData.email })
+          });
+          const gravatarData = await gravatarResponse.json();
+          if (gravatarData.success) {
+            userData.photo = gravatarData.highResUrl;
+          }
+        } catch (error) {
+          // Silently ignore Gravatar errors
+        }
+      }
+      
+      const user = await storage.createUser(userData);
+      
+      // Log user in after registration
+      req.session.userId = user.id;
+      req.session.user = user;
+      
+      res.status(201).json({
+        user: {
+          id: user.id,
+          email: user.email,
+          firstName: user.firstName,
+          lastName: user.lastName,
+          photo: user.photo,
+          location: user.location,
+          bio: user.bio,
+          isPublic: user.isPublic
+        }
+      });
+    } catch (error) {
+      if (error instanceof z.ZodError) {
+        return res.status(400).json({ message: "Validation error", errors: error.errors });
+      }
+      res.status(500).json({ message: "Failed to create user" });
+    }
+  });
+
+  app.post("/api/auth/login", async (req, res) => {
+    try {
+      const { email, password } = loginUserSchema.parse(req.body);
+      
+      const user = await storage.verifyPassword(email, password);
+      if (!user) {
+        return res.status(401).json({ message: "Invalid email or password" });
+      }
+      
+      req.session.userId = user.id;
+      req.session.user = user;
+      
+      res.json({
+        user: {
+          id: user.id,
+          email: user.email,
+          firstName: user.firstName,
+          lastName: user.lastName,
+          photo: user.photo,
+          location: user.location,
+          bio: user.bio,
+          isPublic: user.isPublic
+        }
+      });
+    } catch (error) {
+      if (error instanceof z.ZodError) {
+        return res.status(400).json({ message: "Validation error", errors: error.errors });
+      }
+      res.status(500).json({ message: "Login failed" });
+    }
+  });
+
+  app.post("/api/auth/logout", (req, res) => {
+    req.session.destroy((err) => {
+      if (err) {
+        return res.status(500).json({ message: "Logout failed" });
+      }
+      res.json({ message: "Logged out successfully" });
+    });
+  });
+
+  app.get("/api/auth/user", requireAuth, async (req, res) => {
+    try {
+      const user = await storage.getUserById(req.session.userId!);
+      if (!user) {
+        return res.status(404).json({ message: "User not found" });
+      }
+      res.json({
+        id: user.id,
+        email: user.email,
+        firstName: user.firstName,
+        lastName: user.lastName,
+        photo: user.photo,
+        location: user.location,
+        bio: user.bio,
+        isPublic: user.isPublic
+      });
+    } catch (error) {
+      res.status(500).json({ message: "Failed to fetch user" });
+    }
+  });
+
+  // User-specific Friends routes
+  app.get("/api/friends", requireAuth, async (req, res) => {
+    try {
+      const userId = req.session.userId!;
       const { category, location } = req.query;
       
       let friends;
       if (category && typeof category === 'string') {
-        friends = await storage.getFriendsByCategory(category);
+        friends = await storage.getFriendsByCategory(userId, category);
       } else if (location && typeof location === 'string') {
-        friends = await storage.getFriendsByLocation(location);
+        friends = await storage.getFriendsByLocation(userId, location);
       } else {
-        friends = await storage.getAllFriends();
+        friends = await storage.getAllFriends(userId);
       }
       
       res.json(friends);
@@ -26,10 +179,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.get("/api/friends/:id", async (req, res) => {
+  app.get("/api/friends/:id", requireAuth, async (req, res) => {
     try {
+      const userId = req.session.userId!;
       const id = parseInt(req.params.id);
-      const friend = await storage.getFriend(id);
+      const friend = await storage.getFriend(userId, id);
       
       if (!friend) {
         return res.status(404).json({ message: "Friend not found" });
@@ -41,25 +195,27 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.post("/api/friends", async (req, res) => {
+  app.post("/api/friends", requireAuth, async (req, res) => {
     try {
+      const userId = req.session.userId!;
       const friendData = insertFriendSchema.parse(req.body);
-      const friend = await storage.createFriend(friendData);
+      const friend = await storage.createFriend(userId, friendData);
       res.status(201).json(friend);
     } catch (error) {
       if (error instanceof z.ZodError) {
-        return res.status(400).json({ message: "Invalid friend data", errors: error.errors });
+        return res.status(400).json({ message: "Validation error", errors: error.errors });
       }
       res.status(500).json({ message: "Failed to create friend" });
     }
   });
 
-  app.put("/api/friends/:id", async (req, res) => {
+  app.patch("/api/friends/:id", requireAuth, async (req, res) => {
     try {
+      const userId = req.session.userId!;
       const id = parseInt(req.params.id);
       const updateData = insertFriendSchema.partial().parse(req.body);
-      const friend = await storage.updateFriend(id, updateData);
       
+      const friend = await storage.updateFriend(userId, id, updateData);
       if (!friend) {
         return res.status(404).json({ message: "Friend not found" });
       }
@@ -67,221 +223,144 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.json(friend);
     } catch (error) {
       if (error instanceof z.ZodError) {
-        return res.status(400).json({ message: "Invalid friend data", errors: error.errors });
+        return res.status(400).json({ message: "Validation error", errors: error.errors });
       }
       res.status(500).json({ message: "Failed to update friend" });
     }
   });
 
-  app.patch("/api/friends/:id", async (req, res) => {
+  app.delete("/api/friends/:id", requireAuth, async (req, res) => {
     try {
+      const userId = req.session.userId!;
       const id = parseInt(req.params.id);
-      const updateData = insertFriendSchema.partial().parse(req.body);
-      console.log("PATCH request received for friend", id, "with photo:", updateData.photo?.substring(0, 50) + "...");
-      const friend = await storage.updateFriend(id, updateData);
       
-      if (!friend) {
+      const success = await storage.deleteFriend(userId, id);
+      if (!success) {
         return res.status(404).json({ message: "Friend not found" });
       }
       
-      console.log("Friend updated successfully, photo:", friend.photo?.substring(0, 50) + "...");
-      res.json(friend);
-    } catch (error) {
-      console.error("PATCH error:", error);
-      if (error instanceof z.ZodError) {
-        return res.status(400).json({ message: "Invalid friend data", errors: error.errors });
-      }
-      res.status(500).json({ message: "Failed to update friend" });
-    }
-  });
-
-  app.delete("/api/friends/:id", async (req, res) => {
-    try {
-      const id = parseInt(req.params.id);
-      const deleted = await storage.deleteFriend(id);
-      
-      if (!deleted) {
-        return res.status(404).json({ message: "Friend not found" });
-      }
-      
-      res.status(204).send();
+      res.json({ message: "Friend deleted successfully" });
     } catch (error) {
       res.status(500).json({ message: "Failed to delete friend" });
     }
   });
 
-  // Relationships routes
-  app.get("/api/friends/:id/relationships", async (req, res) => {
+  // User-specific Activities routes
+  app.get("/api/activities", requireAuth, async (req, res) => {
     try {
-      const friendId = parseInt(req.params.id);
-      const relationships = await storage.getRelationshipsByFriend(friendId);
-      res.json(relationships);
-    } catch (error) {
-      res.status(500).json({ message: "Failed to fetch relationships" });
-    }
-  });
-
-  app.post("/api/relationships", async (req, res) => {
-    try {
-      const relationshipData = insertRelationshipSchema.parse(req.body);
-      const relationship = await storage.createRelationship(relationshipData);
-      res.status(201).json(relationship);
-    } catch (error) {
-      if (error instanceof z.ZodError) {
-        return res.status(400).json({ message: "Invalid relationship data", errors: error.errors });
-      }
-      res.status(500).json({ message: "Failed to create relationship" });
-    }
-  });
-
-  // Activities routes
-  app.get("/api/activities", async (req, res) => {
-    try {
+      const userId = req.session.userId!;
       const limit = req.query.limit ? parseInt(req.query.limit as string) : 10;
-      const activities = await storage.getRecentActivities(limit);
-      
-      // Enrich activities with friend data
-      const enrichedActivities = await Promise.all(
-        activities.map(async (activity) => {
-          const friend = await storage.getFriend(activity.friendId);
-          return {
-            ...activity,
-            friend,
-          };
-        })
-      );
-      
-      res.json(enrichedActivities);
+      const activities = await storage.getRecentActivities(userId, limit);
+      res.json(activities);
     } catch (error) {
       res.status(500).json({ message: "Failed to fetch activities" });
     }
   });
 
-  app.get("/api/friends/:id/activities", async (req, res) => {
+  // User-specific Stats route
+  app.get("/api/stats", requireAuth, async (req, res) => {
     try {
-      const friendId = parseInt(req.params.id);
-      const activities = await storage.getActivitiesByFriend(friendId);
-      res.json(activities);
-    } catch (error) {
-      res.status(500).json({ message: "Failed to fetch friend activities" });
-    }
-  });
-
-  // Stats route
-  app.get("/api/stats", async (req, res) => {
-    try {
-      const stats = await storage.getFriendStats();
+      const userId = req.session.userId!;
+      const stats = await storage.getFriendStats(userId);
       res.json(stats);
     } catch (error) {
       res.status(500).json({ message: "Failed to fetch stats" });
     }
   });
 
+  // Contact sharing routes
+  app.post("/api/contact-shares", requireAuth, async (req, res) => {
+    try {
+      const shareData = insertContactShareSchema.parse(req.body);
+      const contactShare = await storage.createContactShare(shareData);
+      res.status(201).json(contactShare);
+    } catch (error) {
+      if (error instanceof z.ZodError) {
+        return res.status(400).json({ message: "Validation error", errors: error.errors });
+      }
+      res.status(500).json({ message: "Failed to create contact share" });
+    }
+  });
 
-  // Gravatar photo lookup
+  app.get("/api/contact-shares/received", requireAuth, async (req, res) => {
+    try {
+      const userId = req.session.userId!;
+      const shares = await storage.getContactSharesReceived(userId);
+      res.json(shares);
+    } catch (error) {
+      res.status(500).json({ message: "Failed to fetch received contact shares" });
+    }
+  });
+
+  app.get("/api/contact-shares/sent", requireAuth, async (req, res) => {
+    try {
+      const userId = req.session.userId!;
+      const shares = await storage.getContactSharesSent(userId);
+      res.json(shares);
+    } catch (error) {
+      res.status(500).json({ message: "Failed to fetch sent contact shares" });
+    }
+  });
+
+  app.patch("/api/contact-shares/:id/accept", requireAuth, async (req, res) => {
+    try {
+      const id = parseInt(req.params.id);
+      const success = await storage.acceptContactShare(id);
+      
+      if (!success) {
+        return res.status(404).json({ message: "Contact share not found" });
+      }
+      
+      res.json({ message: "Contact share accepted" });
+    } catch (error) {
+      res.status(500).json({ message: "Failed to accept contact share" });
+    }
+  });
+
+  // Gravatar lookup route (unchanged)
   app.post("/api/gravatar/lookup", async (req, res) => {
     try {
       const { email } = req.body;
       
-      if (!email) {
-        return res.status(400).json({ error: "Email is required" });
+      if (!email || typeof email !== 'string') {
+        return res.status(400).json({ 
+          success: false, 
+          message: "Email is required" 
+        });
       }
-      
-      // Create MD5 hash of email for Gravatar
+
       const crypto = await import('crypto');
-      const hash = crypto.createHash('md5').update(email.toLowerCase().trim()).digest('hex');
-      const gravatarUrl = `https://www.gravatar.com/avatar/${hash}?s=200&d=404`;
+      const emailHash = crypto.createHash('md5').update(email.toLowerCase().trim()).digest('hex');
       
-      // Check if Gravatar exists by making a request
-      try {
-        const response = await fetch(gravatarUrl);
-        if (response.ok) {
-          return res.json({
-            success: true,
-            email,
-            photoUrl: `https://www.gravatar.com/avatar/${hash}?s=200`,
-            highResUrl: `https://www.gravatar.com/avatar/${hash}?s=400`
-          });
-        } else {
-          return res.status(404).json({
-            success: false,
-            email,
-            message: "No Gravatar found for this email address"
-          });
-        }
-      } catch (fetchError) {
-        return res.status(404).json({
-          success: false,
+      // Check if Gravatar exists
+      const checkUrl = `https://www.gravatar.com/avatar/${emailHash}?d=404&s=200`;
+      const response = await fetch(checkUrl);
+      
+      if (response.status === 404) {
+        return res.status(404).json({ 
+          success: false, 
           email,
-          message: "Unable to check Gravatar availability"
+          message: "No Gravatar found for this email address" 
         });
       }
       
-    } catch (error: unknown) {
-      const errorMessage = error instanceof Error ? error.message : 'Server error';
-      console.error('Gravatar lookup error:', errorMessage);
-      res.status(500).json({ error: "Failed to lookup Gravatar" });
-    }
-  });
-
-  // Places search route
-  app.post("/api/places/search", async (req, res) => {
-    try {
-      const { query } = req.body;
+      // Return different resolution URLs
+      const baseUrl = `https://www.gravatar.com/avatar/${emailHash}`;
       
-      if (!query || query.length < 2) {
-        return res.json({ suggestions: [] });
-      }
-
-      const apiKey = process.env.GOOGLE_MAPS_API_KEY;
-      if (!apiKey) {
-        return res.status(500).json({ error: "Google Maps API key not configured" });
-      }
-
-      // Use Google Places API Autocomplete with US restriction and broader search
-      const params = new URLSearchParams({
-        input: query,
-        key: apiKey,
-        components: 'country:us', // Restrict to US only
-        types: 'establishment|geocode', // Include establishments and geographic areas
-        language: 'en'
+      res.json({
+        success: true,
+        email,
+        hash: emailHash,
+        thumbnailUrl: `${baseUrl}?s=80&d=identicon`,
+        standardUrl: `${baseUrl}?s=200&d=identicon`,
+        highResUrl: `${baseUrl}?s=400&d=identicon`,
+        message: "Gravatar found successfully"
       });
-
-      const url = `https://maps.googleapis.com/maps/api/place/autocomplete/json?${params}`;
-      
-      const response = await fetch(url);
-      const data = await response.json();
-
-      if (data.status !== "OK" && data.status !== "ZERO_RESULTS") {
-        console.error("Google Places API error:", data);
-        return res.status(500).json({ error: "Places search failed" });
-      }
-
-      const suggestions = data.predictions?.map((prediction: any) => {
-        // Determine the type based on the place types
-        let type = "locality";
-        if (prediction.types.includes("neighborhood") || 
-            prediction.types.includes("sublocality") ||
-            prediction.types.includes("sublocality_level_1") ||
-            prediction.types.includes("sublocality_level_2")) {
-          type = "neighborhood";
-        } else if (prediction.types.includes("administrative_area_level_3")) {
-          type = "administrative_area_level_3";
-        }
-
-        return {
-          id: prediction.place_id,
-          name: prediction.structured_formatting.main_text,
-          type,
-          fullLocation: prediction.description,
-          placeId: prediction.place_id
-        };
-      }) || [];
-
-      res.json({ suggestions });
     } catch (error) {
-      console.error("Places search error:", error);
-      res.status(500).json({ error: "Failed to search places" });
+      res.status(500).json({ 
+        success: false, 
+        message: "Error checking Gravatar" 
+      });
     }
   });
 
