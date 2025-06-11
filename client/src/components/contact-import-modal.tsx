@@ -5,8 +5,9 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent } from "@/components/ui/card";
-import { Upload, Users, FileText, Copy, Share, Smartphone } from "lucide-react";
+import { Upload, Users, FileText, Copy, Share, Smartphone, Camera, Loader2 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+import { createWorker } from 'tesseract.js';
 
 interface ContactImportModalProps {
   open: boolean;
@@ -18,6 +19,8 @@ export function ContactImportModal({ open, onClose, onImport }: ContactImportMod
   const { toast } = useToast();
   const [importMethod, setImportMethod] = useState<string | null>(null);
   const [textInput, setTextInput] = useState("");
+  const [isProcessing, setIsProcessing] = useState(false);
+  const [extractedText, setExtractedText] = useState("");
 
   const parseContactText = (text: string) => {
     const lines = text.split('\n').map(line => line.trim()).filter(Boolean);
@@ -26,36 +29,96 @@ export function ContactImportModal({ open, onClose, onImport }: ContactImportMod
     let phone = "";
     let email = "";
 
-    // Try to extract name (first line or name pattern)
-    const namePattern = /^([A-Za-z]+)\s+([A-Za-z\s]+)$/;
-    const firstLine = lines[0];
-    if (namePattern.test(firstLine)) {
-      const match = firstLine.match(namePattern);
-      firstName = match?.[1] || "";
-      lastName = match?.[2] || "";
-    } else if (firstLine && !firstLine.includes('@') && !firstLine.match(/[\d-\(\)]/)) {
-      // If first line doesn't contain email or phone patterns, treat as name
-      const nameParts = firstLine.split(' ');
-      firstName = nameParts[0] || "";
-      lastName = nameParts.slice(1).join(' ') || "";
-    }
-
-    // Extract phone and email from all lines
-    lines.forEach(line => {
-      // Phone patterns
-      const phonePattern = /[\+]?[\d\s\-\(\)]{7,}/;
-      if (phonePattern.test(line) && !phone) {
-        phone = line.replace(/[^\d\+\-\(\)\s]/g, '').trim();
-      }
+    // Enhanced patterns for different contact formats
+    const phonePatterns = [
+      /(\+?1?[-.\s]?\(?[0-9]{3}\)?[-.\s]?[0-9]{3}[-.\s]?[0-9]{4})/g, // US format
+      /(\+?[0-9]{1,4}[-.\s]?[0-9]{3,4}[-.\s]?[0-9]{3,4}[-.\s]?[0-9]{3,4})/g, // International
+      /(mobile|cell|phone|tel)[:\s]+([0-9\+\-\.\s\(\)]+)/gi, // Labeled phone
+    ];
+    
+    const emailPattern = /([a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,})/g;
+    
+    // Look for name patterns - often first non-phone/email line
+    let nameFound = false;
+    lines.forEach((line, index) => {
+      // Skip lines that look like labels or system text
+      if (line.match(/^(mobile|cell|phone|email|home|work|main|tel|contact)/i)) return;
+      if (line.match(/^[0-9\+\-\.\s\(\)@]+$/)) return; // Skip pure number/email lines
       
-      // Email pattern
-      const emailPattern = /[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}/;
-      if (emailPattern.test(line) && !email) {
-        email = line.match(emailPattern)?.[0] || "";
+      // Extract name if not found yet
+      if (!nameFound && line.length > 1 && line.match(/^[a-zA-Z\s\.'-]+$/)) {
+        const cleanName = line.replace(/^(contact|name)[:\s]*/gi, '').trim();
+        const nameParts = cleanName.split(/\s+/);
+        firstName = nameParts[0] || "";
+        lastName = nameParts.slice(1).join(' ') || "";
+        nameFound = true;
       }
     });
 
+    // Extract phone numbers
+    const allText = lines.join(' ');
+    phonePatterns.forEach(pattern => {
+      if (!phone) {
+        const matches = allText.match(pattern);
+        if (matches) {
+          phone = matches[0].replace(/[^0-9\+\-\(\)\s]/g, '').trim();
+        }
+      }
+    });
+
+    // Extract email
+    const emailMatch = allText.match(emailPattern);
+    if (emailMatch) {
+      email = emailMatch[0];
+    }
+
     return { firstName, lastName, phone, email };
+  };
+
+  const processScreenshot = async (file: File) => {
+    setIsProcessing(true);
+    try {
+      const worker = await createWorker('eng');
+      
+      // Configure for better text recognition
+      await worker.setParameters({
+        tessedit_char_whitelist: 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789@.-+()[] ',
+      });
+
+      const { data: { text } } = await worker.recognize(file);
+      await worker.terminate();
+
+      setExtractedText(text);
+      const contactData = parseContactText(text);
+      
+      if (!contactData.firstName && !contactData.phone && !contactData.email) {
+        toast({
+          title: "No Contact Info Found",
+          description: "Could not extract contact information from the image. Try a clearer photo or manual entry.",
+          variant: "destructive",
+        });
+        setIsProcessing(false);
+        return;
+      }
+
+      toast({
+        title: "Contact Extracted!",
+        description: "Successfully extracted contact information from screenshot.",
+      });
+
+      onImport(contactData);
+      onClose();
+      setExtractedText("");
+      setImportMethod(null);
+    } catch (error) {
+      console.error('OCR Error:', error);
+      toast({
+        title: "Processing Failed",
+        description: "Could not process the image. Please try again or use manual entry.",
+        variant: "destructive",
+      });
+    }
+    setIsProcessing(false);
   };
 
   const handleTextImport = () => {
@@ -89,6 +152,13 @@ export function ContactImportModal({ open, onClose, onImport }: ContactImportMod
     const file = event.target.files?.[0];
     if (!file) return;
 
+    // Check if it's an image file for OCR processing
+    if (file.type.startsWith('image/')) {
+      processScreenshot(file);
+      return;
+    }
+
+    // Handle text files (vCard, CSV, etc.)
     const reader = new FileReader();
     reader.onload = (e) => {
       const content = e.target?.result as string;
@@ -168,6 +238,16 @@ export function ContactImportModal({ open, onClose, onImport }: ContactImportMod
             <p className="text-sm text-gray-600">Choose how you'd like to import contact information:</p>
             
             <div className="grid gap-3">
+              <Card className="cursor-pointer hover:shadow-md transition-shadow" onClick={() => setImportMethod("screenshot")}>
+                <CardContent className="p-4 flex items-center space-x-3">
+                  <Camera className="text-purple-500" size={24} />
+                  <div>
+                    <h3 className="font-medium">Screenshot Import</h3>
+                    <p className="text-sm text-gray-500">Upload screenshot of contact info</p>
+                  </div>
+                </CardContent>
+              </Card>
+
               <Card className="cursor-pointer hover:shadow-md transition-shadow" onClick={() => setImportMethod("paste")}>
                 <CardContent className="p-4 flex items-center space-x-3">
                   <Copy className="text-blue-500" size={24} />
@@ -209,6 +289,53 @@ export function ContactImportModal({ open, onClose, onImport }: ContactImportMod
               </Card>
             </div>
           </div>
+        ) : importMethod === "screenshot" ? (
+          <div className="space-y-4">
+            <div>
+              <Label htmlFor="screenshot-file">Upload Screenshot</Label>
+              <Input
+                id="screenshot-file"
+                type="file"
+                accept="image/*"
+                onChange={handleFileImport}
+                className="mt-2"
+                disabled={isProcessing}
+              />
+              <p className="text-sm text-gray-500 mt-1">
+                Upload a screenshot of contact info, business card, or any text containing contact details
+              </p>
+            </div>
+            
+            {isProcessing && (
+              <div className="flex items-center justify-center space-x-2 p-4 bg-blue-50 rounded-lg">
+                <Loader2 className="animate-spin text-blue-500" size={20} />
+                <span className="text-sm text-blue-700">Processing image... This may take a moment</span>
+              </div>
+            )}
+
+            {extractedText && !isProcessing && (
+              <div className="space-y-2">
+                <Label>Extracted Text:</Label>
+                <div className="p-3 bg-gray-50 rounded border text-sm max-h-32 overflow-y-auto">
+                  {extractedText}
+                </div>
+              </div>
+            )}
+
+            <div className="bg-gray-50 p-3 rounded-lg">
+              <h4 className="font-medium text-sm mb-2">Tips for best results:</h4>
+              <ul className="text-xs text-gray-600 space-y-1">
+                <li>• Take clear, well-lit screenshots</li>
+                <li>• Ensure text is not blurry or too small</li>
+                <li>• Include name, phone, and email in the image</li>
+                <li>• Works with contact apps, business cards, notes</li>
+              </ul>
+            </div>
+
+            <Button variant="outline" onClick={() => setImportMethod(null)} className="w-full" disabled={isProcessing}>
+              Back
+            </Button>
+          </div>
         ) : importMethod === "paste" ? (
           <div className="space-y-4">
             <div>
@@ -238,12 +365,12 @@ export function ContactImportModal({ open, onClose, onImport }: ContactImportMod
               <Input
                 id="contact-file"
                 type="file"
-                accept=".vcf,.txt"
+                accept=".vcf,.txt,image/*"
                 onChange={handleFileImport}
                 className="mt-2"
               />
               <p className="text-sm text-gray-500 mt-1">
-                Supports vCard (.vcf) files or plain text files
+                Supports vCard (.vcf), text files, or images (will use OCR)
               </p>
             </div>
             <Button variant="outline" onClick={() => setImportMethod(null)} className="w-full">
