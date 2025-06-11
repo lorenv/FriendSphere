@@ -102,9 +102,24 @@ export default function NetworkMap() {
     }, [])
     .sort((a, b) => b.introducedFriends.length - a.introducedFriends.length);
 
+  // Get location-based connections
+  const locationGroups = friends.reduce((acc: { [key: string]: Friend[] }, friend) => {
+    if (friend.location) {
+      const key = friend.neighborhood ? `${friend.neighborhood}, ${friend.location}` : friend.location;
+      if (!acc[key]) acc[key] = [];
+      acc[key].push(friend);
+    }
+    return acc;
+  }, {});
+
+  const topLocations = Object.entries(locationGroups)
+    .filter(([, friends]) => friends.length > 1)
+    .sort(([, a], [, b]) => b.length - a.length)
+    .slice(0, 5);
+
   const renderOverview = () => (
     <div className="space-y-6">
-      {/* Connection Summary */}
+      {/* Network Summary */}
       <div className="bg-white rounded-2xl p-6 card-shadow">
         <div className="flex items-center space-x-3 mb-4">
           <div className="p-2 bg-blue-100 rounded-xl">
@@ -116,27 +131,23 @@ export default function NetworkMap() {
           </div>
         </div>
         
-        <div className="grid grid-cols-2 gap-3">
-          {connectionGroups.map((group) => {
-            const IconComponent = group.icon;
-            return (
-              <div 
-                key={group.title}
-                onClick={() => {
-                  setViewMode('friend-detail');
-                  setSelectedFriend(group.friends[0] || null);
-                }}
-                className={`bg-gradient-to-br ${group.color} rounded-xl p-4 text-white cursor-pointer hover:shadow-lg transition-all`}
-              >
-                <div className="flex items-center justify-between mb-2">
-                  <IconComponent size={18} />
-                  <span className="text-xl font-bold">{group.count}</span>
-                </div>
-                <p className="text-sm font-medium">{group.title}</p>
-                <p className="text-xs text-white/80">{group.description}</p>
-              </div>
-            );
-          })}
+        <div className="grid grid-cols-4 gap-2 text-center">
+          <div>
+            <div className="text-lg font-bold text-rose-600">{friends.filter(f => f.relationshipLevel === 'close').length}</div>
+            <div className="text-xs text-gray-500">Close</div>
+          </div>
+          <div>
+            <div className="text-lg font-bold text-blue-600">{friends.filter(f => f.relationshipLevel === 'friend').length}</div>
+            <div className="text-xs text-gray-500">Friends</div>
+          </div>
+          <div>
+            <div className="text-lg font-bold text-slate-600">{friends.filter(f => f.relationshipLevel === 'work').length}</div>
+            <div className="text-xs text-gray-500">Work</div>
+          </div>
+          <div>
+            <div className="text-lg font-bold text-emerald-600">{friends.filter(f => f.relationshipLevel === 'acquaintance').length}</div>
+            <div className="text-xs text-gray-500">New</div>
+          </div>
         </div>
       </div>
 
@@ -199,6 +210,65 @@ export default function NetworkMap() {
               View all connection makers
             </button>
           )}
+        </div>
+      )}
+
+      {/* Location Clusters */}
+      {topLocations.length > 0 && (
+        <div className="bg-white rounded-2xl p-6 card-shadow">
+          <div className="flex items-center space-x-3 mb-4">
+            <div className="p-2 bg-purple-100 rounded-xl">
+              <Users className="text-purple-600" size={20} />
+            </div>
+            <div>
+              <h3 className="font-semibold text-dark-gray">Friend Clusters</h3>
+              <p className="text-sm text-gray-500">Areas where you have multiple connections</p>
+            </div>
+          </div>
+
+          <div className="space-y-3">
+            {topLocations.map(([location, locationFriends]) => (
+              <div 
+                key={location}
+                className="flex items-center justify-between p-3 bg-gray-50 rounded-xl"
+              >
+                <div className="flex-1">
+                  <p className="font-medium text-dark-gray">{location}</p>
+                  <p className="text-sm text-gray-500">{locationFriends.length} friends</p>
+                </div>
+                <div className="flex -space-x-2">
+                  {locationFriends.slice(0, 3).map((friend) => {
+                    const { color } = getRelationshipColors(friend.relationshipLevel || 'acquaintance');
+                    return (
+                      <div 
+                        key={friend.id}
+                        className={`w-8 h-8 rounded-full bg-gradient-to-br ${color} flex items-center justify-center border-2 border-white overflow-hidden`}
+                      >
+                        {friend.photo ? (
+                          <img 
+                            src={friend.photo} 
+                            alt={friend.firstName}
+                            className="w-full h-full object-cover"
+                          />
+                        ) : (
+                          <span className="text-white font-semibold text-xs">
+                            {friend.firstName.charAt(0)}
+                          </span>
+                        )}
+                      </div>
+                    );
+                  })}
+                  {locationFriends.length > 3 && (
+                    <div className="w-8 h-8 rounded-full bg-gray-300 flex items-center justify-center border-2 border-white">
+                      <span className="text-gray-600 font-semibold text-xs">
+                        +{locationFriends.length - 3}
+                      </span>
+                    </div>
+                  )}
+                </div>
+              </div>
+            ))}
+          </div>
         </div>
       )}
     </div>
