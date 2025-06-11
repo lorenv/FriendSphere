@@ -44,7 +44,7 @@ export class DatabaseStorage implements IStorage {
   }
 
   async getFriendsByCategory(category: string): Promise<Friend[]> {
-    return await db.select().from(friends).where(eq(friends.category, category));
+    return await db.select().from(friends).where(eq(friends.relationshipLevel, category));
   }
 
   async getFriendsByLocation(location: string): Promise<Friend[]> {
@@ -149,7 +149,7 @@ export class DatabaseStorage implements IStorage {
   }> {
     const allFriends = await this.getAllFriends();
     const totalFriends = allFriends.length;
-    const closeFriends = allFriends.filter(f => f.category === 'close_friends').length;
+    const closeFriends = allFriends.filter(f => f.relationshipLevel === 'close').length;
     
     // New connections in the last 30 days
     const thirtyDaysAgo = new Date();
@@ -160,10 +160,10 @@ export class DatabaseStorage implements IStorage {
       activity => activity.timestamp && activity.timestamp > thirtyDaysAgo
     ).length;
     
-    // Category breakdown
+    // Relationship level breakdown
     const categoryBreakdown: Record<string, number> = {};
     allFriends.forEach(friend => {
-      categoryBreakdown[friend.category] = (categoryBreakdown[friend.category] || 0) + 1;
+      categoryBreakdown[friend.relationshipLevel] = (categoryBreakdown[friend.relationshipLevel] || 0) + 1;
     });
     
     return {

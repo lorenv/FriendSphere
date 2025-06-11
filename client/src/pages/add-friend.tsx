@@ -113,19 +113,35 @@ export default function AddFriend() {
   };
 
   const importFromContacts = async () => {
+    // Check for Contact Picker API support
     if ('contacts' in navigator && 'ContactsManager' in window) {
       try {
         const props = ['name', 'tel', 'email'];
-        const contacts = await (navigator as any).contacts.select(props);
-        setContacts(contacts.map((contact: any, index: number) => ({
-          id: `contact-${index}`,
-          firstName: contact.name?.[0] || 'Unknown',
-          lastName: contact.name?.[1] || '',
-          phoneNumbers: contact.tel || [],
-          emails: contact.email || [],
-        })));
-        setShowContactImport(true);
+        const contacts = await (navigator as any).contacts.select(props, { multiple: false });
+        
+        if (contacts && contacts.length > 0) {
+          const contact = contacts[0];
+          const firstName = contact.name?.[0] || '';
+          const lastName = contact.name?.slice(1).join(' ') || '';
+          const phone = contact.tel?.[0] || '';
+          const email = contact.email?.[0] || '';
+          
+          // Populate form fields directly
+          form.setValue("firstName", firstName);
+          form.setValue("lastName", lastName);
+          form.setValue("phone", phone);
+          form.setValue("email", email);
+          
+          toast({
+            title: "Contact Imported",
+            description: `Successfully imported ${firstName} ${lastName}`,
+          });
+        }
       } catch (error) {
+        if ((error as Error).name === 'AbortError') {
+          // User cancelled the contact picker
+          return;
+        }
         toast({
           title: "Contact Access Unavailable",
           description: "Contact access is not available on this device or browser.",
@@ -134,8 +150,8 @@ export default function AddFriend() {
       }
     } else {
       toast({
-        title: "Contacts Not Supported",
-        description: "Contact import is not supported on this browser.",
+        title: "Feature Not Available",
+        description: "Contact import requires a supported mobile browser with contact access permissions.",
         variant: "destructive",
       });
     }
