@@ -288,7 +288,7 @@ export default function EditFriend() {
               disabled={deleteMutation.isPending}
               className="p-2 bg-red-500/80 hover:bg-red-600/80 rounded-full transition-colors"
             >
-              <Trash2 size={20} />
+              <Trash2 size={20} className="text-white" />
             </button>
           </div>
         </div>

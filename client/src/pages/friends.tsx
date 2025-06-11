@@ -55,6 +55,7 @@ export default function Friends() {
                          (friend.location || "").toLowerCase().includes(searchTerm.toLowerCase());
     const matchesRelationshipLevel = selectedRelationshipLevel === "all" || friend.relationshipLevel === selectedRelationshipLevel;
     const matchesNewFriendFilter = !showNewFriendsOnly || friend.isNewFriend;
+    
     return matchesSearch && matchesRelationshipLevel && matchesNewFriendFilter;
   });
 
