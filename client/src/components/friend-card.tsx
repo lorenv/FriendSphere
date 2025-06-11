@@ -22,28 +22,32 @@ const getColorClasses = (level: string) => {
         bg: 'bg-rose-50',
         border: 'border-rose-200',
         icon: 'text-rose-500',
-        accent: 'bg-rose-500'
+        accent: 'bg-rose-500',
+        ring: 'ring-rose-300'
       };
     case 'friend':
       return {
         bg: 'bg-blue-50',
         border: 'border-blue-200', 
         icon: 'text-blue-500',
-        accent: 'bg-blue-500'
+        accent: 'bg-blue-500',
+        ring: 'ring-blue-300'
       };
     case 'work':
       return {
         bg: 'bg-slate-50',
         border: 'border-slate-200',
         icon: 'text-slate-500',
-        accent: 'bg-slate-500'
+        accent: 'bg-slate-500',
+        ring: 'ring-slate-300'
       };
     default: // acquaintance
       return {
         bg: 'bg-emerald-50',
         border: 'border-emerald-200',
         icon: 'text-emerald-500',
-        accent: 'bg-emerald-500'
+        accent: 'bg-emerald-500',
+        ring: 'ring-emerald-300'
       };
   }
 };
@@ -57,7 +61,7 @@ export function FriendCard({ friend }: FriendCardProps) {
   return (
     <Link href={`/friends/${friend.id}`}>
       <div className={`${colors.bg} ${colors.border} border rounded-2xl p-4 flex items-center space-x-4 cursor-pointer hover:shadow-md transition-all duration-200 mb-3`}>
-        <div className={`w-14 h-14 rounded-xl bg-white flex items-center justify-center overflow-hidden shadow-sm ${friend.isNewFriend ? 'ring-2 ring-blue-300 ring-opacity-60' : ''}`}>
+        <div className={`w-14 h-14 rounded-xl bg-white flex items-center justify-center overflow-hidden shadow-sm ring-2 ${colors.ring} ring-opacity-60`}>
           {friend.photo ? (
             <img 
               src={friend.photo} 
