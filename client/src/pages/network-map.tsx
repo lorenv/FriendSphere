@@ -1,592 +1,456 @@
 import { useQuery } from "@tanstack/react-query";
-import { useState, useEffect, useMemo } from "react";
-import { Friend, Relationship } from "@shared/schema";
+import { useState } from "react";
+import { Friend } from "@shared/schema";
 import { BottomNavigation } from "@/components/bottom-navigation";
-import { RELATIONSHIP_LEVELS } from "@/lib/constants";
-import { ArrowLeft, ZoomIn, ZoomOut, MapPin, Users, Network } from "lucide-react";
+import { ArrowLeft, Users, ChevronRight, UserPlus, Heart, Shield, Briefcase, Star, ArrowRight } from "lucide-react";
 import { useLocation } from "wouter";
 import { Button } from "@/components/ui/button";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
-interface NetworkNode {
-  id: number;
-  name: string;
-  category: string;
-  x: number;
-  y: number;
-  color: string;
-  connections: number[];
-}
-
-interface NetworkLink {
-  source: number;
-  target: number;
-  type: string;
-}
-
-interface LocationGroup {
-  location: string;
+interface ConnectionGroup {
+  title: string;
+  count: number;
   friends: Friend[];
-  x: number;
-  y: number;
   color: string;
-  isArea: boolean;
-  neighborhoodCount: number;
+  icon: any;
+  description: string;
 }
+
+interface IntroductionChain {
+  introducer: Friend;
+  introducedFriends: Friend[];
+}
+
+type ViewMode = 'overview' | 'introducer' | 'friend-detail';
 
 export default function NetworkMap() {
   const [, setLocation] = useLocation();
-  const [zoom, setZoom] = useState(1);
-  const [selectedNode, setSelectedNode] = useState<number | null>(null);
+  const [viewMode, setViewMode] = useState<ViewMode>('overview');
+  const [selectedIntroducer, setSelectedIntroducer] = useState<Friend | null>(null);
+  const [selectedFriend, setSelectedFriend] = useState<Friend | null>(null);
 
   const { data: friends = [] } = useQuery<Friend[]>({
     queryKey: ["/api/friends"],
   });
 
-  const { data: allRelationships = [] } = useQuery<Relationship[]>({
-    queryKey: ["/api/relationships"],
-    queryFn: async () => {
-      // Since we don't have a direct endpoint for all relationships,
-      // we'll simulate this based on the introducedBy field
-      const relationships: Relationship[] = [];
-      friends.forEach(friend => {
-        if (friend.introducedBy) {
-          relationships.push({
-            id: relationships.length + 1,
-            friendId: friend.id,
-            relatedFriendId: friend.introducedBy,
-            relationshipType: "introduced_by"
-          });
-        }
-      });
-      return relationships;
-    },
-    enabled: friends.length > 0,
-  });
-
-  // Location clustering logic
-  const [expandedAreas, setExpandedAreas] = useState<Set<string>>(new Set());
-
-  const locationClusters = useMemo(() => {
-    if (friends.length === 0) return { areas: [], neighborhoods: new Map() };
-
-    // Location mapping patterns for major metropolitan areas
-    const areaPatterns = {
-      'Los Angeles': [
-        'LA', 'Los Angeles', 'Hollywood', 'Beverly Hills', 'Santa Monica', 
-        'Venice', 'West Hollywood', 'Culver City', 'Marina del Rey', 
-        'Manhattan Beach', 'Hermosa Beach', 'Redondo Beach', 'El Segundo',
-        'Westwood', 'Brentwood', 'Pacific Palisades', 'Malibu', 'Pasadena',
-        'Glendale', 'Burbank', 'Studio City', 'North Hollywood', 'Sherman Oaks',
-        'Encino', 'Tarzana', 'Calabasas', 'Woodland Hills', 'Canoga Park'
-      ],
-      'San Francisco Bay Area': [
-        'San Francisco', 'SF', 'Oakland', 'Berkeley', 'Palo Alto', 'Mountain View',
-        'Menlo Park', 'Redwood City', 'San Mateo', 'Fremont', 'Hayward',
-        'Union City', 'Sunnyvale', 'Santa Clara', 'San Jose', 'Cupertino',
-        'Saratoga', 'Los Gatos', 'Campbell', 'Milpitas', 'Foster City'
-      ],
-      'New York City': [
-        'NYC', 'New York', 'Manhattan', 'Brooklyn', 'Queens', 'Bronx',
-        'Staten Island', 'Long Island City', 'Williamsburg', 'Park Slope',
-        'DUMBO', 'SoHo', 'Tribeca', 'Upper East Side', 'Upper West Side',
-        'Chelsea', 'Greenwich Village', 'East Village', 'Midtown', 'Harlem'
-      ],
-      'Chicago': [
-        'Chicago', 'Lincoln Park', 'Wicker Park', 'Bucktown', 'Logan Square',
-        'River North', 'Gold Coast', 'Old Town', 'Lincoln Square', 'Lakeview',
-        'Boystown', 'Andersonville', 'Uptown', 'Rogers Park', 'Evanston'
-      ],
-      'Seattle': [
-        'Seattle', 'Capitol Hill', 'Fremont', 'Ballard', 'Queen Anne',
-        'Belltown', 'South Lake Union', 'Wallingford', 'Greenwood',
-        'Phinney Ridge', 'University District', 'Bellevue', 'Redmond', 'Kirkland'
-      ],
-      'Austin': [
-        'Austin', 'South Austin', 'East Austin', 'West Austin', 'North Austin',
-        'Downtown Austin', 'Zilker', 'Travis Heights', 'Barton Hills',
-        'Mueller', 'Cedar Park', 'Round Rock', 'Pflugerville'
-      ],
-      'Miami': [
-        'Miami', 'Miami Beach', 'South Beach', 'Wynwood', 'Little Havana',
-        'Coral Gables', 'Coconut Grove', 'Aventura', 'Bal Harbour',
-        'Key Biscayne', 'Homestead', 'Kendall', 'Doral'
-      ]
-    };
-
-    const areaGroups = new Map<string, Friend[]>();
-    const neighborhoodsByArea = new Map<string, Map<string, Friend[]>>();
-    const unmatchedFriends: Friend[] = [];
-
-    // Group friends by metropolitan areas
-    friends.forEach(friend => {
-      const location = friend.location || 'Unknown Location';
-      let matchedArea: string | null = null;
-
-      // Check if location matches any area pattern
-      for (const [area, patterns] of Object.entries(areaPatterns)) {
-        if (patterns.some(pattern => 
-          location.toLowerCase().includes(pattern.toLowerCase()) ||
-          pattern.toLowerCase().includes(location.toLowerCase())
-        )) {
-          matchedArea = area;
-          break;
-        }
-      }
-
-      if (matchedArea) {
-        // Add to area group
-        if (!areaGroups.has(matchedArea)) {
-          areaGroups.set(matchedArea, []);
-          neighborhoodsByArea.set(matchedArea, new Map());
-        }
-        areaGroups.get(matchedArea)!.push(friend);
-
-        // Also group by specific neighborhood within area
-        const neighborhoods = neighborhoodsByArea.get(matchedArea)!;
-        if (!neighborhoods.has(location)) {
-          neighborhoods.set(location, []);
-        }
-        neighborhoods.get(location)!.push(friend);
-      } else {
-        unmatchedFriends.push(friend);
-      }
-    });
-
-    // Add individual locations for unmatched friends
-    unmatchedFriends.forEach(friend => {
-      const location = friend.location || 'Unknown Location';
-      if (!areaGroups.has(location)) {
-        areaGroups.set(location, []);
-      }
-      areaGroups.get(location)!.push(friend);
-    });
-
-    const colors = ['coral', 'turquoise', 'mint', 'sky', 'lavender'];
-    let colorIndex = 0;
-
-    const areas = Array.from(areaGroups.entries()).map(([area, friendList], index) => {
-      const angle = (index / areaGroups.size) * 2 * Math.PI;
-      const centerX = 200;
-      const centerY = 300;
-      const radius = 100;
-      
-      return {
-        location: area,
-        friends: friendList,
-        x: centerX + Math.cos(angle) * radius,
-        y: centerY + Math.sin(angle) * radius,
-        color: colors[colorIndex++ % colors.length],
-        isArea: areaPatterns.hasOwnProperty(area),
-        neighborhoodCount: neighborhoodsByArea.get(area)?.size || 0
-      };
-    });
-
-    return { areas, neighborhoods: neighborhoodsByArea };
-  }, [friends]);
-
-  const toggleAreaExpansion = (area: string) => {
-    const newExpanded = new Set(expandedAreas);
-    if (newExpanded.has(area)) {
-      newExpanded.delete(area);
-    } else {
-      newExpanded.add(area);
+  // Get relationship level colors and icons
+  const getRelationshipColors = (level: string) => {
+    switch (level) {
+      case 'close':
+        return { color: 'from-rose-400 to-rose-600', icon: Heart };
+      case 'friend':
+        return { color: 'from-blue-400 to-blue-600', icon: Shield };
+      case 'work':
+        return { color: 'from-slate-400 to-slate-600', icon: Briefcase };
+      default: // acquaintance
+        return { color: 'from-emerald-400 to-emerald-600', icon: Star };
     }
-    setExpandedAreas(newExpanded);
   };
 
-  // Relationship network data (family tree style)
-  const networkData = useMemo(() => {
-    if (friends.length === 0) return { nodes: [], links: [] };
-
-    // Create a hierarchical layout based on introduction relationships
-    const levels = new Map<number, number>();
-    const processedFriends = new Set<number>();
-    const rootFriends: Friend[] = [];
-    
-    // Find root friends (not introduced by anyone)
-    friends.forEach(friend => {
-      if (!friend.introducedBy) {
-        rootFriends.push(friend);
-        levels.set(friend.id, 0);
-        processedFriends.add(friend.id);
-      }
-    });
-
-    // Build levels based on introduction chains
-    let currentLevel = 1;
-    let remainingFriends = friends.filter(f => !processedFriends.has(f.id));
-    
-    while (remainingFriends.length > 0 && currentLevel < 5) {
-      const currentLevelFriends: Friend[] = [];
-      
-      remainingFriends.forEach(friend => {
-        if (friend.introducedBy && processedFriends.has(friend.introducedBy)) {
-          levels.set(friend.id, currentLevel);
-          processedFriends.add(friend.id);
-          currentLevelFriends.push(friend);
-        }
-      });
-      
-      if (currentLevelFriends.length === 0) break;
-      
-      remainingFriends = remainingFriends.filter(f => !processedFriends.has(f.id));
-      currentLevel++;
+  // Build connection groups for overview
+  const connectionGroups: ConnectionGroup[] = [
+    {
+      title: "Close Friends",
+      count: friends.filter(f => f.relationshipLevel === 'close').length,
+      friends: friends.filter(f => f.relationshipLevel === 'close'),
+      color: "from-rose-400 to-rose-600",
+      icon: Heart,
+      description: "Your inner circle"
+    },
+    {
+      title: "Friends",
+      count: friends.filter(f => f.relationshipLevel === 'friend').length,
+      friends: friends.filter(f => f.relationshipLevel === 'friend'),
+      color: "from-blue-400 to-blue-600",
+      icon: Shield,
+      description: "Regular friends"
+    },
+    {
+      title: "Work Network",
+      count: friends.filter(f => f.relationshipLevel === 'work').length,
+      friends: friends.filter(f => f.relationshipLevel === 'work'),
+      color: "from-slate-400 to-slate-600",
+      icon: Briefcase,
+      description: "Professional connections"
+    },
+    {
+      title: "Acquaintances",
+      count: friends.filter(f => f.relationshipLevel === 'acquaintance').length,
+      friends: friends.filter(f => f.relationshipLevel === 'acquaintance'),
+      color: "from-emerald-400 to-emerald-600",
+      icon: Star,
+      description: "New connections"
     }
+  ];
 
-    // Position remaining friends at the bottom level
-    remainingFriends.forEach(friend => {
-      levels.set(friend.id, currentLevel);
-    });
+  // Build introduction chains
+  const introductionChains: IntroductionChain[] = friends
+    .filter(friend => friend.introducedBy)
+    .reduce((acc: IntroductionChain[], friend) => {
+      const introducer = friends.find(f => f.id === friend.introducedBy);
+      if (!introducer) return acc;
 
-    // Create nodes with hierarchical positioning
-    const nodes: NetworkNode[] = friends.map(friend => {
-      const level = levels.get(friend.id) || 0;
-      const friendsAtLevel = friends.filter(f => levels.get(f.id) === level);
-      const indexAtLevel = friendsAtLevel.findIndex(f => f.id === friend.id);
-      
-      const relationshipLevel = RELATIONSHIP_LEVELS[friend.relationshipLevel as keyof typeof RELATIONSHIP_LEVELS] || RELATIONSHIP_LEVELS.acquaintance;
-      
-      const x = 50 + (indexAtLevel * 300 / Math.max(1, friendsAtLevel.length - 1));
-      const y = 80 + (level * 80);
-      
-      return {
-        id: friend.id,
-        name: `${friend.firstName} ${friend.lastName || ''}`.trim(),
-        category: friend.relationshipLevel,
-        x: Math.min(350, Math.max(50, x)),
-        y,
-        color: relationshipLevel.color || '#10b981',
-        connections: [],
-      };
-    });
-
-    // Create links based on introduction relationships
-    const links: NetworkLink[] = [];
-    friends.forEach(friend => {
-      if (friend.introducedBy) {
-        links.push({
-          source: friend.introducedBy,
-          target: friend.id,
-          type: 'introduced_by',
+      const existingChain = acc.find(chain => chain.introducer.id === introducer.id);
+      if (existingChain) {
+        existingChain.introducedFriends.push(friend);
+      } else {
+        acc.push({
+          introducer,
+          introducedFriends: [friend]
         });
       }
-    });
+      return acc;
+    }, [])
+    .sort((a, b) => b.introducedFriends.length - a.introducedFriends.length);
 
-    return { nodes, links };
-  }, [friends]);
-
-  const handleNodeClick = (nodeId: number) => {
-    if (selectedNode === nodeId) {
-      setLocation(`/friends/${nodeId}`);
-    } else {
-      setSelectedNode(nodeId);
-    }
-  };
-
-  if (friends.length === 0) {
-    return (
-      <div className="min-h-screen bg-gradient-to-br from-coral via-turquoise to-mint pb-20">
-        <div className="bg-white/10 backdrop-blur-sm px-4 py-3 flex items-center justify-between">
-          <button 
-            onClick={() => setLocation("/")}
-            className="p-2 text-white hover:bg-white/20 rounded-xl"
-          >
-            <ArrowLeft size={24} />
-          </button>
-          <h1 className="text-xl font-bold text-white">Maps</h1>
-          <div className="w-10"></div>
+  const renderOverview = () => (
+    <div className="space-y-6">
+      {/* Connection Summary */}
+      <div className="bg-white rounded-2xl p-6 card-shadow">
+        <div className="flex items-center space-x-3 mb-4">
+          <div className="p-2 bg-blue-100 rounded-xl">
+            <Users className="text-blue-600" size={20} />
+          </div>
+          <div>
+            <h3 className="font-semibold text-dark-gray">Your Network</h3>
+            <p className="text-sm text-gray-500">{friends.length} total connections</p>
+          </div>
         </div>
         
-        <div className="p-4">
-          <div className="bg-white/90 rounded-3xl p-6 card-shadow">
-            <div className="text-center py-12">
-              <div className="text-gray-400 mb-4">
-                <Network size={48} className="mx-auto" />
+        <div className="grid grid-cols-2 gap-3">
+          {connectionGroups.map((group) => {
+            const IconComponent = group.icon;
+            return (
+              <div 
+                key={group.title}
+                onClick={() => {
+                  setViewMode('friend-detail');
+                  setSelectedFriend(group.friends[0] || null);
+                }}
+                className={`bg-gradient-to-br ${group.color} rounded-xl p-4 text-white cursor-pointer hover:shadow-lg transition-all`}
+              >
+                <div className="flex items-center justify-between mb-2">
+                  <IconComponent size={18} />
+                  <span className="text-xl font-bold">{group.count}</span>
+                </div>
+                <p className="text-sm font-medium">{group.title}</p>
+                <p className="text-xs text-white/80">{group.description}</p>
               </div>
-              <h3 className="text-lg font-semibold text-gray-600 mb-2">No Friends Yet</h3>
-              <p className="text-gray-500">Add some friends to see your maps!</p>
+            );
+          })}
+        </div>
+      </div>
+
+      {/* Introduction Chains */}
+      {introductionChains.length > 0 && (
+        <div className="bg-white rounded-2xl p-6 card-shadow">
+          <div className="flex items-center space-x-3 mb-4">
+            <div className="p-2 bg-green-100 rounded-xl">
+              <UserPlus className="text-green-600" size={20} />
+            </div>
+            <div>
+              <h3 className="font-semibold text-dark-gray">Connection Makers</h3>
+              <p className="text-sm text-gray-500">Friends who introduced you to others</p>
+            </div>
+          </div>
+
+          <div className="space-y-3">
+            {introductionChains.slice(0, 5).map((chain) => {
+              const { color } = getRelationshipColors(chain.introducer.relationshipLevel || 'acquaintance');
+              return (
+                <div 
+                  key={chain.introducer.id}
+                  onClick={() => {
+                    setSelectedIntroducer(chain.introducer);
+                    setViewMode('introducer');
+                  }}
+                  className="flex items-center justify-between p-3 bg-gray-50 rounded-xl cursor-pointer hover:bg-gray-100 transition-colors"
+                >
+                  <div className="flex items-center space-x-3">
+                    <div className={`w-10 h-10 rounded-xl bg-gradient-to-br ${color} flex items-center justify-center overflow-hidden`}>
+                      {chain.introducer.photo ? (
+                        <img 
+                          src={chain.introducer.photo} 
+                          alt={chain.introducer.firstName}
+                          className="w-full h-full object-cover"
+                        />
+                      ) : (
+                        <span className="text-white font-semibold text-sm">
+                          {chain.introducer.firstName.charAt(0)}
+                        </span>
+                      )}
+                    </div>
+                    <div>
+                      <p className="font-medium text-dark-gray">
+                        {chain.introducer.firstName} {chain.introducer.lastName || ''}
+                      </p>
+                      <p className="text-sm text-gray-500">
+                        Introduced {chain.introducedFriends.length} friend{chain.introducedFriends.length !== 1 ? 's' : ''}
+                      </p>
+                    </div>
+                  </div>
+                  <ChevronRight size={20} className="text-gray-400" />
+                </div>
+              );
+            })}
+          </div>
+
+          {introductionChains.length > 5 && (
+            <button className="w-full mt-3 py-2 text-blue-600 text-sm font-medium">
+              View all connection makers
+            </button>
+          )}
+        </div>
+      )}
+    </div>
+  );
+
+  const renderIntroducerView = () => {
+    if (!selectedIntroducer) return null;
+    
+    const chain = introductionChains.find(c => c.introducer.id === selectedIntroducer.id);
+    if (!chain) return null;
+
+    const { color } = getRelationshipColors(selectedIntroducer.relationshipLevel || 'acquaintance');
+
+    return (
+      <div className="space-y-6">
+        {/* Introducer Header */}
+        <div className="bg-white rounded-2xl p-6 card-shadow">
+          <div className="flex items-center space-x-4 mb-4">
+            <div className={`w-16 h-16 rounded-2xl bg-gradient-to-br ${color} flex items-center justify-center overflow-hidden`}>
+              {selectedIntroducer.photo ? (
+                <img 
+                  src={selectedIntroducer.photo} 
+                  alt={selectedIntroducer.firstName}
+                  className="w-full h-full object-cover"
+                />
+              ) : (
+                <span className="text-white font-bold text-xl">
+                  {selectedIntroducer.firstName.charAt(0)}
+                </span>
+              )}
+            </div>
+            <div className="flex-1">
+              <h2 className="text-xl font-bold text-dark-gray">
+                {selectedIntroducer.firstName} {selectedIntroducer.lastName || ''}
+              </h2>
+              <p className="text-gray-500">
+                Introduced you to {chain.introducedFriends.length} friend{chain.introducedFriends.length !== 1 ? 's' : ''}
+              </p>
             </div>
           </div>
         </div>
-        <BottomNavigation />
+
+        {/* Introduced Friends */}
+        <div className="bg-white rounded-2xl p-6 card-shadow">
+          <h3 className="font-semibold text-dark-gray mb-4">People they introduced you to</h3>
+          <div className="space-y-3">
+            {chain.introducedFriends.map((friend) => {
+              const friendColors = getRelationshipColors(friend.relationshipLevel || 'acquaintance');
+              return (
+                <div 
+                  key={friend.id}
+                  onClick={() => {
+                    setSelectedFriend(friend);
+                    setViewMode('friend-detail');
+                  }}
+                  className="flex items-center justify-between p-3 bg-gray-50 rounded-xl cursor-pointer hover:bg-gray-100 transition-colors"
+                >
+                  <div className="flex items-center space-x-3">
+                    <div className={`w-10 h-10 rounded-xl bg-gradient-to-br ${friendColors.color} flex items-center justify-center overflow-hidden`}>
+                      {friend.photo ? (
+                        <img 
+                          src={friend.photo} 
+                          alt={friend.firstName}
+                          className="w-full h-full object-cover"
+                        />
+                      ) : (
+                        <span className="text-white font-semibold text-sm">
+                          {friend.firstName.charAt(0)}
+                        </span>
+                      )}
+                    </div>
+                    <div>
+                      <p className="font-medium text-dark-gray">
+                        {friend.firstName} {friend.lastName || ''}
+                      </p>
+                      <p className="text-sm text-gray-500 capitalize">
+                        {friend.relationshipLevel || 'acquaintance'}
+                      </p>
+                    </div>
+                  </div>
+                  <ChevronRight size={20} className="text-gray-400" />
+                </div>
+              );
+            })}
+          </div>
+        </div>
       </div>
     );
-  }
+  };
+
+  const renderFriendDetail = () => {
+    if (!selectedFriend) return null;
+
+    const { color } = getRelationshipColors(selectedFriend.relationshipLevel || 'acquaintance');
+    const introducer = selectedFriend.introducedBy ? friends.find(f => f.id === selectedFriend.introducedBy) : null;
+    const mutualConnections = friends.filter(f => 
+      f.id !== selectedFriend.id && 
+      f.location === selectedFriend.location
+    );
+
+    return (
+      <div className="space-y-6">
+        {/* Friend Header */}
+        <div className="bg-white rounded-2xl p-6 card-shadow">
+          <div className="flex items-center space-x-4 mb-4">
+            <div className={`w-16 h-16 rounded-2xl bg-gradient-to-br ${color} flex items-center justify-center overflow-hidden`}>
+              {selectedFriend.photo ? (
+                <img 
+                  src={selectedFriend.photo} 
+                  alt={selectedFriend.firstName}
+                  className="w-full h-full object-cover"
+                />
+              ) : (
+                <span className="text-white font-bold text-xl">
+                  {selectedFriend.firstName.charAt(0)}
+                </span>
+              )}
+            </div>
+            <div className="flex-1">
+              <h2 className="text-xl font-bold text-dark-gray">
+                {selectedFriend.firstName} {selectedFriend.lastName || ''}
+              </h2>
+              <p className="text-gray-500 capitalize">
+                {selectedFriend.relationshipLevel || 'acquaintance'}
+              </p>
+              {selectedFriend.location && (
+                <p className="text-sm text-gray-400">
+                  {selectedFriend.neighborhood ? `${selectedFriend.neighborhood}, ` : ''}{selectedFriend.location}
+                </p>
+              )}
+            </div>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setLocation(`/friends/${selectedFriend.id}`)}
+              className="text-blue-600 border-blue-200"
+            >
+              View Profile
+            </Button>
+          </div>
+        </div>
+
+        {/* Connection Info */}
+        {introducer && (
+          <div className="bg-white rounded-2xl p-6 card-shadow">
+            <h3 className="font-semibold text-dark-gray mb-3">How you met</h3>
+            <div 
+              onClick={() => {
+                setSelectedIntroducer(introducer);
+                setViewMode('introducer');
+              }}
+              className="flex items-center space-x-3 p-3 bg-green-50 rounded-xl cursor-pointer hover:bg-green-100 transition-colors"
+            >
+              <div className="p-2 bg-green-100 rounded-lg">
+                <UserPlus className="text-green-600" size={16} />
+              </div>
+              <div className="flex-1">
+                <p className="text-sm text-gray-600">Introduced by</p>
+                <p className="font-medium text-dark-gray">
+                  {introducer.firstName} {introducer.lastName || ''}
+                </p>
+              </div>
+              <ArrowRight size={16} className="text-green-600" />
+            </div>
+          </div>
+        )}
+
+        {/* Mutual Connections */}
+        {mutualConnections.length > 0 && (
+          <div className="bg-white rounded-2xl p-6 card-shadow">
+            <h3 className="font-semibold text-dark-gray mb-3">
+              Mutual connections ({mutualConnections.length})
+            </h3>
+            <div className="space-y-2">
+              {mutualConnections.slice(0, 3).map((friend) => {
+                const friendColors = getRelationshipColors(friend.relationshipLevel || 'acquaintance');
+                return (
+                  <div key={friend.id} className="flex items-center space-x-3 p-2 rounded-lg">
+                    <div className={`w-8 h-8 rounded-lg bg-gradient-to-br ${friendColors.color} flex items-center justify-center overflow-hidden`}>
+                      {friend.photo ? (
+                        <img 
+                          src={friend.photo} 
+                          alt={friend.firstName}
+                          className="w-full h-full object-cover"
+                        />
+                      ) : (
+                        <span className="text-white font-semibold text-xs">
+                          {friend.firstName.charAt(0)}
+                        </span>
+                      )}
+                    </div>
+                    <p className="text-sm text-dark-gray">
+                      {friend.firstName} {friend.lastName || ''}
+                    </p>
+                  </div>
+                );
+              })}
+              {mutualConnections.length > 3 && (
+                <p className="text-sm text-gray-500 pl-11">
+                  +{mutualConnections.length - 3} more in {selectedFriend.location}
+                </p>
+              )}
+            </div>
+          </div>
+        )}
+      </div>
+    );
+  };
+
+  const getTitle = () => {
+    switch (viewMode) {
+      case 'introducer':
+        return selectedIntroducer ? `${selectedIntroducer.firstName}'s Introductions` : 'Connections';
+      case 'friend-detail':
+        return selectedFriend ? `${selectedFriend.firstName}'s Network` : 'Friend Detail';
+      default:
+        return 'Connection Explorer';
+    }
+  };
+
+  const handleBack = () => {
+    if (viewMode === 'introducer' || viewMode === 'friend-detail') {
+      setViewMode('overview');
+      setSelectedIntroducer(null);
+      setSelectedFriend(null);
+    } else {
+      setLocation('/');
+    }
+  };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-coral via-turquoise to-mint pb-20">
+    <div className="max-w-md mx-auto bg-gray-50 min-h-screen relative">
       {/* Header */}
-      <div className="bg-white/10 backdrop-blur-sm px-4 py-3 flex items-center justify-between">
-        <button 
-          onClick={() => setLocation("/")}
-          className="p-2 text-white hover:bg-white/20 rounded-xl"
-        >
-          <ArrowLeft size={24} />
-        </button>
-        <h1 className="text-xl font-bold text-white">Maps</h1>
-        <div className="flex space-x-2">
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={() => setZoom(prev => Math.min(prev + 0.2, 2))}
-            className="text-white hover:bg-white/20"
+      <div className="bg-white px-6 pt-12 pb-6 border-b border-gray-200">
+        <div className="flex items-center space-x-4">
+          <Button 
+            variant="ghost" 
+            size="sm" 
+            onClick={handleBack}
+            className="p-2 hover:bg-gray-100 rounded-full"
           >
-            <ZoomIn size={20} />
+            <ArrowLeft size={20} />
           </Button>
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={() => setZoom(prev => Math.max(prev - 0.2, 0.5))}
-            className="text-white hover:bg-white/20"
-          >
-            <ZoomOut size={20} />
-          </Button>
+          <h1 className="text-2xl font-bold text-dark-gray">{getTitle()}</h1>
         </div>
       </div>
 
-      {/* Tab Navigation */}
-      <div className="p-4">
-        <Tabs defaultValue="network" className="w-full">
-          <TabsList className="grid w-full grid-cols-2 mb-6">
-            <TabsTrigger value="network" className="flex items-center space-x-2">
-              <Network size={16} />
-              <span>Relationship Tree</span>
-            </TabsTrigger>
-            <TabsTrigger value="location" className="flex items-center space-x-2">
-              <MapPin size={16} />
-              <span>Location Map</span>
-            </TabsTrigger>
-          </TabsList>
-
-          {/* Relationship Network Tab */}
-          <TabsContent value="network">
-            <div className="bg-white/90 rounded-3xl p-6 card-shadow">
-              <div className="mb-4">
-                <h3 className="text-lg font-semibold text-gray-800 mb-2">Relationship Tree</h3>
-                <p className="text-sm text-gray-600">Shows how your friends are connected through introductions</p>
-              </div>
-              <div className="relative overflow-auto" style={{ height: '500px' }}>
-                <svg 
-                  width="400" 
-                  height="600" 
-                  style={{ transform: `scale(${zoom})` }}
-                  className="transition-transform duration-200"
-                >
-                  {/* Arrow marker definition */}
-                  <defs>
-                    <marker
-                      id="arrowhead"
-                      markerWidth="10"
-                      markerHeight="7"
-                      refX="9"
-                      refY="3.5"
-                      orient="auto"
-                    >
-                      <polygon
-                        points="0 0, 10 3.5, 0 7"
-                        fill="#94a3b8"
-                      />
-                    </marker>
-                  </defs>
-
-                  {/* Draw links first (behind nodes) */}
-                  {networkData.links.map((link, index) => {
-                    const sourceNode = networkData.nodes.find(n => n.id === link.source);
-                    const targetNode = networkData.nodes.find(n => n.id === link.target);
-                    if (!sourceNode || !targetNode) return null;
-
-                    return (
-                      <line
-                        key={index}
-                        x1={sourceNode.x}
-                        y1={sourceNode.y}
-                        x2={targetNode.x}
-                        y2={targetNode.y}
-                        stroke="#94a3b8"
-                        strokeWidth="2"
-                        markerEnd="url(#arrowhead)"
-                      />
-                    );
-                  })}
-
-                  {/* Draw nodes */}
-                  {networkData.nodes.map(node => (
-                    <g key={node.id}>
-                      <circle
-                        cx={node.x}
-                        cy={node.y}
-                        r={selectedNode === node.id ? "24" : "20"}
-                        fill={`var(--${node.color})`}
-                        stroke="white"
-                        strokeWidth="3"
-                        className="cursor-pointer transition-all duration-200"
-                        onClick={() => handleNodeClick(node.id)}
-                      />
-                      <text
-                        x={node.x}
-                        y={node.y + 35}
-                        textAnchor="middle"
-                        className="text-xs font-medium fill-gray-700 cursor-pointer"
-                        onClick={() => handleNodeClick(node.id)}
-                      >
-                        {node.name.length > 12 ? node.name.substring(0, 12) + '...' : node.name}
-                      </text>
-                    </g>
-                  ))}
-                </svg>
-              </div>
-            </div>
-          </TabsContent>
-
-          {/* Location Map Tab */}
-          <TabsContent value="location">
-            <div className="bg-white/90 rounded-3xl p-6 card-shadow">
-              <div className="mb-4">
-                <h3 className="text-lg font-semibold text-gray-800 mb-2">Friends by Location</h3>
-                <p className="text-sm text-gray-600">Geographic distribution of your friend network</p>
-              </div>
-              <div className="relative overflow-hidden" style={{ height: '400px' }}>
-                <svg 
-                  width="100%" 
-                  height="100%" 
-                  style={{ transform: `scale(${zoom})` }}
-                  className="transition-transform duration-200"
-                >
-                  {/* Draw location groups */}
-                  {locationClusters.areas.map((group, index) => (
-                    <g key={index}>
-                      {/* Location circle */}
-                      <circle
-                        cx={group.x}
-                        cy={group.y}
-                        r={Math.max(30, group.friends.length * 8)}
-                        fill={`var(--${group.color})`}
-                        fillOpacity="0.3"
-                        stroke={`var(--${group.color})`}
-                        strokeWidth="3"
-                        className="cursor-pointer hover:fillOpacity-50"
-                        onClick={() => group.isArea && toggleAreaExpansion(group.location)}
-                      />
-                      
-                      {/* Location label */}
-                      <text
-                        x={group.x}
-                        y={group.y - Math.max(35, group.friends.length * 8 + 5)}
-                        textAnchor="middle"
-                        className="text-sm font-bold fill-gray-800"
-                      >
-                        {group.location}
-                      </text>
-                      
-                      {/* Friend count */}
-                      <text
-                        x={group.x}
-                        y={group.y}
-                        textAnchor="middle"
-                        className="text-lg font-bold fill-white"
-                      >
-                        {group.friends.length}
-                      </text>
-                      
-                      {/* Area indicator */}
-                      {group.isArea && (
-                        <text
-                          x={group.x}
-                          y={group.y + 15}
-                          textAnchor="middle"
-                          className="text-xs fill-gray-700"
-                        >
-                          {expandedAreas.has(group.location) ? '▼ Click to collapse' : '▶ Click to expand'}
-                        </text>
-                      )}
-                      
-                      {/* Single location indicator */}
-                      {!group.isArea && (
-                        <text
-                          x={group.x}
-                          y={group.y + 15}
-                          textAnchor="middle"
-                          className="text-xs fill-gray-700"
-                        >
-                          {group.friends.length === 1 
-                            ? `${group.friends[0].firstName} ${group.friends[0].lastName || ''}`.trim()
-                            : `${group.friends.length} friends`
-                          }
-                        </text>
-                      )}
-                    </g>
-                  ))}
-                </svg>
-              </div>
-              
-              {/* Location breakdown */}
-              <div className="mt-6 space-y-3">
-                <h4 className="font-semibold text-gray-800">Location Breakdown</h4>
-                {locationClusters.areas.map((group, index) => (
-                  <div key={index} className="space-y-2">
-                    {/* Main area/location */}
-                    <div 
-                      className={`flex items-center justify-between p-3 bg-white/50 rounded-xl ${
-                        group.isArea ? 'cursor-pointer hover:bg-white/70' : ''
-                      }`}
-                      onClick={() => group.isArea && toggleAreaExpansion(group.location)}
-                    >
-                      <div className="flex items-center space-x-3">
-                        <div 
-                          className="w-4 h-4 rounded-full"
-                          style={{ backgroundColor: `var(--${group.color})` }}
-                        ></div>
-                        <span className="font-medium text-gray-800">{group.location}</span>
-                        {group.isArea && (
-                          <span className="text-xs text-gray-500">
-                            {expandedAreas.has(group.location) ? '▼' : '▶'}
-                          </span>
-                        )}
-                      </div>
-                      <div className="text-right">
-                        <div className="font-bold text-gray-800">{group.friends.length}</div>
-                        <div className="text-xs text-gray-500">
-                          {group.friends.length === 1 ? 'friend' : 'friends'}
-                          {group.isArea && ` in ${group.neighborhoodCount} ${group.neighborhoodCount === 1 ? 'area' : 'areas'}`}
-                        </div>
-                      </div>
-                    </div>
-
-                    {/* Expanded neighborhoods */}
-                    {group.isArea && expandedAreas.has(group.location) && (
-                      <div className="ml-8 space-y-2">
-                        {(() => {
-                          const neighborhoods = locationClusters.neighborhoods.get(group.location);
-                          if (!neighborhoods) return null;
-                          
-                          const entries = Array.from(neighborhoods.entries()) as [string, Friend[]][];
-                          return entries.map(([neighborhood, neighborhoodFriends], idx) => (
-                            <div key={`${neighborhood}-${idx}`} className="flex items-center justify-between p-2 bg-white/30 rounded-lg">
-                              <div className="flex items-center space-x-3">
-                                <div 
-                                  className="w-3 h-3 rounded-full"
-                                  style={{ backgroundColor: `var(--${group.color})`, opacity: 0.7 }}
-                                ></div>
-                                <span className="text-sm text-gray-700">{neighborhood}</span>
-                              </div>
-                              <div className="text-right">
-                                <div className="text-sm font-medium text-gray-700">{neighborhoodFriends.length}</div>
-                                <div className="text-xs text-gray-500">
-                                  {neighborhoodFriends.map(f => `${f.firstName} ${f.lastName || ''}`.trim()).join(', ')}
-                                </div>
-                              </div>
-                            </div>
-                          ));
-                        })()}
-                      </div>
-                    )}
-                  </div>
-                ))}
-              </div>
-            </div>
-          </TabsContent>
-        </Tabs>
+      {/* Content */}
+      <div className="px-6 py-6 pb-32">
+        {viewMode === 'overview' && renderOverview()}
+        {viewMode === 'introducer' && renderIntroducerView()}
+        {viewMode === 'friend-detail' && renderFriendDetail()}
       </div>
 
       <BottomNavigation />
