@@ -11,6 +11,8 @@ import AddFriend from "@/pages/add-friend";
 import EditFriend from "@/pages/edit-friend";
 import NetworkMap from "@/pages/network-map";
 import NameGame from "@/pages/name-game";
+import Activity from "@/pages/activity";
+import Profile from "@/pages/profile";
 
 function Router() {
   return (
@@ -22,6 +24,8 @@ function Router() {
       <Route path="/add-friend" component={AddFriend} />
       <Route path="/network-map" component={NetworkMap} />
       <Route path="/name-game" component={NameGame} />
+      <Route path="/activity" component={Activity} />
+      <Route path="/profile" component={Profile} />
       <Route component={NotFound} />
     </Switch>
   );

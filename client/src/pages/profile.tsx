@@ -34,13 +34,13 @@ export default function Profile() {
     if (friends.length === 0) return 1;
     
     const oldestFriend = friends.reduce((oldest, friend) => {
-      const friendDate = new Date(friend.createdAt);
-      const oldestDate = new Date(oldest.createdAt);
+      const friendDate = new Date(friend.lastInteraction || new Date());
+      const oldestDate = new Date(oldest.lastInteraction || new Date());
       return friendDate < oldestDate ? friend : oldest;
     });
     
     const now = new Date();
-    const firstFriendDate = new Date(oldestFriend.createdAt);
+    const firstFriendDate = new Date(oldestFriend.lastInteraction || new Date());
     const monthsDiff = (now.getFullYear() - firstFriendDate.getFullYear()) * 12 + 
                       (now.getMonth() - firstFriendDate.getMonth());
     
