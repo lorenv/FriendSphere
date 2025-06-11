@@ -1,5 +1,5 @@
 import { useQuery } from "@tanstack/react-query";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useLocation } from "wouter";
 import { Friend } from "@shared/schema";
 import { BottomNavigation } from "@/components/bottom-navigation";
@@ -34,6 +34,16 @@ export default function Friends() {
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedRelationshipLevel, setSelectedRelationshipLevel] = useState<string>(categoryFilter || "all");
   const [showNewFriendsOnly, setShowNewFriendsOnly] = useState(false);
+
+  // Update filter when URL changes
+  useEffect(() => {
+    const urlParams = new URLSearchParams(location.split('?')[1] || '');
+    const categoryFilter = urlParams.get('category');
+    if (categoryFilter) {
+      setSelectedRelationshipLevel(categoryFilter);
+      setShowNewFriendsOnly(false);
+    }
+  }, [location]);
 
   const { data: friends = [], isLoading } = useQuery<Friend[]>({
     queryKey: ["/api/friends"],
