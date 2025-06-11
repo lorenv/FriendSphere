@@ -1,129 +1,118 @@
-# Instagram Integration Setup Guide
+# Instagram API Setup Guide
 
-This guide will help you set up Instagram integration for importing profile photos and contacts into your FriendCircle app.
+This guide walks you through setting up Instagram Basic Display API for importing photos and connecting with your Instagram account.
 
-## Prerequisites
+## Step 1: Create a Facebook Developer Account
 
-1. A Facebook Developer account
-2. An Instagram account (personal or business)
-3. Your app running locally or deployed
+1. Go to [Facebook for Developers](https://developers.facebook.com/)
+2. Click "Get Started" in the top right corner
+3. Log in with your personal Facebook account
+4. Complete the developer account verification process
+5. Accept the Facebook Developer Terms and Policies
 
-## Step 1: Create a Facebook App
+## Step 2: Create a Facebook App
 
-1. Go to [Facebook Developers](https://developers.facebook.com/)
-2. Click "My Apps" → "Create App"
-3. Choose "Consumer" as the app type
-4. Fill in your app details:
-   - App Name: "FriendCircle" (or your preferred name)
-   - App Contact Email: Your email
-   - App Purpose: Select appropriate purpose
+1. In your Facebook Developer dashboard, click "Create App"
+2. Select "Consumer" as the app type
+3. Fill in your app details:
+   - **App Name**: Your Friends Network App
+   - **App Contact Email**: Your email address
+   - **App Purpose**: Personal use for managing friend connections
+4. Click "Create App"
 
-## Step 2: Add Instagram Basic Display Product
+## Step 3: Add Instagram Basic Display Product
 
-1. In your app dashboard, click "+ Add Product"
+1. In your app dashboard, scroll down to "Add Products to Your App"
 2. Find "Instagram Basic Display" and click "Set Up"
-3. Go to Instagram Basic Display → Basic Display
+3. Click "Create New App" if prompted
+4. The Instagram Basic Display product will be added to your app
 
-## Step 3: Configure Instagram Basic Display
+## Step 4: Configure Instagram Basic Display
 
-1. **Create Instagram App:**
-   - Click "Create New App"
-   - Choose "Instagram App" type
-   - Display Name: "FriendCircle"
-
-2. **Add Instagram Testers:**
-   - Go to "Roles" → "Roles"
-   - Click "Add Instagram Testers"
-   - Add your Instagram username
+1. In the left sidebar, click "Instagram Basic Display" → "Basic Display"
+2. Scroll down to "User Token Generator"
+3. Click "Create New App" if you haven't already
+4. Add your Instagram account as a test user:
+   - Click "Add or Remove Instagram Testers"
+   - Enter your Instagram username
    - Accept the invitation in your Instagram app
 
-3. **Configure OAuth Redirect URIs:**
-   - In Basic Display settings, add these redirect URIs:
-   - For local development: `http://localhost:5000/api/instagram/callback`
-   - For production: `https://yourdomain.com/api/instagram/callback`
+## Step 5: Get Your App Credentials
 
-## Step 4: Get Your Credentials
+1. In the Instagram Basic Display settings, note these values:
+   - **Instagram App ID**: Found at the top of the Basic Display page
+   - **Instagram App Secret**: Click "Show" next to App Secret
+2. Set up your redirect URI:
+   - In "Valid OAuth Redirect URIs", add:
+     - For local development: `http://localhost:5000/api/instagram/callback`
+     - For production: `https://yourdomain.com/api/instagram/callback`
 
-1. In Instagram Basic Display → Basic Display
-2. Copy your:
-   - **Instagram App ID**
-   - **Instagram App Secret**
+## Step 6: Configure Environment Variables
 
-## Step 5: Configure Environment Variables
-
-1. Copy `.env.example` to `.env`
-2. Fill in your Instagram credentials:
+Add these environment variables to your `.env` file:
 
 ```env
-# Instagram Basic Display API Configuration
 INSTAGRAM_APP_ID=your_instagram_app_id_here
 INSTAGRAM_APP_SECRET=your_instagram_app_secret_here
 INSTAGRAM_REDIRECT_URI=http://localhost:5000/api/instagram/callback
 ```
 
-3. For production, update the redirect URI to match your domain
+For production deployment, update the redirect URI to match your domain.
 
-## Step 6: Test the Integration
+## Step 7: Test the Integration
 
-1. Restart your development server
-2. Navigate to "Add Friend" page
-3. Click "Instagram Integration"
-4. Click "Connect Instagram"
-5. You'll be redirected to Instagram for authorization
-6. After approval, you'll return to your app with access to:
-   - Your Instagram photos for profile pictures
-   - Basic profile information
-
-## Permissions Granted
-
-The integration requests these permissions:
-- `user_profile`: Basic profile information (username, account type, media count)
-- `user_media`: Access to your media (photos and videos)
+1. Start your application
+2. Navigate to the friend import section
+3. Click "Connect Instagram"
+4. You should be redirected to Instagram's OAuth page
+5. Log in and authorize your app
+6. You'll be redirected back to your app with access to your Instagram photos
 
 ## Important Notes
 
-1. **Instagram Basic Display vs Instagram Graph API:**
-   - Basic Display: For personal use, limited to your own content
-   - Graph API: For business use, requires app review for broader access
+### API Limitations
+- **Instagram Basic Display API** only provides access to your own Instagram content
+- It does **not** provide access to followers, following lists, or other users' content
+- For accessing followers/following, you would need **Instagram Business API** which requires:
+  - A business Instagram account
+  - A Facebook Page connected to that account
+  - Additional review and approval process
 
-2. **Contact Import Limitations:**
-   - Instagram Basic Display doesn't provide follower/following lists
-   - The contact import feature currently shows example data
-   - For real contact import, you'd need Instagram Graph API with business permissions
+### Permissions
+The Basic Display API provides these permissions:
+- `user_profile`: Access to user's profile info (username, account type, media count)
+- `user_media`: Access to user's photos and videos
 
-3. **Rate Limits:**
-   - 200 requests per hour per user
-   - Suitable for personal use and small applications
+### Data Available
+With Basic Display API, you can import:
+- User's own Instagram photos for profile pictures
+- Basic profile information (username, media count)
+
+### Production Considerations
+- Instagram apps start in "Development Mode" with limited access
+- For production use with other users, you'll need to submit for App Review
+- Test users (including yourself) can always use the app in Development Mode
 
 ## Troubleshooting
 
-### "Invalid Redirect URI" Error
-- Ensure the redirect URI in your .env matches exactly what's configured in Facebook Developer Console
-- Check for trailing slashes or protocol mismatches (http vs https)
+### Common Issues
+1. **"Invalid redirect URI"**: Ensure the redirect URI in your app settings exactly matches your environment variable
+2. **"App not authorized"**: Make sure you've added yourself as a test user in the Instagram Basic Display settings
+3. **"Invalid credentials"**: Double-check your App ID and App Secret are correctly copied
 
-### "App Not Found" Error
-- Verify your Instagram App ID is correct
-- Ensure the app is not in development mode restriction
+### Testing Your Setup
+You can test your credentials by making a direct API call:
+```bash
+curl "https://api.instagram.com/oauth/authorize?client_id=YOUR_APP_ID&redirect_uri=YOUR_REDIRECT_URI&scope=user_profile,user_media&response_type=code"
+```
 
-### "User Not Authorized" Error
-- Make sure you've added yourself as an Instagram Tester
-- Check that you've accepted the tester invitation in Instagram
+This should redirect you to Instagram's authorization page if your credentials are correct.
 
-### "Scope Error"
-- Verify your app has Instagram Basic Display product added
-- Check that required permissions are configured
+## Alternative: Manual Photo Import
 
-## Production Deployment
+If you prefer not to set up the Instagram API, the app also supports:
+- Manual photo upload from your device
+- OCR-based contact import from screenshots
+- Direct vCard file import
 
-For production use:
-1. Update `INSTAGRAM_REDIRECT_URI` to your production domain
-2. Add the production redirect URI to Facebook Developer Console
-3. Consider upgrading to Instagram Graph API for additional features
-4. Implement proper user session management for multi-user support
-
-## Security Considerations
-
-1. Keep your Instagram App Secret secure and never expose it in client-side code
-2. Use HTTPS in production
-3. Implement proper error handling for failed requests
-4. Consider implementing token refresh logic for long-term access
+The Instagram integration is optional and the app functions fully without it.

@@ -51,8 +51,7 @@ export function InstagramIntegration({ onPhotoSelect, onContactImport }: {
   const connectInstagram = async () => {
     setLoading(true);
     try {
-      // Check if Instagram App ID is configured
-      const response = await fetch('/api/instagram/auth-url');
+      const response = await fetch('/api/instagram/auth');
       const data = await response.json();
       
       if (!response.ok) {
@@ -64,8 +63,8 @@ export function InstagramIntegration({ onPhotoSelect, onContactImport }: {
     } catch (error) {
       console.error('Instagram connection error:', error);
       toast({
-        title: "Connection Failed",
-        description: "Unable to connect to Instagram. Please check your configuration.",
+        title: "Instagram Setup Required",
+        description: "Please configure Instagram API credentials. See INSTAGRAM_SETUP.md for detailed setup instructions.",
         variant: "destructive"
       });
     } finally {

@@ -14,7 +14,7 @@ import {
   Phone, 
   Mail, 
   Edit,
-  Calendar,
+
   MessageCircle,
   Star,
   Shield,
@@ -273,20 +273,6 @@ export default function FriendDetail() {
               >
                 <Phone size={16} className="mr-2" />
                 Call
-              </Button>
-              <Button 
-                variant="outline" 
-                size="sm" 
-                className="flex-1"
-                onClick={() => {
-                  const meetingUrl = friend.location 
-                    ? `https://www.google.com/maps/search/${encodeURIComponent(friend.location)}`
-                    : 'https://calendar.google.com/calendar/render?action=TEMPLATE&text=Meet%20with%20' + encodeURIComponent(`${friend.firstName} ${friend.lastName || ''}`.trim());
-                  window.open(meetingUrl, '_blank');
-                }}
-              >
-                <Calendar size={16} className="mr-2" />
-                Meet
               </Button>
             </div>
           </CardContent>

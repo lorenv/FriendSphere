@@ -178,7 +178,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Instagram integration routes
-  app.get("/api/instagram/auth-url", getInstagramAuthUrl);
+  app.get("/api/instagram/auth", getInstagramAuthUrl);
   app.get("/api/instagram/callback", handleInstagramCallback);
   app.get("/api/instagram/profile", getInstagramProfile);
   app.get("/api/instagram/media", getInstagramMedia);
