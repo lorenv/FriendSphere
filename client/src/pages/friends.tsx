@@ -1,6 +1,6 @@
 import { useQuery } from "@tanstack/react-query";
 import { useState, useEffect } from "react";
-import { useLocation } from "wouter";
+import { useLocation, useRoute } from "wouter";
 import { Friend } from "@shared/schema";
 import { BottomNavigation } from "@/components/bottom-navigation";
 import { FloatingActionButton } from "@/components/floating-action-button";
@@ -26,11 +26,30 @@ const gradientClasses = {
 };
 
 export default function Friends() {
-  const [location] = useLocation();
+  const [location, setLocation] = useLocation();
   
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedRelationshipLevel, setSelectedRelationshipLevel] = useState<string>("all");
   const [showNewFriendsOnly, setShowNewFriendsOnly] = useState(false);
+
+  // Navigation helper functions
+  const navigateToCategory = (category: string) => {
+    const currentParams = new URLSearchParams(window.location.search);
+    if (category === "all") {
+      currentParams.delete('category');
+    } else {
+      currentParams.set('category', category);
+    }
+    const newUrl = currentParams.toString() ? `/friends?${currentParams.toString()}` : '/friends';
+    setLocation(newUrl);
+  };
+
+  const navigateToNewFriends = () => {
+    const currentParams = new URLSearchParams(window.location.search);
+    currentParams.delete('category');
+    currentParams.set('view', 'new');
+    setLocation(`/friends?${currentParams.toString()}`);
+  };
 
   // Update filter when URL changes
   useEffect(() => {
@@ -135,10 +154,7 @@ export default function Friends() {
             <Button
               variant={selectedRelationshipLevel === "all" && !showNewFriendsOnly ? "secondary" : "ghost"}
               size="sm"
-              onClick={() => {
-                setSelectedRelationshipLevel("all");
-                setShowNewFriendsOnly(false);
-              }}
+              onClick={() => navigateToCategory("all")}
               className={selectedRelationshipLevel === "all" && !showNewFriendsOnly ? "bg-white text-dark-gray" : "text-white/80 hover:bg-white/20"}
             >
               All
@@ -146,10 +162,7 @@ export default function Friends() {
             <Button
               variant={showNewFriendsOnly ? "secondary" : "ghost"}
               size="sm"
-              onClick={() => {
-                setShowNewFriendsOnly(!showNewFriendsOnly);
-                if (!showNewFriendsOnly) setSelectedRelationshipLevel("all");
-              }}
+              onClick={() => navigateToNewFriends()}
               className={`flex items-center space-x-1 ${
                 showNewFriendsOnly 
                   ? "bg-white text-dark-gray" 
@@ -166,10 +179,7 @@ export default function Friends() {
                   key={key}
                   variant={selectedRelationshipLevel === key && !showNewFriendsOnly ? "secondary" : "ghost"}
                   size="sm"
-                  onClick={() => {
-                    setSelectedRelationshipLevel(key);
-                    setShowNewFriendsOnly(false);
-                  }}
+                  onClick={() => navigateToCategory(key)}
                   className={`flex items-center space-x-1 ${
                     selectedRelationshipLevel === key && !showNewFriendsOnly
                       ? "bg-white text-dark-gray" 
