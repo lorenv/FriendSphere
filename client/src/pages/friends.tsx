@@ -27,23 +27,28 @@ const gradientClasses = {
 
 export default function Friends() {
   const [location] = useLocation();
-  const urlParams = new URLSearchParams(location.split('?')[1] || '');
-  const categoryFilter = urlParams.get('category');
-  const viewFilter = urlParams.get('view');
   
   const [searchTerm, setSearchTerm] = useState("");
-  const [selectedRelationshipLevel, setSelectedRelationshipLevel] = useState<string>(categoryFilter || "all");
+  const [selectedRelationshipLevel, setSelectedRelationshipLevel] = useState<string>("all");
   const [showNewFriendsOnly, setShowNewFriendsOnly] = useState(false);
 
   // Update filter when URL changes
   useEffect(() => {
     const urlParams = new URLSearchParams(location.split('?')[1] || '');
     const categoryFilter = urlParams.get('category');
+    const viewFilter = urlParams.get('view');
+    
     if (categoryFilter) {
       setSelectedRelationshipLevel(categoryFilter);
       setShowNewFriendsOnly(false);
+    } else {
+      setSelectedRelationshipLevel("all");
     }
   }, [location]);
+
+  // Get current URL parameters for use in rendering
+  const urlParams = new URLSearchParams(location.split('?')[1] || '');
+  const viewFilter = urlParams.get('view');
 
   const { data: friends = [], isLoading } = useQuery<Friend[]>({
     queryKey: ["/api/friends"],
