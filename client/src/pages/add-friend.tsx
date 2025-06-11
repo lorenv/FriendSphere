@@ -31,6 +31,7 @@ export default function AddFriend() {
   const [selectedInterests, setSelectedInterests] = useState<string[]>([]);
   const [showContactImport, setShowContactImport] = useState(false);
   const [currentPhoto, setCurrentPhoto] = useState<string>("");
+  const [gravatarLoading, setGravatarLoading] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const cameraInputRef = useRef<HTMLInputElement>(null);
 
@@ -93,6 +94,33 @@ export default function AddFriend() {
       }
     } catch (error) {
       console.error("Error setting location:", error);
+    }
+  };
+
+  const checkGravatar = async (email: string) => {
+    if (!email || !email.includes('@')) return;
+    
+    setGravatarLoading(true);
+    try {
+      const response = await fetch('/api/gravatar/lookup', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email })
+      });
+      
+      const data = await response.json();
+      
+      if (response.ok && data.success) {
+        setCurrentPhoto(data.highResUrl);
+        toast({
+          title: "Profile Photo Found",
+          description: `Found Gravatar photo for ${email}`,
+        });
+      }
+    } catch (error) {
+      // Silently fail - no need to notify if no Gravatar found
+    } finally {
+      setGravatarLoading(false);
     }
   };
 
@@ -344,9 +372,25 @@ export default function AddFriend() {
                     name="email"
                     render={({ field }) => (
                       <FormItem>
-                        <FormLabel>Email</FormLabel>
+                        <FormLabel className="flex items-center space-x-2">
+                          <span>Email</span>
+                          {gravatarLoading && (
+                            <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-blue-600"></div>
+                          )}
+                        </FormLabel>
                         <FormControl>
-                          <Input placeholder="Enter email address" type="email" {...field} value={field.value || ""} />
+                          <Input 
+                            placeholder="Enter email address" 
+                            type="email" 
+                            {...field} 
+                            value={field.value || ""} 
+                            onBlur={(e) => {
+                              field.onBlur();
+                              if (e.target.value && e.target.value.includes('@')) {
+                                checkGravatar(e.target.value);
+                              }
+                            }}
+                          />
                         </FormControl>
                         <FormMessage />
                       </FormItem>
