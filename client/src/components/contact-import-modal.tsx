@@ -391,8 +391,18 @@ export function ContactImportModal({ open, onClose, onImport }: ContactImportMod
                 // Only use if it looks like valid base64 or URL
                 if (photoData.startsWith('http') || photoData.startsWith('data:') || 
                    (photoData.length > 100 && /^[A-Za-z0-9+/=]+$/.test(photoData))) {
-                  photo = photoData.startsWith('data:') ? photoData : `data:image/jpeg;base64,${photoData}`;
-                  console.log('Found photo in vCard (length):', photoData.length);
+                  
+                  // Skip very large photos (over 100KB base64) to avoid server errors
+                  if (photoData.length > 100000) {
+                    console.log('Skipping large photo to avoid server size limit:', photoData.length);
+                    toast({
+                      title: "Large Photo Skipped",
+                      description: "Profile photo was too large to import (over 100KB). Contact imported without photo.",
+                    });
+                  } else {
+                    photo = photoData.startsWith('data:') ? photoData : `data:image/jpeg;base64,${photoData}`;
+                    console.log('Found photo in vCard (length):', photoData.length);
+                  }
                 }
               }
             }
