@@ -39,22 +39,53 @@ export function ContactImportModal({ open, onClose, onImport }: ContactImportMod
     
     const emailPattern = /([a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,})/g;
     
-    // Look for name patterns - often first non-phone/email line
+    // Priority-based name extraction for contact app screenshots
     let nameFound = false;
+    interface NameCandidate {
+      name: string;
+      priority: number;
+      index: number;
+    }
+    const possibleNames: NameCandidate[] = [];
+    
     lines.forEach((line, index) => {
-      // Skip lines that look like labels or system text
-      if (line.match(/^(mobile|cell|phone|email|home|work|main|tel|contact)/i)) return;
+      // Skip obvious non-name lines
+      if (line.match(/^(mobile|cell|phone|email|home|work|main|tel|contact|message|call|video|facetime|add to|notes|share|edit)/i)) return;
       if (line.match(/^[0-9\+\-\.\s\(\)@]+$/)) return; // Skip pure number/email lines
+      if (line.length < 2) return; // Skip single characters
+      if (line.match(/^(www\.|http|\.com|\.org)/i)) return; // Skip URLs
       
-      // Extract name if not found yet
-      if (!nameFound && line.length > 1 && line.match(/^[a-zA-Z\s\.'-]+$/)) {
+      // Collect potential names with priority scoring
+      if (line.match(/^[a-zA-Z\s\.'-]+$/)) {
         const cleanName = line.replace(/^(contact|name)[:\s]*/gi, '').trim();
-        const nameParts = cleanName.split(/\s+/);
-        firstName = nameParts[0] || "";
-        lastName = nameParts.slice(1).join(' ') || "";
-        nameFound = true;
+        const wordCount = cleanName.split(/\s+/).length;
+        
+        // Priority scoring: shorter lines (1-3 words) are more likely to be names
+        // First few lines in contact apps are usually the name
+        let priority = 0;
+        if (index <= 2) priority += 10; // First 3 lines get priority
+        if (wordCount >= 2 && wordCount <= 3) priority += 8; // 2-3 words ideal for names
+        if (wordCount === 1) priority += 5; // Single word could be first name
+        if (cleanName.match(/^[A-Z][a-z]+ [A-Z][a-z]+$/)) priority += 15; // Perfect name pattern
+        if (cleanName.length > 20) priority -= 5; // Very long lines less likely to be names
+        
+        possibleNames.push({
+          name: cleanName,
+          priority: priority,
+          index: index
+        });
       }
     });
+
+    // Select the highest priority name
+    if (possibleNames.length > 0) {
+      possibleNames.sort((a, b) => b.priority - a.priority);
+      const bestName = possibleNames[0].name;
+      const nameParts = bestName.split(/\s+/);
+      firstName = nameParts[0] || "";
+      lastName = nameParts.slice(1).join(' ') || "";
+      nameFound = true;
+    }
 
     // Extract phone numbers
     const allText = lines.join(' ');
@@ -81,30 +112,39 @@ export function ContactImportModal({ open, onClose, onImport }: ContactImportMod
     try {
       const worker = await createWorker('eng');
       
-      // Configure for better text recognition
+      // Configure for better text recognition - optimized for contact screenshots
       await worker.setParameters({
-        tessedit_char_whitelist: 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789@.-+()[] ',
+        tessedit_char_whitelist: 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789@.-+()[] \'"',
       });
 
       const { data: { text } } = await worker.recognize(file);
       await worker.terminate();
 
+      console.log('Extracted OCR text:', text); // Debug log
       setExtractedText(text);
+      
       const contactData = parseContactText(text);
+      console.log('Parsed contact data:', contactData); // Debug log
       
       if (!contactData.firstName && !contactData.phone && !contactData.email) {
         toast({
           title: "No Contact Info Found",
-          description: "Could not extract contact information from the image. Try a clearer photo or manual entry.",
+          description: "Could not extract contact information from the image. You can see the extracted text below and manually edit it.",
           variant: "destructive",
         });
         setIsProcessing(false);
         return;
       }
 
+      // Show success message with extracted info
+      const extractedInfo = [];
+      if (contactData.firstName) extractedInfo.push(`Name: ${contactData.firstName} ${contactData.lastName}`.trim());
+      if (contactData.phone) extractedInfo.push(`Phone: ${contactData.phone}`);
+      if (contactData.email) extractedInfo.push(`Email: ${contactData.email}`);
+
       toast({
         title: "Contact Extracted!",
-        description: "Successfully extracted contact information from screenshot.",
+        description: extractedInfo.join(', '),
       });
 
       onImport(contactData);
@@ -384,9 +424,46 @@ export function ContactImportModal({ open, onClose, onImport }: ContactImportMod
 
             {extractedText && !isProcessing && (
               <div className="space-y-2">
-                <Label>Extracted Text:</Label>
-                <div className="p-3 bg-gray-50 rounded border text-sm max-h-32 overflow-y-auto">
-                  {extractedText}
+                <Label>Extracted Text (you can edit this):</Label>
+                <Textarea
+                  value={extractedText}
+                  onChange={(e) => setExtractedText(e.target.value)}
+                  className="text-sm max-h-32"
+                  rows={4}
+                />
+                <div className="flex space-x-2">
+                  <Button 
+                    onClick={() => {
+                      const contactData = parseContactText(extractedText);
+                      if (contactData.firstName || contactData.phone || contactData.email) {
+                        onImport(contactData);
+                        onClose();
+                        setExtractedText("");
+                        setImportMethod(null);
+                        toast({
+                          title: "Contact Imported",
+                          description: "Successfully imported edited contact information.",
+                        });
+                      } else {
+                        toast({
+                          title: "No Contact Info",
+                          description: "Please add at least a name, phone, or email.",
+                          variant: "destructive",
+                        });
+                      }
+                    }}
+                    size="sm"
+                    className="flex-1"
+                  >
+                    Import Edited Text
+                  </Button>
+                  <Button 
+                    onClick={() => setExtractedText("")}
+                    variant="outline"
+                    size="sm"
+                  >
+                    Clear
+                  </Button>
                 </div>
               </div>
             )}
