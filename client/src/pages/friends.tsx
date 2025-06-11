@@ -50,10 +50,9 @@ export default function Friends() {
   // Update filter when URL changes
   useEffect(() => {
     console.log('Location changed:', location);
-    console.log('Full URL search:', window.location.search);
     
-    // Use window.location.search to get query parameters
-    const urlParams = new URLSearchParams(window.location.search);
+    // Extract URL parameters from the current location
+    const urlParams = new URLSearchParams(location.split('?')[1] || '');
     const categoryFilter = urlParams.get('category');
     const viewFilter = urlParams.get('view');
     
@@ -76,7 +75,7 @@ export default function Friends() {
       setSelectedRelationshipLevel("all");
       setShowNewFriendsOnly(false);
     }
-  }, [location, window.location.search]);
+  }, [location]);
 
   // Get current URL parameters for use in rendering
   const urlParams = new URLSearchParams(window.location.search);
