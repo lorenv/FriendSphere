@@ -230,6 +230,7 @@ export default function Register() {
                       <Input
                         placeholder="(555) 123-4567"
                         {...field}
+                        value={field.value || ""}
                         disabled={isLoading}
                       />
                     </FormControl>
@@ -248,6 +249,7 @@ export default function Register() {
                       <Input
                         placeholder="San Francisco, CA"
                         {...field}
+                        value={field.value || ""}
                         disabled={isLoading}
                       />
                     </FormControl>
@@ -267,6 +269,7 @@ export default function Register() {
                         placeholder="Tell us a bit about yourself..."
                         className="resize-none"
                         {...field}
+                        value={field.value || ""}
                         disabled={isLoading}
                       />
                     </FormControl>
@@ -288,7 +291,7 @@ export default function Register() {
                     </div>
                     <FormControl>
                       <Switch
-                        checked={field.value}
+                        checked={Boolean(field.value)}
                         onCheckedChange={field.onChange}
                         disabled={isLoading}
                       />
