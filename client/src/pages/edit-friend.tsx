@@ -56,24 +56,45 @@ export default function EditFriend() {
   // Update form and interests when friend data loads
   useEffect(() => {
     if (friend) {
-      form.reset({
-        firstName: friend.firstName,
+      console.log('Loading friend data:', friend);
+      const formData = {
+        firstName: friend.firstName || "",
         lastName: friend.lastName || "",
         photo: friend.photo || "",
         location: friend.location || "",
         neighborhood: friend.neighborhood || "",
-        relationshipLevel: friend.relationshipLevel,
+        relationshipLevel: friend.relationshipLevel || "new",
         interests: friend.interests || [],
         lifestyle: friend.lifestyle || "",
-        hasKids: friend.hasKids || false,
+        hasKids: Boolean(friend.hasKids),
         phone: friend.phone || "",
         email: friend.email || "",
         partner: friend.partner || "",
         notes: friend.notes || "",
         contactInfo: friend.contactInfo || "",
         howWeMet: friend.howWeMet || "",
-      });
+      };
+      
+      console.log('Form data to populate:', formData);
+      
+      // Set interests first
       setSelectedInterests(friend.interests || []);
+      
+      // Use setTimeout to ensure form is ready
+      setTimeout(() => {
+        form.reset(formData);
+        
+        // Force update each field individually as fallback
+        setTimeout(() => {
+          Object.entries(formData).forEach(([key, value]) => {
+            form.setValue(key as keyof InsertFriend, value, { 
+              shouldValidate: false,
+              shouldDirty: false,
+              shouldTouch: false
+            });
+          });
+        }, 100);
+      }, 50);
     }
   }, [friend, form]);
 
@@ -225,7 +246,7 @@ export default function EditFriend() {
                       <FormItem>
                         <FormLabel>First Name</FormLabel>
                         <FormControl>
-                          <Input placeholder="Enter first name" {...field} />
+                          <Input placeholder="Enter first name" {...field} value={field.value || ""} />
                         </FormControl>
                         <FormMessage />
                       </FormItem>
