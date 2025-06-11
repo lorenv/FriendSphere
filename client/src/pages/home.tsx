@@ -122,8 +122,7 @@ export default function Home() {
             
             <div 
               onClick={() => {
-                console.log('Clicking close friends button, navigating to:', "/friends?category=close");
-                window.location.href = "/friends?category=close";
+                window.location.assign("/friends?category=close");
               }}
               className="bg-gradient-to-br from-rose-400 to-rose-600 rounded-3xl p-4 text-white card-shadow cursor-pointer hover:shadow-lg transition-all duration-200"
             >
@@ -136,7 +135,7 @@ export default function Home() {
             </div>
             
             <div 
-              onClick={() => window.location.href = "/friends?category=friend"}
+              onClick={() => window.location.assign("/friends?category=friend")}
               className="bg-gradient-to-br from-blue-400 to-blue-600 rounded-3xl p-4 text-white card-shadow cursor-pointer hover:shadow-lg transition-all duration-200"
             >
               <div className="flex items-center justify-between mb-3">
@@ -148,7 +147,7 @@ export default function Home() {
             </div>
             
             <div 
-              onClick={() => window.location.href = "/friends?category=work"}
+              onClick={() => window.location.assign("/friends?category=work")}
               className="bg-gradient-to-br from-slate-400 to-slate-600 rounded-3xl p-4 text-white card-shadow cursor-pointer hover:shadow-lg transition-all duration-200"
             >
               <div className="flex items-center justify-between mb-3">
@@ -160,7 +159,7 @@ export default function Home() {
             </div>
             
             <div 
-              onClick={() => window.location.href = "/friends?category=acquaintance"}
+              onClick={() => window.location.assign("/friends?category=acquaintance")}
               className="bg-gradient-to-br from-emerald-400 to-emerald-600 rounded-3xl p-4 text-white card-shadow cursor-pointer hover:shadow-lg transition-all duration-200"
             >
               <div className="flex items-center justify-between mb-3">
