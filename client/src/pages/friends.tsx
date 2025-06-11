@@ -18,11 +18,11 @@ const iconMap = {
 };
 
 const gradientClasses = {
-  all: "bg-gradient-to-br from-coral to-turquoise",
-  new: "bg-gradient-to-br from-green-400 to-green-600",
+  all: "gradient-coral-turquoise-sage",
+  new: "bg-gradient-to-br from-emerald-400 to-emerald-600",
   friend: "bg-gradient-to-br from-blue-400 to-blue-600", 
   close: "bg-gradient-to-br from-rose-400 to-rose-600",
-  professional: "bg-gradient-to-br from-gray-400 to-gray-600",
+  professional: "bg-gradient-to-br from-slate-400 to-slate-600",
 };
 
 export default function Friends() {

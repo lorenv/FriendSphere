@@ -128,17 +128,17 @@ export default function FriendDetail() {
         };
       case 'professional':
         return {
-          gradient: 'bg-gradient-to-br from-gray-400 to-gray-600',
-          icon: 'text-gray-500',
-          bg: 'bg-gray-50',
-          border: 'border-gray-200'
+          gradient: 'bg-gradient-to-br from-slate-400 to-slate-600',
+          icon: 'text-slate-500',
+          bg: 'bg-slate-50',
+          border: 'border-slate-200'
         };
       default: // new
         return {
-          gradient: 'bg-gradient-to-br from-green-400 to-green-600',
-          icon: 'text-green-500',
-          bg: 'bg-green-50',
-          border: 'border-green-200'
+          gradient: 'bg-gradient-to-br from-emerald-400 to-emerald-600',
+          icon: 'text-emerald-500',
+          bg: 'bg-emerald-50',
+          border: 'border-emerald-200'
         };
     }
   };

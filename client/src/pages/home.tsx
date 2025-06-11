@@ -219,9 +219,9 @@ export default function Home() {
                     case 'friend':
                       return { bg: 'bg-blue-50', border: 'border-blue-200', icon: 'text-blue-500' };
                     case 'professional':
-                      return { bg: 'bg-gray-50', border: 'border-gray-200', icon: 'text-gray-500' };
+                      return { bg: 'bg-slate-50', border: 'border-slate-200', icon: 'text-slate-500' };
                     default:
-                      return { bg: 'bg-green-50', border: 'border-green-200', icon: 'text-green-500' };
+                      return { bg: 'bg-emerald-50', border: 'border-emerald-200', icon: 'text-emerald-500' };
                   }
                 };
                 
