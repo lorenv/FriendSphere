@@ -73,6 +73,28 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  app.patch("/api/friends/:id", async (req, res) => {
+    try {
+      const id = parseInt(req.params.id);
+      const updateData = insertFriendSchema.partial().parse(req.body);
+      console.log("PATCH request received for friend", id, "with photo:", updateData.photo?.substring(0, 50) + "...");
+      const friend = await storage.updateFriend(id, updateData);
+      
+      if (!friend) {
+        return res.status(404).json({ message: "Friend not found" });
+      }
+      
+      console.log("Friend updated successfully, photo:", friend.photo?.substring(0, 50) + "...");
+      res.json(friend);
+    } catch (error) {
+      console.error("PATCH error:", error);
+      if (error instanceof z.ZodError) {
+        return res.status(400).json({ message: "Invalid friend data", errors: error.errors });
+      }
+      res.status(500).json({ message: "Failed to update friend" });
+    }
+  });
+
   app.delete("/api/friends/:id", async (req, res) => {
     try {
       const id = parseInt(req.params.id);
