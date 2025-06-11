@@ -305,8 +305,15 @@ export function ContactImportModal({ open, onClose, onImport }: ContactImportMod
         let birthday = '';
         let photo = '';
 
-        lines.forEach(line => {
+        console.log('Full vCard content first 2000 chars:', content.substring(0, 2000));
+        
+        lines.forEach((line, index) => {
           const trimmedLine = line.trim();
+          
+          // Only log first 20 lines to avoid spam
+          if (index < 20) {
+            console.log(`Line ${index}:`, trimmedLine);
+          }
           
           // Parse name fields
           if (trimmedLine.startsWith('FN:')) {
@@ -321,21 +328,35 @@ export function ContactImportModal({ open, onClose, onImport }: ContactImportMod
             if (nameParts[0]) lastName = nameParts[0].trim();
           }
           
-          // Parse phone numbers with better pattern matching
-          else if (trimmedLine.startsWith('TEL:') || 
-                   trimmedLine.includes('TYPE=CELL') || 
-                   trimmedLine.includes('TYPE=MOBILE') ||
-                   trimmedLine.includes('TYPE=HOME') ||
-                   trimmedLine.includes('TYPE=WORK')) {
-            const phoneMatch = trimmedLine.match(/TEL[^:]*:(.+)$/);
-            if (phoneMatch) {
-              phone = phoneMatch[1].trim();
+          // Enhanced phone number parsing with multiple approaches
+          else if (trimmedLine.includes('TEL') || trimmedLine.includes('PHONE')) {
+            // Handle various TEL formats:
+            // TEL:+1234567890
+            // TEL;TYPE=CELL:+1234567890  
+            // TEL;VOICE:+1234567890
+            // TEL;TYPE=HOME,VOICE:+1234567890
+            // item1.TEL:+1234567890
+            const colonIndex = trimmedLine.indexOf(':');
+            if (colonIndex > -1) {
+              const phoneValue = trimmedLine.substring(colonIndex + 1).trim();
+              // Clean phone number (remove any non-phone characters at start/end)
+              const cleanPhone = phoneValue.replace(/^[^+0-9]*/, '').replace(/[^+0-9()-\s]*$/, '');
+              if (cleanPhone && cleanPhone.length >= 7 && !phone) { // Take first valid phone number found
+                phone = cleanPhone;
+                console.log('Found phone in vCard:', cleanPhone);
+              }
             }
           }
           
           // Parse email
-          else if (trimmedLine.startsWith('EMAIL:')) {
-            email = trimmedLine.substring(6).trim();
+          else if (trimmedLine.startsWith('EMAIL:') || trimmedLine.includes('EMAIL')) {
+            const colonIndex = trimmedLine.indexOf(':');
+            if (colonIndex > -1) {
+              const emailValue = trimmedLine.substring(colonIndex + 1).trim();
+              if (emailValue && !email) {
+                email = emailValue;
+              }
+            }
           }
           
           // Parse birthday
@@ -343,15 +364,42 @@ export function ContactImportModal({ open, onClose, onImport }: ContactImportMod
             birthday = trimmedLine.substring(5).trim();
           }
           
-          // Parse photo (base64 or URL)
-          else if (trimmedLine.startsWith('PHOTO:') || trimmedLine.startsWith('PHOTO;')) {
-            const photoData = trimmedLine.substring(trimmedLine.indexOf(':') + 1).trim();
-            if (photoData.startsWith('http') || photoData.startsWith('data:')) {
-              photo = photoData;
+          // Parse photo with more flexible matching
+          else if (trimmedLine.includes('PHOTO')) {
+            const colonIndex = trimmedLine.indexOf(':');
+            if (colonIndex > -1) {
+              let photoData = trimmedLine.substring(colonIndex + 1).trim();
+              
+              // Handle multi-line base64 photos (continue reading subsequent lines)
+              if (photoData.length > 0 && !photoData.startsWith('http')) {
+                // This is likely base64 data, possibly spanning multiple lines
+                let photoLines = [photoData];
+                let nextLineIndex = index + 1;
+                
+                // Look ahead for continuation lines until we hit another vCard field or END
+                while (nextLineIndex < lines.length) {
+                  const nextLine = lines[nextLineIndex].trim();
+                  if (nextLine.includes(':') || nextLine.startsWith('END:')) {
+                    break;
+                  }
+                  photoLines.push(nextLine);
+                  nextLineIndex++;
+                }
+                
+                photoData = photoLines.join('');
+                
+                // Only use if it looks like valid base64 or URL
+                if (photoData.startsWith('http') || photoData.startsWith('data:') || 
+                   (photoData.length > 100 && /^[A-Za-z0-9+/=]+$/.test(photoData))) {
+                  photo = photoData.startsWith('data:') ? photoData : `data:image/jpeg;base64,${photoData}`;
+                  console.log('Found photo in vCard (length):', photoData.length);
+                }
+              }
             }
           }
         });
 
+        console.log('Final vCard parsed data:', { firstName, lastName, phone, email, birthday, photo });
         onImport({ firstName, lastName, phone, email, birthday, photo });
       } else {
         // Parse as plain text
@@ -546,6 +594,56 @@ export function ContactImportModal({ open, onClose, onImport }: ContactImportMod
                 <li>• Contact edit screens have cleaner text layouts</li>
                 <li>• Works with contact apps, business cards, notes, text messages</li>
               </ul>
+            </div>
+
+            <div className="bg-blue-50 p-3 rounded-lg">
+              <h4 className="font-medium text-sm mb-2">Test vCard Import:</h4>
+              <Button 
+                onClick={() => {
+                  const testVCard = `BEGIN:VCARD
+VERSION:3.0
+FN:Test User
+N:User;Test;;;
+TEL;TYPE=CELL:+1234567890
+EMAIL:test@example.com
+BDAY:1990-01-01
+END:VCARD`;
+                  
+                  const lines = testVCard.split('\n');
+                  let firstName = '', lastName = '', phone = '', email = '', birthday = '';
+                  
+                  lines.forEach(line => {
+                    const trimmedLine = line.trim();
+                    if (trimmedLine.startsWith('FN:')) {
+                      const fullName = trimmedLine.substring(3).trim();
+                      const nameParts = fullName.split(' ');
+                      firstName = nameParts[0] || '';
+                      lastName = nameParts.slice(1).join(' ') || '';
+                    } else if (trimmedLine.includes('TEL')) {
+                      const colonIndex = trimmedLine.indexOf(':');
+                      if (colonIndex > -1) {
+                        phone = trimmedLine.substring(colonIndex + 1).trim();
+                      }
+                    } else if (trimmedLine.includes('EMAIL')) {
+                      const colonIndex = trimmedLine.indexOf(':');
+                      if (colonIndex > -1) {
+                        email = trimmedLine.substring(colonIndex + 1).trim();
+                      }
+                    } else if (trimmedLine.startsWith('BDAY:')) {
+                      birthday = trimmedLine.substring(5).trim();
+                    }
+                  });
+                  
+                  onImport({ firstName, lastName, phone, email, birthday });
+                  onClose();
+                  setImportMethod(null);
+                }}
+                variant="outline"
+                size="sm"
+                className="w-full"
+              >
+                Test Import
+              </Button>
             </div>
 
             <Button variant="outline" onClick={() => setImportMethod(null)} className="w-full" disabled={isProcessing}>
