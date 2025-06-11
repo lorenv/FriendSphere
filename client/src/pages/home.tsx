@@ -121,7 +121,10 @@ export default function Home() {
           <div className="grid grid-cols-2 gap-4">
             
             <div 
-              onClick={() => setLocation("/friends?category=close")}
+              onClick={() => {
+                console.log('Clicking close friends button, navigating to:', "/friends?category=close");
+                setLocation("/friends?category=close");
+              }}
               className="bg-gradient-to-br from-rose-400 to-rose-600 rounded-3xl p-4 text-white card-shadow cursor-pointer hover:shadow-lg transition-all duration-200"
             >
               <div className="flex items-center justify-between mb-3">

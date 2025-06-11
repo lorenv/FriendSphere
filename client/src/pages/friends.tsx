@@ -37,9 +37,12 @@ export default function Friends() {
 
   // Update filter when URL changes
   useEffect(() => {
+    console.log('Friends page location changed:', location);
     const urlParams = new URLSearchParams(location.split('?')[1] || '');
     const categoryFilter = urlParams.get('category');
+    console.log('Category filter from URL:', categoryFilter);
     if (categoryFilter) {
+      console.log('Setting relationship level to:', categoryFilter);
       setSelectedRelationshipLevel(categoryFilter);
       setShowNewFriendsOnly(false);
     }
