@@ -18,36 +18,20 @@ import Login from "@/pages/login";
 import Register from "@/pages/register";
 
 function Router() {
-  // Temporarily disable authentication to stop refresh loop
-  // Check if we have a token without triggering queries
-  const hasToken = typeof window !== 'undefined' && !!localStorage.getItem('authToken');
-
   return (
     <Switch>
-      {hasToken ? (
-        // Protected routes - user is logged in
-        <>
-          <Route path="/" component={Home} />
-          <Route path="/friends" component={Friends} />
-          <Route path="/friends/:id" component={FriendDetail} />
-          <Route path="/friends/:id/edit" component={EditFriend} />
-          <Route path="/add-friend" component={AddFriend} />
-          <Route path="/network-map" component={NetworkMap} />
-          <Route path="/name-game" component={NameGame} />
-          <Route path="/activity" component={Activity} />
-          <Route path="/profile" component={Profile} />
-          <Route path="/login" component={() => { window.location.href = "/"; return null; }} />
-          <Route path="/register" component={() => { window.location.href = "/"; return null; }} />
-          <Route component={NotFound} />
-        </>
-      ) : (
-        // Public routes - user is not logged in
-        <>
-          <Route path="/login" component={Login} />
-          <Route path="/register" component={Register} />
-          <Route component={() => { window.location.href = "/login"; return null; }} />
-        </>
-      )}
+      <Route path="/login" component={Login} />
+      <Route path="/register" component={Register} />
+      <Route path="/" component={Home} />
+      <Route path="/friends" component={Friends} />
+      <Route path="/friends/:id" component={FriendDetail} />
+      <Route path="/friends/:id/edit" component={EditFriend} />
+      <Route path="/add-friend" component={AddFriend} />
+      <Route path="/network-map" component={NetworkMap} />
+      <Route path="/name-game" component={NameGame} />
+      <Route path="/activity" component={Activity} />
+      <Route path="/profile" component={Profile} />
+      <Route component={NotFound} />
     </Switch>
   );
 }
