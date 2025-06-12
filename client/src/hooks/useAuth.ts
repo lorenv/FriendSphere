@@ -1,21 +1,28 @@
-import { useQuery, useMutation } from "@tanstack/react-query";
-import { apiRequest, queryClient } from "@/lib/queryClient";
+import { useQuery } from "@tanstack/react-query";
+import { queryClient } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import type { User } from "@shared/schema";
 
 export function useAuth() {
   const { toast } = useToast();
+  const token = localStorage.getItem('authToken');
 
   const { data: user, isLoading, error } = useQuery<User>({
     queryKey: ["/api/auth/user"],
     queryFn: async () => {
+      if (!token) return null;
+      
       const res = await fetch("/api/auth/user", {
         method: "GET",
-        credentials: "include",
+        headers: {
+          "Authorization": `Bearer ${token}`,
+          "Content-Type": "application/json",
+        },
       });
       
       if (res.status === 401) {
-        return null; // Return null for unauthenticated users instead of throwing
+        localStorage.removeItem('authToken');
+        return null;
       }
       
       if (!res.ok) {
@@ -24,6 +31,7 @@ export function useAuth() {
       
       return await res.json();
     },
+    enabled: !!token,
     retry: false,
     staleTime: 5 * 60 * 1000, // 5 minutes
     refetchInterval: false,
@@ -31,34 +39,21 @@ export function useAuth() {
     refetchOnMount: true,
   });
 
-  const logoutMutation = useMutation({
-    mutationFn: async () => {
-      return await apiRequest("POST", "/api/auth/logout", {});
-    },
-    onSuccess: () => {
-      queryClient.clear();
-      toast({
-        title: "Logged out",
-        description: "You have been logged out successfully.",
-      });
-      window.location.href = "/login";
-    },
-    onError: () => {
-      // Force logout even if API call fails
-      queryClient.clear();
-      window.location.href = "/login";
-    },
-  });
-
   const logout = () => {
-    logoutMutation.mutate();
+    localStorage.removeItem('authToken');
+    queryClient.clear();
+    toast({
+      title: "Logged out",
+      description: "You have been logged out successfully.",
+    });
+    window.location.href = "/login";
   };
 
   return {
     user,
-    isLoading,
-    isAuthenticated: !!user && !error,
+    isLoading: isLoading && !!token,
+    isAuthenticated: !!user && !!token && !error,
     logout,
-    isLoggingOut: logoutMutation.isPending,
+    token,
   };
 }
