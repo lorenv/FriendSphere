@@ -8,8 +8,27 @@ export function useAuth() {
 
   const { data: user, isLoading, error } = useQuery<User>({
     queryKey: ["/api/auth/user"],
+    queryFn: async () => {
+      const res = await fetch("/api/auth/user", {
+        method: "GET",
+        credentials: "include",
+      });
+      
+      if (res.status === 401) {
+        return null; // Return null for unauthenticated users instead of throwing
+      }
+      
+      if (!res.ok) {
+        throw new Error(`${res.status}: ${res.statusText}`);
+      }
+      
+      return await res.json();
+    },
     retry: false,
     staleTime: 5 * 60 * 1000, // 5 minutes
+    refetchInterval: false,
+    refetchOnWindowFocus: false,
+    refetchOnMount: true,
   });
 
   const logoutMutation = useMutation({
