@@ -81,10 +81,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.get("/api/friends/:id", async (req, res) => {
+  app.get("/api/friends/:id", authenticateToken, async (req: AuthenticatedRequest, res) => {
     try {
       const id = parseInt(req.params.id);
-      const friend = await storage.getFriend(id);
+      const friend = await storage.getFriend(req.userId!, id);
       
       if (!friend) {
         return res.status(404).json({ message: "Friend not found" });
@@ -223,9 +223,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Stats route
-  app.get("/api/stats", async (req, res) => {
+  app.get("/api/stats", authenticateToken, async (req: AuthenticatedRequest, res) => {
     try {
-      const stats = await storage.getFriendStats();
+      const stats = await storage.getFriendStats(req.userId!);
       res.json(stats);
     } catch (error) {
       res.status(500).json({ message: "Failed to fetch stats" });
