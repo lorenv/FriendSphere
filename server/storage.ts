@@ -130,7 +130,7 @@ export class DatabaseStorage implements IStorage {
     const [friend] = await db
       .update(friends)
       .set(updateData)
-      .where(eq(friends.id, id).and(eq(friends.userId, userId)))
+      .where(and(eq(friends.id, id), eq(friends.userId, userId)))
       .returning();
     
     if (friend) {
