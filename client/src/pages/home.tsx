@@ -20,6 +20,12 @@ interface Stats {
 
 export default function Home() {
   const [, setLocation] = useLocation();
+  
+  // Check authentication - redirect to login if no token
+  if (typeof window !== 'undefined' && !localStorage.getItem('authToken')) {
+    setLocation('/login');
+    return null;
+  }
   const { data: stats = {
     totalFriends: 0,
     closeFriends: 0,
