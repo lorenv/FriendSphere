@@ -190,15 +190,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Activities routes
-  app.get("/api/activities", async (req, res) => {
+  app.get("/api/activities", authenticateToken, async (req: AuthenticatedRequest, res) => {
     try {
       const limit = req.query.limit ? parseInt(req.query.limit as string) : 10;
-      const activities = await storage.getRecentActivities(limit);
+      const activities = await storage.getRecentActivities(req.userId!, limit);
       
       // Enrich activities with friend data
       const enrichedActivities = await Promise.all(
         activities.map(async (activity) => {
-          const friend = await storage.getFriend(activity.friendId);
+          const friend = await storage.getFriend(req.userId!, activity.friendId);
           return {
             ...activity,
             friend,
@@ -212,10 +212,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.get("/api/friends/:id/activities", async (req, res) => {
+  app.get("/api/friends/:id/activities", authenticateToken, async (req: AuthenticatedRequest, res) => {
     try {
       const friendId = parseInt(req.params.id);
-      const activities = await storage.getActivitiesByFriend(friendId);
+      const activities = await storage.getActivitiesByFriend(req.userId!, friendId);
       res.json(activities);
     } catch (error) {
       res.status(500).json({ message: "Failed to fetch friend activities" });
