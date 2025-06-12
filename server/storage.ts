@@ -1,62 +1,31 @@
-import {
-  users,
-  friends,
-  relationships,
-  activities,
-  contactShares,
-  type User,
-  type InsertUser,
-  type RegisterUser,
-  type Friend,
-  type InsertFriend,
-  type Relationship,
-  type InsertRelationship,
-  type Activity,
-  type InsertActivity,
-  type ContactShare,
-  type InsertContactShare,
-} from "@shared/schema";
+import { friends, relationships, activities, type Friend, type InsertFriend, type Relationship, type InsertRelationship, type Activity, type InsertActivity } from "@shared/schema";
 import { db } from "./db";
-import { eq, desc, sql, and } from "drizzle-orm";
-import bcrypt from "bcryptjs";
+import { eq, desc, sql } from "drizzle-orm";
 
 export interface IStorage {
-  // User authentication
-  createUser(userData: RegisterUser): Promise<User>;
-  getUserByEmail(email: string): Promise<User | undefined>;
-  getUserById(id: number): Promise<User | undefined>;
-  updateUser(id: number, userData: Partial<InsertUser>): Promise<User | undefined>;
-  verifyPassword(email: string, password: string): Promise<User | null>;
+  // Friends CRUD
+  getFriend(id: number): Promise<Friend | undefined>;
+  getAllFriends(): Promise<Friend[]>;
+  getFriendsByCategory(category: string): Promise<Friend[]>;
+  getFriendsByLocation(location: string): Promise<Friend[]>;
+  createFriend(friend: InsertFriend): Promise<Friend>;
+  updateFriend(id: number, friend: Partial<InsertFriend>): Promise<Friend | undefined>;
+  deleteFriend(id: number): Promise<boolean>;
   
-  // Friends CRUD (user-specific)
-  getFriend(userId: number, id: number): Promise<Friend | undefined>;
-  getAllFriends(userId: number): Promise<Friend[]>;
-  getFriendsByCategory(userId: number, category: string): Promise<Friend[]>;
-  getFriendsByLocation(userId: number, location: string): Promise<Friend[]>;
-  createFriend(userId: number, friend: InsertFriend): Promise<Friend>;
-  updateFriend(userId: number, id: number, friend: Partial<InsertFriend>): Promise<Friend | undefined>;
-  deleteFriend(userId: number, id: number): Promise<boolean>;
+  // Relationships CRUD
+  getRelationship(id: number): Promise<Relationship | undefined>;
+  getRelationshipsByFriend(friendId: number): Promise<Relationship[]>;
+  createRelationship(relationship: InsertRelationship): Promise<Relationship>;
+  deleteRelationship(id: number): Promise<boolean>;
   
-  // Relationships CRUD (user-specific)
-  getRelationship(userId: number, id: number): Promise<Relationship | undefined>;
-  getRelationshipsByFriend(userId: number, friendId: number): Promise<Relationship[]>;
-  createRelationship(userId: number, relationship: InsertRelationship): Promise<Relationship>;
-  deleteRelationship(userId: number, id: number): Promise<boolean>;
+  // Activities CRUD
+  getActivity(id: number): Promise<Activity | undefined>;
+  getRecentActivities(limit?: number): Promise<Activity[]>;
+  getActivitiesByFriend(friendId: number): Promise<Activity[]>;
+  createActivity(activity: InsertActivity): Promise<Activity>;
   
-  // Activities CRUD (user-specific)
-  getActivity(userId: number, id: number): Promise<Activity | undefined>;
-  getRecentActivities(userId: number, limit?: number): Promise<Activity[]>;
-  getActivitiesByFriend(userId: number, friendId: number): Promise<Activity[]>;
-  createActivity(userId: number, activity: InsertActivity): Promise<Activity>;
-  
-  // Contact sharing
-  createContactShare(share: InsertContactShare): Promise<ContactShare>;
-  getContactSharesReceived(userId: number): Promise<ContactShare[]>;
-  getContactSharesSent(userId: number): Promise<ContactShare[]>;
-  acceptContactShare(shareId: number): Promise<boolean>;
-  
-  // Stats (user-specific)
-  getFriendStats(userId: number): Promise<{
+  // Stats
+  getFriendStats(): Promise<{
     totalFriends: number;
     closeFriends: number;
     newConnections: number;
@@ -65,178 +34,128 @@ export interface IStorage {
 }
 
 export class DatabaseStorage implements IStorage {
-  // User authentication methods
-  async createUser(userData: RegisterUser): Promise<User> {
-    const hashedPassword = await bcrypt.hash(userData.password, 10);
-    const [user] = await db.insert(users).values({
-      email: userData.email,
-      passwordHash: hashedPassword,
-      firstName: userData.firstName,
-      lastName: userData.lastName,
-      photo: userData.photo,
-      phone: userData.phone,
-      location: userData.location,
-      bio: userData.bio,
-      isPublic: userData.isPublic || false,
-    }).returning();
-    return user;
+  // Use a default userId of 1 for backwards compatibility
+  private defaultUserId = 1;
+
+  async getFriend(id: number): Promise<Friend | undefined> {
+    const [friend] = await db.select().from(friends).where(eq(friends.id, id));
+    return friend || undefined;
   }
 
-  async getUserByEmail(email: string): Promise<User | undefined> {
-    const [user] = await db.select().from(users).where(eq(users.email, email));
-    return user;
+  async getAllFriends(): Promise<Friend[]> {
+    return await db.select().from(friends);
   }
 
-  async getUserById(id: number): Promise<User | undefined> {
-    const [user] = await db.select().from(users).where(eq(users.id, id));
-    return user;
+  async getFriendsByCategory(category: string): Promise<Friend[]> {
+    return await db.select().from(friends).where(eq(friends.relationshipLevel, category));
   }
 
-  async updateUser(id: number, userData: Partial<InsertUser>): Promise<User | undefined> {
-    const [user] = await db.update(users).set({
-      ...userData,
-      updatedAt: new Date(),
-    }).where(eq(users.id, id)).returning();
-    return user;
-  }
-
-  async verifyPassword(email: string, password: string): Promise<User | null> {
-    const user = await this.getUserByEmail(email);
-    if (!user) return null;
-    
-    const isValid = await bcrypt.compare(password, user.passwordHash);
-    return isValid ? user : null;
-  }
-
-  // User-specific friend methods
-  async getFriend(userId: number, id: number): Promise<Friend | undefined> {
-    const [friend] = await db.select().from(friends).where(and(eq(friends.id, id), eq(friends.userId, userId)));
-    return friend;
-  }
-
-  async getAllFriends(userId: number): Promise<Friend[]> {
-    return await db.select().from(friends).where(eq(friends.userId, userId));
-  }
-
-  async getFriendsByCategory(userId: number, category: string): Promise<Friend[]> {
-    return await db.select().from(friends).where(and(eq(friends.userId, userId), eq(friends.relationshipLevel, category)));
-  }
-
-  async getFriendsByLocation(userId: number, location: string): Promise<Friend[]> {
-    const allFriends = await db.select().from(friends).where(eq(friends.userId, userId));
+  async getFriendsByLocation(location: string): Promise<Friend[]> {
+    const allFriends = await db.select().from(friends);
     return allFriends.filter(
       (friend) => friend.location?.toLowerCase().includes(location.toLowerCase())
     );
   }
 
-  async createFriend(userId: number, insertFriend: InsertFriend): Promise<Friend> {
-    const [friend] = await db.insert(friends).values({
-      ...insertFriend,
-      userId,
-    }).returning();
+  async createFriend(insertFriend: InsertFriend): Promise<Friend> {
+    const [friend] = await db
+      .insert(friends)
+      .values({
+        ...insertFriend,
+        userId: this.defaultUserId
+      })
+      .returning();
     
-    // Create activity for adding friend
-    await this.createActivity(userId, {
+    // Create activity for new friend
+    await this.createActivity({
       friendId: friend.id,
       activityType: "added",
-      description: `Added ${friend.firstName} ${friend.lastName || ""} to your network`,
+      description: `Added ${friend.firstName} ${friend.lastName || ''} to your friends`,
     });
     
     return friend;
   }
 
-  async updateFriend(userId: number, id: number, updateData: Partial<InsertFriend>): Promise<Friend | undefined> {
-    const [friend] = await db.update(friends).set(updateData).where(and(eq(friends.id, id), eq(friends.userId, userId))).returning();
+  async updateFriend(id: number, updateData: Partial<InsertFriend>): Promise<Friend | undefined> {
+    const [friend] = await db
+      .update(friends)
+      .set(updateData)
+      .where(eq(friends.id, id))
+      .returning();
     
     if (friend) {
-      // Create activity for updating friend
-      await this.createActivity(userId, {
-        friendId: friend.id,
+      // Create activity for update
+      await this.createActivity({
+        friendId: id,
         activityType: "updated",
-        description: `Updated ${friend.firstName} ${friend.lastName || ""}'s information`,
+        description: `Updated ${friend.firstName} ${friend.lastName || ''}'s information`,
       });
     }
     
-    return friend;
+    return friend || undefined;
   }
 
-  async deleteFriend(userId: number, id: number): Promise<boolean> {
-    const result = await db.delete(friends).where(and(eq(friends.id, id), eq(friends.userId, userId)));
+  async deleteFriend(id: number): Promise<boolean> {
+    const result = await db.delete(friends).where(eq(friends.id, id));
     return result.rowCount ? result.rowCount > 0 : false;
   }
 
-  // User-specific relationship methods
-  async getRelationship(userId: number, id: number): Promise<Relationship | undefined> {
-    const [relationship] = await db.select().from(relationships).where(and(eq(relationships.id, id), eq(relationships.userId, userId)));
+  async getRelationship(id: number): Promise<Relationship | undefined> {
+    const [relationship] = await db.select().from(relationships).where(eq(relationships.id, id));
+    return relationship || undefined;
+  }
+
+  async getRelationshipsByFriend(friendId: number): Promise<Relationship[]> {
+    return await db.select().from(relationships).where(eq(relationships.friendId, friendId));
+  }
+
+  async createRelationship(insertRelationship: InsertRelationship): Promise<Relationship> {
+    const [relationship] = await db
+      .insert(relationships)
+      .values({
+        ...insertRelationship,
+        userId: this.defaultUserId
+      })
+      .returning();
     return relationship;
   }
 
-  async getRelationshipsByFriend(userId: number, friendId: number): Promise<Relationship[]> {
-    return await db.select().from(relationships).where(and(eq(relationships.userId, userId), eq(relationships.friendId, friendId)));
-  }
-
-  async createRelationship(userId: number, insertRelationship: InsertRelationship): Promise<Relationship> {
-    const [relationship] = await db.insert(relationships).values({
-      ...insertRelationship,
-      userId,
-    }).returning();
-    return relationship;
-  }
-
-  async deleteRelationship(userId: number, id: number): Promise<boolean> {
-    const result = await db.delete(relationships).where(and(eq(relationships.id, id), eq(relationships.userId, userId)));
+  async deleteRelationship(id: number): Promise<boolean> {
+    const result = await db.delete(relationships).where(eq(relationships.id, id));
     return result.rowCount ? result.rowCount > 0 : false;
   }
 
-  // User-specific activity methods
-  async getActivity(userId: number, id: number): Promise<Activity | undefined> {
-    const [activity] = await db.select().from(activities).where(and(eq(activities.id, id), eq(activities.userId, userId)));
+  async getActivity(id: number): Promise<Activity | undefined> {
+    const [activity] = await db.select().from(activities).where(eq(activities.id, id));
+    return activity || undefined;
+  }
+
+  async getRecentActivities(limit: number = 10): Promise<Activity[]> {
+    return await db.select().from(activities).orderBy(desc(activities.timestamp)).limit(limit);
+  }
+
+  async getActivitiesByFriend(friendId: number): Promise<Activity[]> {
+    return await db.select().from(activities).where(eq(activities.friendId, friendId)).orderBy(desc(activities.timestamp));
+  }
+
+  async createActivity(insertActivity: InsertActivity): Promise<Activity> {
+    const [activity] = await db
+      .insert(activities)
+      .values({
+        ...insertActivity,
+        userId: this.defaultUserId
+      })
+      .returning();
     return activity;
   }
 
-  async getRecentActivities(userId: number, limit: number = 10): Promise<Activity[]> {
-    return await db.select().from(activities).where(eq(activities.userId, userId)).orderBy(desc(activities.timestamp)).limit(limit);
-  }
-
-  async getActivitiesByFriend(userId: number, friendId: number): Promise<Activity[]> {
-    return await db.select().from(activities).where(and(eq(activities.userId, userId), eq(activities.friendId, friendId))).orderBy(desc(activities.timestamp));
-  }
-
-  async createActivity(userId: number, insertActivity: InsertActivity): Promise<Activity> {
-    const [activity] = await db.insert(activities).values({
-      ...insertActivity,
-      userId,
-    }).returning();
-    return activity;
-  }
-
-  // Contact sharing methods
-  async createContactShare(share: InsertContactShare): Promise<ContactShare> {
-    const [contactShare] = await db.insert(contactShares).values(share).returning();
-    return contactShare;
-  }
-
-  async getContactSharesReceived(userId: number): Promise<ContactShare[]> {
-    return await db.select().from(contactShares).where(eq(contactShares.toUserId, userId)).orderBy(desc(contactShares.timestamp));
-  }
-
-  async getContactSharesSent(userId: number): Promise<ContactShare[]> {
-    return await db.select().from(contactShares).where(eq(contactShares.fromUserId, userId)).orderBy(desc(contactShares.timestamp));
-  }
-
-  async acceptContactShare(shareId: number): Promise<boolean> {
-    const result = await db.update(contactShares).set({ isAccepted: true }).where(eq(contactShares.id, shareId));
-    return result.rowCount ? result.rowCount > 0 : false;
-  }
-
-  // User-specific stats
-  async getFriendStats(userId: number): Promise<{
+  async getFriendStats(): Promise<{
     totalFriends: number;
     closeFriends: number;
     newConnections: number;
     categoryBreakdown: Record<string, number>;
   }> {
-    const allFriends = await this.getAllFriends(userId);
+    const allFriends = await this.getAllFriends();
     
     const totalFriends = allFriends.length;
     const closeFriends = allFriends.filter(f => f.relationshipLevel === "close").length;
