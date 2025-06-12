@@ -96,10 +96,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.post("/api/friends", async (req, res) => {
+  app.post("/api/friends", authenticateToken, async (req: AuthenticatedRequest, res) => {
     try {
       const friendData = insertFriendSchema.parse(req.body);
-      const friend = await storage.createFriend(friendData);
+      const friend = await storage.createFriend(req.userId!, friendData);
       res.status(201).json(friend);
     } catch (error) {
       if (error instanceof z.ZodError) {
@@ -109,11 +109,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.put("/api/friends/:id", async (req, res) => {
+  app.put("/api/friends/:id", authenticateToken, async (req: AuthenticatedRequest, res) => {
     try {
       const id = parseInt(req.params.id);
       const updateData = insertFriendSchema.partial().parse(req.body);
-      const friend = await storage.updateFriend(id, updateData);
+      const friend = await storage.updateFriend(req.userId!, id, updateData);
       
       if (!friend) {
         return res.status(404).json({ message: "Friend not found" });
@@ -128,12 +128,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.patch("/api/friends/:id", async (req, res) => {
+  app.patch("/api/friends/:id", authenticateToken, async (req: AuthenticatedRequest, res) => {
     try {
       const id = parseInt(req.params.id);
       const updateData = insertFriendSchema.partial().parse(req.body);
       console.log("PATCH request received for friend", id, "with photo:", updateData.photo?.substring(0, 50) + "...");
-      const friend = await storage.updateFriend(id, updateData);
+      const friend = await storage.updateFriend(req.userId!, id, updateData);
       
       if (!friend) {
         return res.status(404).json({ message: "Friend not found" });
@@ -150,10 +150,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.delete("/api/friends/:id", async (req, res) => {
+  app.delete("/api/friends/:id", authenticateToken, async (req: AuthenticatedRequest, res) => {
     try {
       const id = parseInt(req.params.id);
-      const deleted = await storage.deleteFriend(id);
+      const deleted = await storage.deleteFriend(req.userId!, id);
       
       if (!deleted) {
         return res.status(404).json({ message: "Friend not found" });
@@ -166,20 +166,20 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Relationships routes
-  app.get("/api/friends/:id/relationships", async (req, res) => {
+  app.get("/api/friends/:id/relationships", authenticateToken, async (req: AuthenticatedRequest, res) => {
     try {
       const friendId = parseInt(req.params.id);
-      const relationships = await storage.getRelationshipsByFriend(friendId);
+      const relationships = await storage.getRelationshipsByFriend(req.userId!, friendId);
       res.json(relationships);
     } catch (error) {
       res.status(500).json({ message: "Failed to fetch relationships" });
     }
   });
 
-  app.post("/api/relationships", async (req, res) => {
+  app.post("/api/relationships", authenticateToken, async (req: AuthenticatedRequest, res) => {
     try {
       const relationshipData = insertRelationshipSchema.parse(req.body);
-      const relationship = await storage.createRelationship(relationshipData);
+      const relationship = await storage.createRelationship(req.userId!, relationshipData);
       res.status(201).json(relationship);
     } catch (error) {
       if (error instanceof z.ZodError) {
