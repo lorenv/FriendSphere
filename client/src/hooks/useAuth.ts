@@ -5,11 +5,14 @@ import type { User } from "@shared/schema";
 
 export function useAuth() {
   const { toast } = useToast();
-  const token = localStorage.getItem('authToken');
+  
+  // Simply check if token exists without causing re-renders
+  const hasToken = !!localStorage.getItem('authToken');
 
   const { data: user, isLoading, error } = useQuery<User>({
     queryKey: ["/api/auth/user"],
     queryFn: async () => {
+      const token = localStorage.getItem('authToken');
       if (!token) return null;
       
       const res = await fetch("/api/auth/user", {
@@ -31,12 +34,14 @@ export function useAuth() {
       
       return await res.json();
     },
-    enabled: !!token,
+    enabled: hasToken,
     retry: false,
-    staleTime: 5 * 60 * 1000, // 5 minutes
+    staleTime: 10 * 60 * 1000, // 10 minutes
+    gcTime: 15 * 60 * 1000, // 15 minutes
     refetchInterval: false,
     refetchOnWindowFocus: false,
     refetchOnMount: true,
+    refetchOnReconnect: false,
   });
 
   const logout = () => {
@@ -51,9 +56,9 @@ export function useAuth() {
 
   return {
     user,
-    isLoading: isLoading && !!token,
-    isAuthenticated: !!user && !!token && !error,
+    isLoading: isLoading && hasToken,
+    isAuthenticated: !!user && hasToken && !error,
     logout,
-    token,
+    hasToken,
   };
 }

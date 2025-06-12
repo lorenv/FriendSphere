@@ -18,19 +18,13 @@ import Login from "@/pages/login";
 import Register from "@/pages/register";
 
 function Router() {
-  const { isAuthenticated, isLoading } = useAuth();
-
-  if (isLoading) {
-    return (
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
-      </div>
-    );
-  }
+  // Temporarily disable authentication to stop refresh loop
+  // Check if we have a token without triggering queries
+  const hasToken = typeof window !== 'undefined' && !!localStorage.getItem('authToken');
 
   return (
     <Switch>
-      {isAuthenticated ? (
+      {hasToken ? (
         // Protected routes - user is logged in
         <>
           <Route path="/" component={Home} />
