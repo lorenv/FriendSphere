@@ -31,7 +31,7 @@ export const users = pgTable("users", {
 
 export const friends = pgTable("friends", {
   id: serial("id").primaryKey(),
-  userId: varchar("user_id").notNull(),
+  userId: integer("user_id").notNull(),
   firstName: text("first_name").notNull(),
   lastName: text("last_name"),
   photo: text("photo"),
@@ -55,7 +55,7 @@ export const friends = pgTable("friends", {
 
 export const relationships = pgTable("relationships", {
   id: serial("id").primaryKey(),
-  userId: varchar("user_id").notNull(),
+  userId: integer("user_id").notNull(),
   friendId: integer("friend_id").notNull(),
   relatedFriendId: integer("related_friend_id").notNull(),
   relationshipType: text("relationship_type").notNull(), // introduced_by, partner, friend_of, etc.
@@ -63,7 +63,7 @@ export const relationships = pgTable("relationships", {
 
 export const activities = pgTable("activities", {
   id: serial("id").primaryKey(),
-  userId: varchar("user_id").notNull(),
+  userId: integer("user_id").notNull(),
   friendId: integer("friend_id").notNull(),
   activityType: text("activity_type").notNull(), // updated, moved, added, etc.
   description: text("description").notNull(),
@@ -73,17 +73,35 @@ export const activities = pgTable("activities", {
 // Contact sharing table for users to share their info with each other
 export const contactShares = pgTable("contact_shares", {
   id: serial("id").primaryKey(),
-  fromUserId: varchar("from_user_id").notNull(),
-  toUserId: varchar("to_user_id").notNull(),
+  fromUserId: integer("from_user_id").notNull(),
+  toUserId: integer("to_user_id").notNull(),
   shareData: text("share_data").notNull(), // JSON with contact info to share
   message: text("message"), // Optional message with the contact share
   timestamp: timestamp("timestamp").defaultNow(),
   isAccepted: boolean("is_accepted").default(false),
 });
 
-// User schemas for Replit Auth
-export type UpsertUser = typeof users.$inferInsert;
-export type User = typeof users.$inferSelect;
+// User schemas
+export const insertUserSchema = createInsertSchema(users).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
+export const registerUserSchema = insertUserSchema.omit({
+  passwordHash: true,
+}).extend({
+  password: z.string().min(8, "Password must be at least 8 characters"),
+  confirmPassword: z.string(),
+}).refine((data) => data.password === data.confirmPassword, {
+  message: "Passwords don't match",
+  path: ["confirmPassword"],
+});
+
+export const loginUserSchema = z.object({
+  email: z.string().email("Invalid email address"),
+  password: z.string().min(1, "Password is required"),
+});
 
 // Update existing schemas to include userId
 export const insertFriendSchema = createInsertSchema(friends).omit({
@@ -109,7 +127,7 @@ export const insertContactShareSchema = createInsertSchema(contactShares).omit({
   isAccepted: true,
 });
 
-// Types
+// Type exports
 export type User = typeof users.$inferSelect;
 export type InsertUser = z.infer<typeof insertUserSchema>;
 export type RegisterUser = z.infer<typeof registerUserSchema>;
