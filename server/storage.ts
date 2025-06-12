@@ -1,6 +1,6 @@
 import { users, friends, relationships, activities, type User, type InsertUser, type RegisterUser, type Friend, type InsertFriend, type Relationship, type InsertRelationship, type Activity, type InsertActivity } from "@shared/schema";
 import { db } from "./db";
-import { eq, desc, sql } from "drizzle-orm";
+import { eq, desc, sql, and } from "drizzle-orm";
 
 export interface IStorage {
   // User authentication
@@ -88,7 +88,7 @@ export class DatabaseStorage implements IStorage {
 
   // Friends CRUD (user-specific)
   async getFriend(userId: number, id: number): Promise<Friend | undefined> {
-    const [friend] = await db.select().from(friends).where(eq(friends.id, id).and(eq(friends.userId, userId)));
+    const [friend] = await db.select().from(friends).where(and(eq(friends.id, id), eq(friends.userId, userId)));
     return friend || undefined;
   }
 
@@ -97,7 +97,7 @@ export class DatabaseStorage implements IStorage {
   }
 
   async getFriendsByCategory(userId: number, category: string): Promise<Friend[]> {
-    return await db.select().from(friends).where(eq(friends.userId, userId).and(eq(friends.relationshipLevel, category)));
+    return await db.select().from(friends).where(and(eq(friends.userId, userId), eq(friends.relationshipLevel, category)));
   }
 
   async getFriendsByLocation(userId: number, location: string): Promise<Friend[]> {
@@ -126,16 +126,16 @@ export class DatabaseStorage implements IStorage {
     return friend;
   }
 
-  async updateFriend(id: number, updateData: Partial<InsertFriend>): Promise<Friend | undefined> {
+  async updateFriend(userId: number, id: number, updateData: Partial<InsertFriend>): Promise<Friend | undefined> {
     const [friend] = await db
       .update(friends)
       .set(updateData)
-      .where(eq(friends.id, id))
+      .where(eq(friends.id, id).and(eq(friends.userId, userId)))
       .returning();
     
     if (friend) {
       // Create activity for update
-      await this.createActivity({
+      await this.createActivity(userId, {
         friendId: id,
         activityType: "updated",
         description: `Updated ${friend.firstName} ${friend.lastName || ''}'s information`,
@@ -145,67 +145,67 @@ export class DatabaseStorage implements IStorage {
     return friend || undefined;
   }
 
-  async deleteFriend(id: number): Promise<boolean> {
-    const result = await db.delete(friends).where(eq(friends.id, id));
+  async deleteFriend(userId: number, id: number): Promise<boolean> {
+    const result = await db.delete(friends).where(eq(friends.id, id).and(eq(friends.userId, userId)));
     return result.rowCount ? result.rowCount > 0 : false;
   }
 
-  async getRelationship(id: number): Promise<Relationship | undefined> {
-    const [relationship] = await db.select().from(relationships).where(eq(relationships.id, id));
+  async getRelationship(userId: number, id: number): Promise<Relationship | undefined> {
+    const [relationship] = await db.select().from(relationships).where(eq(relationships.id, id).and(eq(relationships.userId, userId)));
     return relationship || undefined;
   }
 
-  async getRelationshipsByFriend(friendId: number): Promise<Relationship[]> {
-    return await db.select().from(relationships).where(eq(relationships.friendId, friendId));
+  async getRelationshipsByFriend(userId: number, friendId: number): Promise<Relationship[]> {
+    return await db.select().from(relationships).where(eq(relationships.userId, userId).and(eq(relationships.friendId, friendId)));
   }
 
-  async createRelationship(insertRelationship: InsertRelationship): Promise<Relationship> {
+  async createRelationship(userId: number, insertRelationship: InsertRelationship): Promise<Relationship> {
     const [relationship] = await db
       .insert(relationships)
       .values({
         ...insertRelationship,
-        userId: this.defaultUserId
+        userId
       })
       .returning();
     return relationship;
   }
 
-  async deleteRelationship(id: number): Promise<boolean> {
-    const result = await db.delete(relationships).where(eq(relationships.id, id));
+  async deleteRelationship(userId: number, id: number): Promise<boolean> {
+    const result = await db.delete(relationships).where(eq(relationships.id, id).and(eq(relationships.userId, userId)));
     return result.rowCount ? result.rowCount > 0 : false;
   }
 
-  async getActivity(id: number): Promise<Activity | undefined> {
-    const [activity] = await db.select().from(activities).where(eq(activities.id, id));
+  async getActivity(userId: number, id: number): Promise<Activity | undefined> {
+    const [activity] = await db.select().from(activities).where(eq(activities.id, id).and(eq(activities.userId, userId)));
     return activity || undefined;
   }
 
-  async getRecentActivities(limit: number = 10): Promise<Activity[]> {
-    return await db.select().from(activities).orderBy(desc(activities.timestamp)).limit(limit);
+  async getRecentActivities(userId: number, limit: number = 10): Promise<Activity[]> {
+    return await db.select().from(activities).where(eq(activities.userId, userId)).orderBy(desc(activities.timestamp)).limit(limit);
   }
 
-  async getActivitiesByFriend(friendId: number): Promise<Activity[]> {
-    return await db.select().from(activities).where(eq(activities.friendId, friendId)).orderBy(desc(activities.timestamp));
+  async getActivitiesByFriend(userId: number, friendId: number): Promise<Activity[]> {
+    return await db.select().from(activities).where(eq(activities.userId, userId).and(eq(activities.friendId, friendId))).orderBy(desc(activities.timestamp));
   }
 
-  async createActivity(insertActivity: InsertActivity): Promise<Activity> {
+  async createActivity(userId: number, insertActivity: InsertActivity): Promise<Activity> {
     const [activity] = await db
       .insert(activities)
       .values({
         ...insertActivity,
-        userId: this.defaultUserId
+        userId
       })
       .returning();
     return activity;
   }
 
-  async getFriendStats(): Promise<{
+  async getFriendStats(userId: number): Promise<{
     totalFriends: number;
     closeFriends: number;
     newConnections: number;
     categoryBreakdown: Record<string, number>;
   }> {
-    const allFriends = await this.getAllFriends();
+    const allFriends = await this.getAllFriends(userId);
     
     const totalFriends = allFriends.length;
     const closeFriends = allFriends.filter(f => f.relationshipLevel === "close").length;

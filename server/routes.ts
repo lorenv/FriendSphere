@@ -1,23 +1,78 @@
 import type { Express } from "express";
 import { createServer, type Server } from "http";
 import { storage } from "./storage";
-import { insertFriendSchema, insertRelationshipSchema, insertActivitySchema } from "@shared/schema";
+import { insertFriendSchema, insertRelationshipSchema, insertActivitySchema, registerUserSchema, loginUserSchema } from "@shared/schema";
+import { authenticateToken, generateToken, type AuthenticatedRequest } from "./auth";
 import { z } from "zod";
 
-
 export async function registerRoutes(app: Express): Promise<Server> {
-  // Friends routes
-  app.get("/api/friends", async (req, res) => {
+  // Authentication routes
+  app.post("/api/register", async (req, res) => {
+    try {
+      const userData = registerUserSchema.parse(req.body);
+      const user = await storage.createUser(userData);
+      const token = generateToken(user.id);
+      
+      res.json({ 
+        user: { 
+          id: user.id, 
+          email: user.email, 
+          firstName: user.firstName, 
+          lastName: user.lastName,
+          photo: user.photo 
+        }, 
+        token 
+      });
+    } catch (error) {
+      console.error("Registration error:", error);
+      res.status(400).json({ message: "Registration failed" });
+    }
+  });
+
+  app.post("/api/login", async (req, res) => {
+    try {
+      const loginData = loginUserSchema.parse(req.body);
+      const user = await storage.verifyPassword(loginData.email, loginData.password);
+      
+      if (!user) {
+        return res.status(401).json({ message: "Invalid email or password" });
+      }
+      
+      const token = generateToken(user.id);
+      
+      res.json({ 
+        user: { 
+          id: user.id, 
+          email: user.email, 
+          firstName: user.firstName, 
+          lastName: user.lastName,
+          photo: user.photo 
+        }, 
+        token 
+      });
+    } catch (error) {
+      console.error("Login error:", error);
+      res.status(400).json({ message: "Login failed" });
+    }
+  });
+
+  app.get("/api/auth/user", authenticateToken, async (req: AuthenticatedRequest, res) => {
+    res.json(req.user);
+  });
+
+  // Friends routes (protected)
+  app.get("/api/friends", authenticateToken, async (req: AuthenticatedRequest, res) => {
     try {
       const { category, location } = req.query;
+      const userId = req.userId!;
       
       let friends;
       if (category && typeof category === 'string') {
-        friends = await storage.getFriendsByCategory(category);
+        friends = await storage.getFriendsByCategory(userId, category);
       } else if (location && typeof location === 'string') {
-        friends = await storage.getFriendsByLocation(location);
+        friends = await storage.getFriendsByLocation(userId, location);
       } else {
-        friends = await storage.getAllFriends();
+        friends = await storage.getAllFriends(userId);
       }
       
       res.json(friends);
