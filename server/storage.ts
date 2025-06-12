@@ -146,17 +146,17 @@ export class DatabaseStorage implements IStorage {
   }
 
   async deleteFriend(userId: number, id: number): Promise<boolean> {
-    const result = await db.delete(friends).where(eq(friends.id, id).and(eq(friends.userId, userId)));
+    const result = await db.delete(friends).where(and(eq(friends.id, id), eq(friends.userId, userId)));
     return result.rowCount ? result.rowCount > 0 : false;
   }
 
   async getRelationship(userId: number, id: number): Promise<Relationship | undefined> {
-    const [relationship] = await db.select().from(relationships).where(eq(relationships.id, id).and(eq(relationships.userId, userId)));
+    const [relationship] = await db.select().from(relationships).where(and(eq(relationships.id, id), eq(relationships.userId, userId)));
     return relationship || undefined;
   }
 
   async getRelationshipsByFriend(userId: number, friendId: number): Promise<Relationship[]> {
-    return await db.select().from(relationships).where(eq(relationships.userId, userId).and(eq(relationships.friendId, friendId)));
+    return await db.select().from(relationships).where(and(eq(relationships.userId, userId), eq(relationships.friendId, friendId)));
   }
 
   async createRelationship(userId: number, insertRelationship: InsertRelationship): Promise<Relationship> {
@@ -171,12 +171,12 @@ export class DatabaseStorage implements IStorage {
   }
 
   async deleteRelationship(userId: number, id: number): Promise<boolean> {
-    const result = await db.delete(relationships).where(eq(relationships.id, id).and(eq(relationships.userId, userId)));
+    const result = await db.delete(relationships).where(and(eq(relationships.id, id), eq(relationships.userId, userId)));
     return result.rowCount ? result.rowCount > 0 : false;
   }
 
   async getActivity(userId: number, id: number): Promise<Activity | undefined> {
-    const [activity] = await db.select().from(activities).where(eq(activities.id, id).and(eq(activities.userId, userId)));
+    const [activity] = await db.select().from(activities).where(and(eq(activities.id, id), eq(activities.userId, userId)));
     return activity || undefined;
   }
 
@@ -185,7 +185,7 @@ export class DatabaseStorage implements IStorage {
   }
 
   async getActivitiesByFriend(userId: number, friendId: number): Promise<Activity[]> {
-    return await db.select().from(activities).where(eq(activities.userId, userId).and(eq(activities.friendId, friendId))).orderBy(desc(activities.timestamp));
+    return await db.select().from(activities).where(and(eq(activities.userId, userId), eq(activities.friendId, friendId))).orderBy(desc(activities.timestamp));
   }
 
   async createActivity(userId: number, insertActivity: InsertActivity): Promise<Activity> {
