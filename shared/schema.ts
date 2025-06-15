@@ -37,20 +37,48 @@ export const friends = pgTable("friends", {
   photo: text("photo"),
   location: text("location"), // City, State format
   neighborhood: text("neighborhood"), // Specific neighborhood within location
-  relationshipLevel: text("relationship_level").default("acquaintance").notNull(), // acquaintance, friend, close, work
+  relationshipLevel: text("relationship_level").default("acquaintance").notNull(), // acquaintance, friend, close
   isNewFriend: boolean("is_new_friend").default(true), // Toggle to mark as new connection
-  interests: text("interests").array().default([]), // Array of interests
-  lifestyle: text("lifestyle"),
+  
+  // Simplified interests - just 3 key interests as text
+  interest1: text("interest1"),
+  interest2: text("interest2"),
+  interest3: text("interest3"),
+  
+  // Hangout preferences
+  favoriteHangoutSpots: text("favorite_hangout_spots"), // Where they like to go
+  bestTimeToReach: text("best_time_to_reach"), // When they're usually free
+  preferredCommunication: text("preferred_communication"), // Text, call, email, etc.
+  activityPreferences: text("activity_preferences"), // What they enjoy doing
+  lastHangout: text("last_hangout"), // When you last hung out
+  nextPlannedActivity: text("next_planned_activity"), // Something you're planning together
+  availabilityNotes: text("availability_notes"), // "Usually free weekends", etc.
+  groupVsOneOnOne: text("group_vs_one_on_one"), // Group hangouts vs one-on-one preference
+  
+  // Family info with toggles
+  hasPartner: boolean("has_partner").default(false),
+  partnerName: text("partner_name"), // Name of partner/spouse
   hasKids: boolean("has_kids").default(false),
-  partner: text("partner"), // Name of partner/spouse
+  childrenNames: text("children_names").array().default([]), // Array of children names
+  
+  // Basic info
   introducedBy: integer("introduced_by"), // ID of friend who introduced them
   howWeMet: text("how_we_met"), // Story of how you met
-  notes: text("notes"),
   phone: text("phone"), // Phone number
   email: text("email"), // Email address
   birthday: text("birthday"), // Birthday in YYYY-MM-DD format
   contactInfo: text("contact_info"), // JSON string for additional social media
   lastInteraction: timestamp("last_interaction"),
+});
+
+// Individual notes table for flexible note-taking
+export const friendNotes = pgTable("friend_notes", {
+  id: serial("id").primaryKey(),
+  userId: integer("user_id").notNull(),
+  friendId: integer("friend_id").notNull(),
+  title: text("title").notNull(),
+  content: text("content").notNull(),
+  timestamp: timestamp("timestamp").defaultNow(),
 });
 
 export const relationships = pgTable("relationships", {
@@ -127,6 +155,12 @@ export const insertContactShareSchema = createInsertSchema(contactShares).omit({
   isAccepted: true,
 });
 
+export const insertFriendNoteSchema = createInsertSchema(friendNotes).omit({
+  id: true,
+  userId: true,
+  timestamp: true,
+});
+
 // Type exports
 export type User = typeof users.$inferSelect;
 export type InsertUser = z.infer<typeof insertUserSchema>;
@@ -141,3 +175,5 @@ export type InsertActivity = z.infer<typeof insertActivitySchema>;
 export type Activity = typeof activities.$inferSelect;
 export type InsertContactShare = z.infer<typeof insertContactShareSchema>;
 export type ContactShare = typeof contactShares.$inferSelect;
+export type InsertFriendNote = z.infer<typeof insertFriendNoteSchema>;
+export type FriendNote = typeof friendNotes.$inferSelect;
