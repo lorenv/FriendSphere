@@ -169,7 +169,7 @@ export default function FriendDetail() {
           </button>
           <div className="flex items-center space-x-2">
             <button 
-              onClick={() => setLocation(`/friends/${friendId}/edit`)}
+              onClick={() => setLocation(`/friend/${friendId}/edit`)}
               className="p-2 bg-white/20 rounded-full"
             >
               <Edit size={20} />

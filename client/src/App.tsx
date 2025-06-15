@@ -24,8 +24,8 @@ function Router() {
       <Route path="/register" component={Register} />
       <Route path="/" component={Home} />
       <Route path="/friends" component={Friends} />
-      <Route path="/friends/:id" component={FriendDetail} />
-      <Route path="/friends/:id/edit" component={EditFriend} />
+      <Route path="/friend/:id" component={FriendDetail} />
+      <Route path="/friend/:id/edit" component={EditFriend} />
       <Route path="/add-friend" component={AddFriend} />
       <Route path="/network-map" component={NetworkMap} />
       <Route path="/name-game" component={NameGame} />
