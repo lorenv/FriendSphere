@@ -1,5 +1,5 @@
 import { useState, useRef } from "react";
-import { useForm } from "react-hook-form";
+import { useForm, useFieldArray } from "react-hook-form";
 import { useMutation } from "@tanstack/react-query";
 import { useLocation } from "wouter";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -19,8 +19,6 @@ import { Badge } from "@/components/ui/badge";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { LocationSearch } from "@/components/location-search";
 import { IntroducedBySelector } from "@/components/introduced-by-selector";
-
-
 
 export default function AddFriend() {
   const [, setLocation] = useLocation();
@@ -101,17 +99,6 @@ export default function AddFriend() {
     }
   };
 
-  const addChildName = () => {
-    if (newChildName.trim() && !childrenNames.includes(newChildName.trim())) {
-      setChildrenNames([...childrenNames, newChildName.trim()]);
-      setNewChildName("");
-    }
-  };
-
-  const removeChildName = (name: string) => {
-    setChildrenNames(childrenNames.filter(n => n !== name));
-  };
-
   const handleContactImport = (contactData: { firstName: string; lastName: string; phone: string; email: string; photo?: string; birthday?: string; }) => {
     form.setValue("firstName", contactData.firstName);
     form.setValue("lastName", contactData.lastName);
@@ -123,23 +110,15 @@ export default function AddFriend() {
     }
     if (contactData.birthday) form.setValue("birthday", contactData.birthday);
     
-    const importedFields = [];
-    if (contactData.firstName) importedFields.push("name");
-    if (contactData.phone) importedFields.push("phone");
-    if (contactData.email) importedFields.push("email");
-    if (contactData.birthday) importedFields.push("birthday");
-    if (contactData.photo) importedFields.push("photo");
-    
     toast({
       title: "Contact Imported",
-      description: `Successfully imported ${importedFields.join(", ")} for ${contactData.firstName} ${contactData.lastName}`,
+      description: `Successfully imported contact info for ${contactData.firstName} ${contactData.lastName}`,
     });
   };
 
   const handleFileUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
     if (file) {
-      // Check file size (limit to 5MB)
       if (file.size > 5 * 1024 * 1024) {
         toast({
           title: "File Too Large",
@@ -149,7 +128,6 @@ export default function AddFriend() {
         return;
       }
 
-      // Check file type
       if (!file.type.startsWith('image/')) {
         toast({
           title: "Invalid File Type",
@@ -189,9 +167,16 @@ export default function AddFriend() {
     if (cameraInputRef.current) cameraInputRef.current.value = "";
   };
 
+  const addChildName = () => {
+    if (newChildName.trim() && !childrenNames.includes(newChildName.trim())) {
+      setChildrenNames([...childrenNames, newChildName.trim()]);
+      setNewChildName("");
+    }
+  };
 
-
-
+  const removeChildName = (name: string) => {
+    setChildrenNames(childrenNames.filter(n => n !== name));
+  };
 
   return (
     <div className="min-h-screen bg-off-white">
@@ -273,7 +258,6 @@ export default function AddFriend() {
                     </Button>
                   </div>
 
-                  {/* Hidden file inputs */}
                   <input
                     ref={fileInputRef}
                     type="file"
@@ -291,350 +275,454 @@ export default function AddFriend() {
                   />
                 </div>
 
-                {/* Basic Info */}
-                <div className="space-y-4">
-                  <FormField
-                    control={form.control}
-                    name="firstName"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>First Name</FormLabel>
-                        <FormControl>
-                          <Input placeholder="Enter first name" {...field} />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-
-                  <FormField
-                    control={form.control}
-                    name="lastName"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Last Name</FormLabel>
-                        <FormControl>
-                          <Input placeholder="Enter last name" {...field} value={field.value || ""} />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-
-                  {/* Contact Info */}
-                  <FormField
-                    control={form.control}
-                    name="phone"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Phone Number</FormLabel>
-                        <FormControl>
-                          <Input placeholder="Enter phone number" {...field} value={field.value || ""} />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-
-                  <FormField
-                    control={form.control}
-                    name="email"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel className="flex items-center space-x-2">
-                          <span>Email</span>
-                          {gravatarLoading && (
-                            <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-blue-600"></div>
-                          )}
-                        </FormLabel>
-                        <FormControl>
-                          <Input 
-                            placeholder="Enter email address" 
-                            type="email" 
-                            {...field} 
-                            value={field.value || ""} 
-                            onBlur={(e) => {
-                              field.onBlur();
-                              if (e.target.value && e.target.value.includes('@')) {
-                                checkGravatar(e.target.value);
-                              }
-                            }}
-                          />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-
-                  <FormField
-                    control={form.control}
-                    name="birthday"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Birthday</FormLabel>
-                        <FormControl>
-                          <Input placeholder="Enter birthday" type="date" {...field} value={field.value || ""} />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-
-                  <FormField
-                    control={form.control}
-                    name="photo"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Photo URL</FormLabel>
-                        <FormControl>
-                          <Input placeholder="Profile photo URL" {...field} value={field.value || ""} />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                </div>
-
-                {/* Location */}
-                <FormField
-                  control={form.control}
-                  name="location"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Location</FormLabel>
-                      <FormControl>
-                        <LocationSearch
-                          value={field.value || ""}
-                          neighborhood={form.watch("neighborhood") || ""}
-                          onChange={handleLocationChange}
-                          placeholder="Search for city, neighborhood..."
-                        />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-
-                {/* Relationship Level */}
-                <FormField
-                  control={form.control}
-                  name="relationshipLevel"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Relationship Level</FormLabel>
-                      <FormControl>
-                        <RelationshipLevelSelector
-                          value={field.value || "acquaintance"}
-                          onChange={field.onChange}
-                        />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-
-                {/* New Friend Toggle */}
-                <FormField
-                  control={form.control}
-                  name="isNewFriend"
-                  render={({ field }) => (
-                    <FormItem className="flex flex-row items-center justify-between rounded-lg border p-4">
-                      <div className="space-y-0.5">
-                        <FormLabel className="text-base">New Friend</FormLabel>
-                        <div className="text-sm text-muted-foreground">
-                          Mark as a new connection to your network
-                        </div>
-                      </div>
-                      <FormControl>
-                        <Switch
-                          checked={Boolean(field.value)}
-                          onCheckedChange={field.onChange}
-                        />
-                      </FormControl>
-                    </FormItem>
-                  )}
-                />
-
-                {/* Introduced By */}
-                <FormField
-                  control={form.control}
-                  name="introducedBy"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormControl>
-                        <IntroducedBySelector
-                          value={field.value || undefined}
-                          onChange={field.onChange}
-                        />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-
-                {/* Interests */}
-                <div className="space-y-3">
-                  <Label>Interests</Label>
-                  <div className="flex flex-wrap gap-2">
-                    {INTERESTS.map((interest) => (
-                      <Badge
-                        key={interest}
-                        variant={selectedInterests.includes(interest) ? "default" : "outline"}
-                        className={`cursor-pointer transition-colors ${
-                          selectedInterests.includes(interest)
-                            ? "bg-coral text-white hover:bg-coral/90"
-                            : "hover:bg-coral/10"
-                        }`}
-                        onClick={() => toggleInterest(interest as string)}
-                      >
-                        {interest}
-                      </Badge>
-                    ))}
-                  </div>
-                  
-                  {/* Custom interests */}
-                  {selectedInterests.filter(i => !INTERESTS.includes(i as any)).map((interest) => (
-                    <Badge
-                      key={interest}
-                      variant="default"
-                      className="bg-blue-500 text-white mr-2 mb-2"
-                    >
-                      {interest}
-                      <X
-                        size={14}
-                        className="ml-1 cursor-pointer hover:text-red-200"
-                        onClick={() => removeInterest(interest)}
+                {/* Essential Info Section */}
+                <Card>
+                  <CardHeader>
+                    <CardTitle className="text-lg">Essential Info</CardTitle>
+                  </CardHeader>
+                  <CardContent className="space-y-4">
+                    <div className="grid grid-cols-2 gap-4">
+                      <FormField
+                        control={form.control}
+                        name="firstName"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel>First Name</FormLabel>
+                            <FormControl>
+                              <Input placeholder="First name" {...field} />
+                            </FormControl>
+                            <FormMessage />
+                          </FormItem>
+                        )}
                       />
-                    </Badge>
-                  ))}
 
-                  {/* Add custom interest */}
-                  <div className="flex gap-2">
-                    <Input
-                      placeholder="Add custom interest"
-                      value={customInterest}
-                      onChange={(e) => setCustomInterest(e.target.value)}
-                      onKeyDown={(e) => {
-                        if (e.key === "Enter") {
-                          e.preventDefault();
-                          addCustomInterest();
-                        }
-                      }}
+                      <FormField
+                        control={form.control}
+                        name="lastName"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel>Last Name</FormLabel>
+                            <FormControl>
+                              <Input placeholder="Last name" {...field} value={field.value ?? ""} />
+                            </FormControl>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+                    </div>
+
+                    <FormField
+                      control={form.control}
+                      name="phone"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Phone Number</FormLabel>
+                          <FormControl>
+                            <Input placeholder="Phone number" {...field} value={field.value ?? ""} />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
                     />
-                    <Button
-                      type="button"
-                      variant="outline"
-                      size="sm"
-                      onClick={addCustomInterest}
-                      disabled={!customInterest.trim()}
-                    >
-                      <Plus size={16} />
-                    </Button>
-                  </div>
-                </div>
 
-                {/* Additional Info */}
-                <FormField
-                  control={form.control}
-                  name="lifestyle"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Lifestyle</FormLabel>
-                      <Select onValueChange={field.onChange} value={field.value || ""}>
-                        <FormControl>
-                          <SelectTrigger>
-                            <SelectValue placeholder="Select lifestyle" />
-                          </SelectTrigger>
-                        </FormControl>
-                        <SelectContent>
-                          {LIFESTYLE_OPTIONS.map((option) => (
-                            <SelectItem key={option} value={option}>
-                              {option}
-                            </SelectItem>
+                    <FormField
+                      control={form.control}
+                      name="email"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Email</FormLabel>
+                          <FormControl>
+                            <Input placeholder="Email address" type="email" {...field} value={field.value ?? ""} />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+
+                    <FormField
+                      control={form.control}
+                      name="location"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Location</FormLabel>
+                          <FormControl>
+                            <LocationSearch
+                              value={field.value ?? ""}
+                              neighborhood={form.watch("neighborhood") ?? ""}
+                              onChange={handleLocationChange}
+                              placeholder="Where do they live?"
+                            />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+
+                    <FormField
+                      control={form.control}
+                      name="relationshipLevel"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Relationship Level</FormLabel>
+                          <Select onValueChange={field.onChange} defaultValue={field.value}>
+                            <FormControl>
+                              <SelectTrigger>
+                                <SelectValue placeholder="How close are you?" />
+                              </SelectTrigger>
+                            </FormControl>
+                            <SelectContent>
+                              <SelectItem value="acquaintance">New Connection</SelectItem>
+                              <SelectItem value="friend">Good Friend</SelectItem>
+                              <SelectItem value="close">Close Friend</SelectItem>
+                            </SelectContent>
+                          </Select>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+
+                    <FormField
+                      control={form.control}
+                      name="howWeMet"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>How We Met</FormLabel>
+                          <FormControl>
+                            <Textarea placeholder="Tell the story of how you met..." {...field} value={field.value ?? ""} />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                  </CardContent>
+                </Card>
+
+                {/* Interests & Activities Section */}
+                <Card>
+                  <CardHeader>
+                    <CardTitle className="text-lg">Interests & Activities</CardTitle>
+                  </CardHeader>
+                  <CardContent className="space-y-4">
+                    <div className="grid grid-cols-1 gap-4">
+                      <FormField
+                        control={form.control}
+                        name="interest1"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel>Top Interest</FormLabel>
+                            <FormControl>
+                              <Input placeholder="Their main interest or hobby" {...field} value={field.value ?? ""} />
+                            </FormControl>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+
+                      <FormField
+                        control={form.control}
+                        name="interest2"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel>Second Interest</FormLabel>
+                            <FormControl>
+                              <Input placeholder="Another interest they have" {...field} value={field.value || ""} />
+                            </FormControl>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+
+                      <FormField
+                        control={form.control}
+                        name="interest3"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel>Third Interest</FormLabel>
+                            <FormControl>
+                              <Input placeholder="One more interest" {...field} value={field.value || ""} />
+                            </FormControl>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+                    </div>
+
+                    <FormField
+                      control={form.control}
+                      name="activityPreferences"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Activity Preferences</FormLabel>
+                          <FormControl>
+                            <Textarea placeholder="What do they enjoy doing? (hiking, movies, cooking, sports, etc.)" {...field} value={field.value || ""} />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+
+                    <FormField
+                      control={form.control}
+                      name="favoriteHangoutSpots"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Favorite Hangout Spots</FormLabel>
+                          <FormControl>
+                            <Textarea placeholder="Where do they like to go? (coffee shops, parks, restaurants, etc.)" {...field} value={field.value || ""} />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                  </CardContent>
+                </Card>
+
+                {/* Hangout Planning Section */}
+                <Card>
+                  <CardHeader>
+                    <CardTitle className="text-lg">Hangout Planning</CardTitle>
+                  </CardHeader>
+                  <CardContent className="space-y-4">
+                    <FormField
+                      control={form.control}
+                      name="bestTimeToReach"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Best Time to Reach Them</FormLabel>
+                          <FormControl>
+                            <Input placeholder="When are they usually free?" {...field} value={field.value || ""} />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+
+                    <FormField
+                      control={form.control}
+                      name="preferredCommunication"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Preferred Communication</FormLabel>
+                          <Select onValueChange={field.onChange} defaultValue={field.value}>
+                            <FormControl>
+                              <SelectTrigger>
+                                <SelectValue placeholder="How do they like to be contacted?" />
+                              </SelectTrigger>
+                            </FormControl>
+                            <SelectContent>
+                              <SelectItem value="text">Text Messages</SelectItem>
+                              <SelectItem value="call">Phone Calls</SelectItem>
+                              <SelectItem value="email">Email</SelectItem>
+                              <SelectItem value="social">Social Media</SelectItem>
+                            </SelectContent>
+                          </Select>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+
+                    <FormField
+                      control={form.control}
+                      name="groupVsOneOnOne"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Group vs One-on-One</FormLabel>
+                          <Select onValueChange={field.onChange} defaultValue={field.value}>
+                            <FormControl>
+                              <SelectTrigger>
+                                <SelectValue placeholder="Do they prefer group hangouts or one-on-one?" />
+                              </SelectTrigger>
+                            </FormControl>
+                            <SelectContent>
+                              <SelectItem value="group">Prefers Group Hangouts</SelectItem>
+                              <SelectItem value="oneOnOne">Prefers One-on-One</SelectItem>
+                              <SelectItem value="either">Enjoys Both</SelectItem>
+                            </SelectContent>
+                          </Select>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+
+                    <FormField
+                      control={form.control}
+                      name="availabilityNotes"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Availability Notes</FormLabel>
+                          <FormControl>
+                            <Textarea placeholder="Any notes about their schedule (usually free weekends, works nights, etc.)" {...field} value={field.value || ""} />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+
+                    <FormField
+                      control={form.control}
+                      name="lastHangout"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Last Time We Hung Out</FormLabel>
+                          <FormControl>
+                            <Input placeholder="When did you last see them?" {...field} value={field.value || ""} />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+
+                    <FormField
+                      control={form.control}
+                      name="nextPlannedActivity"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Next Planned Activity</FormLabel>
+                          <FormControl>
+                            <Input placeholder="Something you're planning to do together" {...field} value={field.value || ""} />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                  </CardContent>
+                </Card>
+
+                {/* Family Info Section */}
+                <Card>
+                  <CardHeader>
+                    <CardTitle className="text-lg">Family Info</CardTitle>
+                  </CardHeader>
+                  <CardContent className="space-y-4">
+                    <FormField
+                      control={form.control}
+                      name="hasPartner"
+                      render={({ field }) => (
+                        <FormItem className="flex flex-row items-center justify-between rounded-lg border p-4">
+                          <div className="space-y-0.5">
+                            <FormLabel className="text-base">Has Partner/Spouse</FormLabel>
+                          </div>
+                          <FormControl>
+                            <Switch
+                              checked={field.value}
+                              onCheckedChange={field.onChange}
+                            />
+                          </FormControl>
+                        </FormItem>
+                      )}
+                    />
+
+                    {form.watch("hasPartner") && (
+                      <FormField
+                        control={form.control}
+                        name="partnerName"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel>Partner's Name</FormLabel>
+                            <FormControl>
+                              <Input placeholder="Partner's name" {...field} value={field.value || ""} />
+                            </FormControl>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+                    )}
+
+                    <FormField
+                      control={form.control}
+                      name="hasKids"
+                      render={({ field }) => (
+                        <FormItem className="flex flex-row items-center justify-between rounded-lg border p-4">
+                          <div className="space-y-0.5">
+                            <FormLabel className="text-base">Has Children</FormLabel>
+                          </div>
+                          <FormControl>
+                            <Switch
+                              checked={field.value}
+                              onCheckedChange={field.onChange}
+                            />
+                          </FormControl>
+                        </FormItem>
+                      )}
+                    />
+
+                    {form.watch("hasKids") && (
+                      <div className="space-y-4">
+                        <Label>Children's Names</Label>
+                        <div className="flex gap-2">
+                          <Input
+                            placeholder="Child's name"
+                            value={newChildName}
+                            onChange={(e) => setNewChildName(e.target.value)}
+                            onKeyPress={(e) => e.key === 'Enter' && (e.preventDefault(), addChildName())}
+                          />
+                          <Button type="button" onClick={addChildName} size="sm">
+                            <Plus size={16} />
+                          </Button>
+                        </div>
+                        <div className="flex flex-wrap gap-2">
+                          {childrenNames.map((name, index) => (
+                            <Badge key={index} variant="secondary" className="flex items-center gap-1">
+                              {name}
+                              <Button
+                                type="button"
+                                variant="ghost"
+                                size="sm"
+                                onClick={() => removeChildName(name)}
+                                className="h-auto p-0 hover:bg-transparent"
+                              >
+                                <X size={12} />
+                              </Button>
+                            </Badge>
                           ))}
-                        </SelectContent>
-                      </Select>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-
-                <FormField
-                  control={form.control}
-                  name="hasKids"
-                  render={({ field }) => (
-                    <FormItem className="flex flex-row items-center justify-between rounded-lg border p-4">
-                      <div className="space-y-0.5">
-                        <FormLabel className="text-base">Has Kids</FormLabel>
-                        <div className="text-sm text-muted-foreground">
-                          Does this person have children?
                         </div>
                       </div>
-                      <FormControl>
-                        <Switch
-                          checked={Boolean(field.value)}
-                          onCheckedChange={field.onChange}
-                        />
-                      </FormControl>
-                    </FormItem>
-                  )}
-                />
+                    )}
+                  </CardContent>
+                </Card>
 
-                <FormField
-                  control={form.control}
-                  name="partner"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Partner/Spouse</FormLabel>
-                      <FormControl>
-                        <Input placeholder="Partner's name (optional)" {...field} value={field.value || ""} />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
+                {/* Additional Info Section */}
+                <Card>
+                  <CardHeader>
+                    <CardTitle className="text-lg">Additional Info</CardTitle>
+                  </CardHeader>
+                  <CardContent className="space-y-4">
+                    <FormField
+                      control={form.control}
+                      name="birthday"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Birthday</FormLabel>
+                          <FormControl>
+                            <Input placeholder="Birthday" type="date" {...field} value={field.value || ""} />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
 
-                <FormField
-                  control={form.control}
-                  name="howWeMet"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>How We Met</FormLabel>
-                      <FormControl>
-                        <Textarea
-                          placeholder="Tell the story of how you met..."
-                          className="resize-none"
-                          {...field}
-                          value={field.value || ""}
-                        />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
+                    <FormField
+                      control={form.control}
+                      name="introducedBy"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Introduced By</FormLabel>
+                          <FormControl>
+                            <IntroducedBySelector
+                              value={field.value}
+                              onChange={field.onChange}
+                            />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                  </CardContent>
+                </Card>
 
-                <FormField
-                  control={form.control}
-                  name="notes"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Notes</FormLabel>
-                      <FormControl>
-                        <Textarea
-                          placeholder="Any additional notes about this person..."
-                          className="resize-none"
-                          {...field}
-                          value={field.value || ""}
-                        />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-
-                <Button
-                  type="submit"
-                  className="w-full bg-coral hover:bg-coral/90 text-white"
+                <Button 
+                  type="submit" 
+                  className="w-full" 
                   disabled={createFriendMutation.isPending}
                 >
                   {createFriendMutation.isPending ? "Adding Friend..." : "Add Friend"}
@@ -643,13 +731,13 @@ export default function AddFriend() {
             </Form>
           </CardContent>
         </Card>
-      </div>
 
-      <ContactImportModal
-        open={showContactImport}
-        onClose={() => setShowContactImport(false)}
-        onImport={handleContactImport}
-      />
+        <ContactImportModal
+          open={showContactImport}
+          onClose={() => setShowContactImport(false)}
+          onImport={handleContactImport}
+        />
+      </div>
     </div>
   );
 }
