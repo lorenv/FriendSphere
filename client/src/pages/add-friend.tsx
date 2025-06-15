@@ -1,14 +1,13 @@
 import { useState, useRef } from "react";
-import { useForm, useFieldArray } from "react-hook-form";
+import { useForm } from "react-hook-form";
 import { useMutation } from "@tanstack/react-query";
 import { useLocation } from "wouter";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { insertFriendSchema, type InsertFriend } from "@shared/schema";
 import { queryClient, apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
-import { INTERESTS, LIFESTYLE_OPTIONS, RELATIONSHIP_LEVELS } from "@/lib/constants";
 import { ContactImportModal } from "@/components/contact-import-modal";
-import { ArrowLeft, Camera, Plus, X, UserPlus, Phone, Mail, Upload, FileText, Trash2 } from "lucide-react";
+import { ArrowLeft, Camera, Plus, X, UserPlus, Upload, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -19,7 +18,6 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { LocationSearch } from "@/components/location-search";
-import { RelationshipLevelSelector } from "@/components/relationship-level-selector";
 import { IntroducedBySelector } from "@/components/introduced-by-selector";
 
 
@@ -27,11 +25,10 @@ import { IntroducedBySelector } from "@/components/introduced-by-selector";
 export default function AddFriend() {
   const [, setLocation] = useLocation();
   const { toast } = useToast();
-  const [customInterest, setCustomInterest] = useState("");
-  const [selectedInterests, setSelectedInterests] = useState<string[]>([]);
   const [showContactImport, setShowContactImport] = useState(false);
   const [currentPhoto, setCurrentPhoto] = useState<string>("");
-  const [gravatarLoading, setGravatarLoading] = useState(false);
+  const [childrenNames, setChildrenNames] = useState<string[]>([]);
+  const [newChildName, setNewChildName] = useState("");
   const fileInputRef = useRef<HTMLInputElement>(null);
   const cameraInputRef = useRef<HTMLInputElement>(null);
 
@@ -42,32 +39,43 @@ export default function AddFriend() {
       lastName: "",
       relationshipLevel: "acquaintance",
       isNewFriend: false,
-      interests: [],
+      hasPartner: false,
       hasKids: false,
-      contactInfo: "",
-      notes: "",
-      howWeMet: "",
       phone: "",
       email: "",
+      howWeMet: "",
+      interest1: "",
+      interest2: "",
+      interest3: "",
+      favoriteHangoutSpots: "",
+      bestTimeToReach: "",
+      preferredCommunication: "text",
+      activityPreferences: "",
+      lastHangout: "",
+      nextPlannedActivity: "",
+      availabilityNotes: "",
+      groupVsOneOnOne: "either",
+      partnerName: "",
+      childrenNames: [],
     },
   });
 
   const createFriendMutation = useMutation({
     mutationFn: async (friendData: InsertFriend) => {
-      return await apiRequest("POST", "/api/friends", { ...friendData, interests: selectedInterests });
+      return await apiRequest("POST", "/api/friends", { 
+        ...friendData, 
+        childrenNames,
+        photo: currentPhoto || friendData.photo 
+      });
     },
     onSuccess: () => {
-      try {
-        queryClient.invalidateQueries({ queryKey: ["/api/friends"] });
-        queryClient.invalidateQueries({ queryKey: ["/api/stats"] });
-        toast({
-          title: "Friend added successfully!",
-          description: "Your new friend has been added to your network.",
-        });
-        setLocation("/friends");
-      } catch (error) {
-        console.error("Error in onSuccess:", error);
-      }
+      queryClient.invalidateQueries({ queryKey: ["/api/friends"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/stats"] });
+      toast({
+        title: "Friend added successfully!",
+        description: "Your new friend has been added to your network.",
+      });
+      setLocation("/friends");
     },
     onError: (error: Error) => {
       toast({
@@ -81,66 +89,27 @@ export default function AddFriend() {
   const onSubmit = (data: InsertFriend) => {
     createFriendMutation.mutate({ 
       ...data, 
-      interests: selectedInterests, 
+      childrenNames,
       photo: currentPhoto || data.photo 
     });
   };
 
   const handleLocationChange = (location: string, neighborhood?: string) => {
-    try {
-      form.setValue("location", location);
-      if (neighborhood) {
-        form.setValue("neighborhood", neighborhood);
-      }
-    } catch (error) {
-      console.error("Error setting location:", error);
+    form.setValue("location", location);
+    if (neighborhood) {
+      form.setValue("neighborhood", neighborhood);
     }
   };
 
-  const checkGravatar = async (email: string) => {
-    if (!email || !email.includes('@')) return;
-    
-    setGravatarLoading(true);
-    try {
-      const response = await fetch('/api/gravatar/lookup', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email })
-      });
-      
-      const data = await response.json();
-      
-      if (response.ok && data.success) {
-        setCurrentPhoto(data.highResUrl);
-        toast({
-          title: "Profile Photo Found",
-          description: `Found Gravatar photo for ${email}`,
-        });
-      }
-    } catch (error) {
-      // Silently fail - no need to notify if no Gravatar found
-    } finally {
-      setGravatarLoading(false);
+  const addChildName = () => {
+    if (newChildName.trim() && !childrenNames.includes(newChildName.trim())) {
+      setChildrenNames([...childrenNames, newChildName.trim()]);
+      setNewChildName("");
     }
   };
 
-  const addCustomInterest = () => {
-    if (customInterest.trim() && !selectedInterests.includes(customInterest.trim())) {
-      setSelectedInterests([...selectedInterests, customInterest.trim()]);
-      setCustomInterest("");
-    }
-  };
-
-  const removeInterest = (interest: string) => {
-    setSelectedInterests(selectedInterests.filter(i => i !== interest));
-  };
-
-  const toggleInterest = (interest: string) => {
-    if (selectedInterests.includes(interest)) {
-      removeInterest(interest);
-    } else {
-      setSelectedInterests([...selectedInterests, interest]);
-    }
+  const removeChildName = (name: string) => {
+    setChildrenNames(childrenNames.filter(n => n !== name));
   };
 
   const handleContactImport = (contactData: { firstName: string; lastName: string; phone: string; email: string; photo?: string; birthday?: string; }) => {
