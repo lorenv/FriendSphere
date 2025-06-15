@@ -37,32 +37,12 @@ export default function FriendDetail() {
   const friendId = parseInt(params.id || "0");
 
   const { data: friend, isLoading } = useQuery<Friend>({
-    queryKey: ["/api/friends", friendId],
-    queryFn: async () => {
-      const response = await fetch(`/api/friends/${friendId}`, {
-        credentials: "include",
-      });
-      if (!response.ok) {
-        throw new Error("Friend not found");
-      }
-      return response.json();
-    },
+    queryKey: [`/api/friends/${friendId}`],
   });
 
   const updateFriendMutation = useMutation({
     mutationFn: async (updateData: Partial<Friend>) => {
-      const response = await fetch(`/api/friends/${friendId}`, {
-        method: "PATCH",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        credentials: "include",
-        body: JSON.stringify(updateData),
-      });
-      if (!response.ok) {
-        throw new Error("Failed to update friend");
-      }
-      return response.json();
+      return await apiRequest("PATCH", `/api/friends/${friendId}`, updateData);
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/friends", friendId] });
@@ -109,7 +89,7 @@ export default function FriendDetail() {
   };
 
   const handleSaveNotes = () => {
-    updateFriendMutation.mutate({ notes });
+    // Note: The notes field has been replaced with individual notes system
     setIsEditingNotes(false);
   };
 
