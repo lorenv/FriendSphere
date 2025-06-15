@@ -19,6 +19,7 @@ import { Badge } from "@/components/ui/badge";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { LocationSearch } from "@/components/location-search";
 import { IntroducedBySelector } from "@/components/introduced-by-selector";
+import { RelationshipLevelSelector } from "@/components/relationship-level-selector";
 
 export default function AddFriend() {
   const [, setLocation] = useLocation();
@@ -363,19 +364,12 @@ export default function AddFriend() {
                       name="relationshipLevel"
                       render={({ field }) => (
                         <FormItem>
-                          <FormLabel>Relationship Level</FormLabel>
-                          <Select onValueChange={field.onChange} defaultValue={field.value}>
-                            <FormControl>
-                              <SelectTrigger>
-                                <SelectValue placeholder="How close are you?" />
-                              </SelectTrigger>
-                            </FormControl>
-                            <SelectContent>
-                              <SelectItem value="acquaintance">New Connection</SelectItem>
-                              <SelectItem value="friend">Good Friend</SelectItem>
-                              <SelectItem value="close">Close Friend</SelectItem>
-                            </SelectContent>
-                          </Select>
+                          <FormControl>
+                            <RelationshipLevelSelector
+                              value={field.value}
+                              onChange={field.onChange}
+                            />
+                          </FormControl>
                           <FormMessage />
                         </FormItem>
                       )}

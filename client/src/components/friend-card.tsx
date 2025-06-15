@@ -59,7 +59,7 @@ export function FriendCard({ friend }: FriendCardProps) {
   const colors = getColorClasses(friend.relationshipLevel);
   
   return (
-    <Link href={`/friends/${friend.id}`}>
+    <Link href={`/friend/${friend.id}`}>
       <div className={`${colors.bg} ${colors.border} border rounded-2xl p-4 flex items-center space-x-4 cursor-pointer hover:shadow-md transition-all duration-200 mb-3`}>
         <div className={`w-14 h-14 rounded-xl bg-white flex items-center justify-center overflow-hidden shadow-sm ring-2 ${colors.ring} ring-opacity-60`}>
           {friend.photo ? (
@@ -90,9 +90,9 @@ export function FriendCard({ friend }: FriendCardProps) {
             </p>
           )}
           
-          {friend.interests && friend.interests.length > 0 && (
+          {friend.interest1 && (
             <span className="inline-block bg-white text-gray-600 text-xs px-2 py-1 rounded-md font-medium">
-              {friend.interests[0]}
+              {friend.interest1}
             </span>
           )}
         </div>
