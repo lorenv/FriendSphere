@@ -204,6 +204,30 @@ export class DatabaseStorage implements IStorage {
     return activity;
   }
 
+  // Friend Notes methods
+  async getFriendNotes(userId: number, friendId: number): Promise<FriendNote[]> {
+    return await db.select().from(friendNotes)
+      .where(and(eq(friendNotes.userId, userId), eq(friendNotes.friendId, friendId)))
+      .orderBy(desc(friendNotes.timestamp));
+  }
+
+  async createFriendNote(userId: number, insertNote: InsertFriendNote): Promise<FriendNote> {
+    const [note] = await db
+      .insert(friendNotes)
+      .values({
+        ...insertNote,
+        userId
+      })
+      .returning();
+    return note;
+  }
+
+  async deleteFriendNote(userId: number, noteId: number): Promise<boolean> {
+    const result = await db.delete(friendNotes)
+      .where(and(eq(friendNotes.id, noteId), eq(friendNotes.userId, userId)));
+    return result.rowCount > 0;
+  }
+
   async getFriendStats(userId: number): Promise<{
     totalFriends: number;
     closeFriends: number;
