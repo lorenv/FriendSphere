@@ -34,7 +34,9 @@ export default function FriendDetail() {
   const [isEditingNotes, setIsEditingNotes] = useState(false);
   const [notes, setNotes] = useState("");
 
+  console.log("FriendDetail params:", params);
   const friendId = parseInt(params.id || "0");
+  console.log("FriendDetail friendId:", friendId);
 
   const { data: friend, isLoading } = useQuery<Friend>({
     queryKey: [`/api/friends/${friendId}`],
