@@ -1,0 +1,30 @@
+{
+  "name": "Friend Network - Personal CRM",
+  "short_name": "FriendNetwork",
+  "description": "A mobile-first personal CRM for managing friendships and social connections",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#ffffff",
+  "theme_color": "#ff6b6b",
+  "orientation": "portrait-primary",
+  "scope": "/",
+  "icons": [
+    {
+      "src": "/icons/icon-192x192.svg",
+      "sizes": "192x192",
+      "type": "image/svg+xml",
+      "purpose": "maskable any"
+    }
+  ],
+  "shortcuts": [
+    {
+      "name": "Add Friend",
+      "short_name": "Add",
+      "description": "Quickly add a new friend",
+      "url": "/add-friend",
+      "icons": [{ "src": "/icons/add-shortcut.png", "sizes": "192x192" }]
+    }
+  ],
+  "categories": ["social", "productivity", "lifestyle"],
+  "lang": "en"
+}

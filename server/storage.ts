@@ -1,4 +1,4 @@
-import { users, friends, relationships, activities, type User, type InsertUser, type RegisterUser, type Friend, type InsertFriend, type Relationship, type InsertRelationship, type Activity, type InsertActivity } from "@shared/schema";
+import { users, friends, relationships, activities, friendNotes, type User, type InsertUser, type RegisterUser, type Friend, type InsertFriend, type Relationship, type InsertRelationship, type Activity, type InsertActivity, type FriendNote, type InsertFriendNote } from "@shared/schema";
 import { db } from "./db";
 import { eq, desc, sql, and } from "drizzle-orm";
 
@@ -30,6 +30,11 @@ export interface IStorage {
   getRecentActivities(userId: number, limit?: number): Promise<Activity[]>;
   getActivitiesByFriend(userId: number, friendId: number): Promise<Activity[]>;
   createActivity(userId: number, activity: InsertActivity): Promise<Activity>;
+  
+  // Friend Notes CRUD (user-specific)
+  getFriendNotes(userId: number, friendId: number): Promise<FriendNote[]>;
+  createFriendNote(userId: number, note: InsertFriendNote): Promise<FriendNote>;
+  deleteFriendNote(userId: number, noteId: number): Promise<boolean>;
   
   // Stats (user-specific)
   getFriendStats(userId: number): Promise<{
