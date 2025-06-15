@@ -45,7 +45,7 @@ export default function FriendDetail() {
       return await apiRequest("PATCH", `/api/friends/${friendId}`, updateData);
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["/api/friends", friendId] });
+      queryClient.invalidateQueries({ queryKey: [`/api/friends/${friendId}`] });
       queryClient.invalidateQueries({ queryKey: ["/api/friends"] });
       toast({
         title: "Success",
@@ -259,16 +259,20 @@ export default function FriendDetail() {
         </Card>
 
         {/* Interests */}
-        {friend.interests && friend.interests.length > 0 && (
+        {(friend.interest1 || friend.interest2 || friend.interest3) && (
           <Card>
             <CardContent className="p-4">
               <h3 className="font-semibold text-dark-gray mb-3">Interests</h3>
               <div className="flex flex-wrap gap-2">
-                {friend.interests.map((interest, index) => (
-                  <Badge key={index} variant="secondary">
-                    {interest}
-                  </Badge>
-                ))}
+                {friend.interest1 && (
+                  <Badge variant="secondary">{friend.interest1}</Badge>
+                )}
+                {friend.interest2 && (
+                  <Badge variant="secondary">{friend.interest2}</Badge>
+                )}
+                {friend.interest3 && (
+                  <Badge variant="secondary">{friend.interest3}</Badge>
+                )}
               </div>
             </CardContent>
           </Card>
@@ -279,24 +283,17 @@ export default function FriendDetail() {
           <CardContent className="p-4 space-y-3">
             <h3 className="font-semibold text-dark-gray">Personal Info</h3>
             
-            {friend.lifestyle && (
-              <div className="flex items-center justify-between">
-                <span className="text-sm text-gray-600">Lifestyle</span>
-                <Badge variant="outline">{friend.lifestyle}</Badge>
-              </div>
-            )}
-            
-            {friend.hasKids !== null && (
-              <div className="flex items-center justify-between">
-                <span className="text-sm text-gray-600">Has Kids</span>
-                <span className="text-sm font-medium">{friend.hasKids ? "Yes" : "No"}</span>
-              </div>
-            )}
-            
-            {friend.partner && (
+            {friend.hasPartner && friend.partnerName && (
               <div className="flex items-center justify-between">
                 <span className="text-sm text-gray-600">Partner</span>
-                <span className="text-sm font-medium">{friend.partner}</span>
+                <span className="text-sm font-medium">{friend.partnerName}</span>
+              </div>
+            )}
+            
+            {friend.hasKids && friend.childrenNames && friend.childrenNames.length > 0 && (
+              <div className="flex items-center justify-between">
+                <span className="text-sm text-gray-600">Children</span>
+                <span className="text-sm font-medium">{friend.childrenNames.join(", ")}</span>
               </div>
             )}
           </CardContent>
@@ -312,7 +309,7 @@ export default function FriendDetail() {
                   variant="ghost" 
                   size="sm"
                   onClick={() => {
-                    setNotes(friend.notes || "");
+                    setNotes("");
                     setIsEditingNotes(true);
                   }}
                 >
@@ -348,7 +345,7 @@ export default function FriendDetail() {
               </div>
             ) : (
               <p className="text-sm text-gray-600">
-                {friend.notes || "No notes yet. Click edit to add some!"}
+                Individual notes feature coming soon
               </p>
             )}
           </CardContent>
