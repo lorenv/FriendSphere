@@ -19,6 +19,7 @@ import { Badge } from "@/components/ui/badge";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { LocationSearch } from "@/components/location-search";
 import { IntroducedBySelector } from "@/components/introduced-by-selector";
+import { RelationshipLevelSelector } from "@/components/relationship-level-selector";
 
 export default function EditFriend() {
   const [, setLocation] = useLocation();
@@ -353,19 +354,11 @@ export default function EditFriend() {
                 name="relationshipLevel"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Relationship Level</FormLabel>
                     <FormControl>
-                      <Select onValueChange={field.onChange} value={field.value}>
-                        <SelectTrigger>
-                          <SelectValue placeholder="Select relationship level" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="close">Close Friend</SelectItem>
-                          <SelectItem value="friend">Friend</SelectItem>
-                          <SelectItem value="acquaintance">Acquaintance</SelectItem>
-                          <SelectItem value="work">Work Contact</SelectItem>
-                        </SelectContent>
-                      </Select>
+                      <RelationshipLevelSelector
+                        value={field.value}
+                        onChange={field.onChange}
+                      />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
