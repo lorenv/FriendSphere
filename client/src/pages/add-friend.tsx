@@ -755,7 +755,7 @@ export default function AddFriend() {
                           <FormLabel>Introduced By</FormLabel>
                           <FormControl>
                             <IntroducedBySelector
-                              value={field.value}
+                              value={field.value ?? undefined}
                               onChange={field.onChange}
                             />
                           </FormControl>
