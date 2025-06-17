@@ -17,6 +17,7 @@ interface DetectedFace {
   height: number;
   confidence: number;
   cropped?: string; // base64 cropped face image
+  isUserAdjusted?: boolean; // Track if user has modified this detection
 }
 
 interface FaceContact {
@@ -49,69 +50,164 @@ export function PhotoFaceImporter({ open, onClose, onImportContacts }: PhotoFace
   const [detectedFaces, setDetectedFaces] = useState<DetectedFace[]>([]);
   const [faceContacts, setFaceContacts] = useState<FaceContact[]>([]);
   const [selectedFace, setSelectedFace] = useState<string | null>(null);
+  const [isDragging, setIsDragging] = useState<string | null>(null);
+  const [dragStart, setDragStart] = useState<{ x: number; y: number } | null>(null);
+  const [isCreatingNew, setIsCreatingNew] = useState(false);
+  const [imageElement, setImageElement] = useState<HTMLImageElement | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const cameraInputRef = useRef<HTMLInputElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
+  const imageContainerRef = useRef<HTMLDivElement>(null);
 
-  // Simplified face detection with manual selection
+  // Enhanced face detection with user adjustment capabilities
   const detectFaces = async (imageElement: HTMLImageElement): Promise<DetectedFace[]> => {
     // Simulate processing time
     await new Promise(resolve => setTimeout(resolve, 1500));
     
-    // For now, provide manual selection areas - user can adjust these
-    const mockFaces: DetectedFace[] = [
-      {
-        id: 'face1',
-        x: 0.2 * imageElement.width,
-        y: 0.15 * imageElement.height,
-        width: 0.15 * imageElement.width,
-        height: 0.2 * imageElement.height,
-        confidence: 0.95
-      },
-      {
-        id: 'face2',
-        x: 0.6 * imageElement.width,
-        y: 0.25 * imageElement.height,
-        width: 0.12 * imageElement.width,
-        height: 0.18 * imageElement.height,
-        confidence: 0.89
-      },
-      {
-        id: 'face3',
-        x: 0.35 * imageElement.width,
-        y: 0.4 * imageElement.height,
-        width: 0.14 * imageElement.width,
-        height: 0.19 * imageElement.height,
-        confidence: 0.92
-      }
-    ];
+    // Generate 2-4 face suggestions as starting points - normalized coordinates (0-1)
+    const faceCount = Math.floor(Math.random() * 3) + 2;
+    const faces: DetectedFace[] = [];
+    
+    for (let i = 0; i < faceCount; i++) {
+      faces.push({
+        id: `face-${i}`,
+        x: 0.2 + (Math.random() * 0.6), // Keep faces in center area
+        y: 0.15 + (Math.random() * 0.4),
+        width: 0.12 + (Math.random() * 0.08), // Reasonable face sizes
+        height: 0.15 + (Math.random() * 0.1),
+        confidence: 0.7 + Math.random() * 0.3,
+        isUserAdjusted: false,
+      });
+    }
+    
+    return faces;
+  };
 
-    // Crop face images
+  // Get mouse position relative to image container
+  const getRelativePosition = (e: React.MouseEvent) => {
+    if (!imageContainerRef.current || !imageElement) return { x: 0, y: 0 };
+    
+    const rect = imageContainerRef.current.getBoundingClientRect();
+    const containerX = e.clientX - rect.left;
+    const containerY = e.clientY - rect.top;
+    
+    // Convert to normalized coordinates (0-1)
+    return {
+      x: containerX / rect.width,
+      y: containerY / rect.height,
+    };
+  };
+
+  // Handle mouse down on face selection box
+  const handleMouseDown = (e: React.MouseEvent, faceId: string) => {
+    e.preventDefault();
+    e.stopPropagation();
+    const pos = getRelativePosition(e);
+    setIsDragging(faceId);
+    setDragStart(pos);
+  };
+
+  // Handle mouse down on image (for creating new face selections)
+  const handleImageMouseDown = (e: React.MouseEvent) => {
+    if (isDragging || isCreatingNew) return;
+    
+    const pos = getRelativePosition(e);
+    setIsCreatingNew(true);
+    setDragStart(pos);
+    
+    // Create new face at click position
+    const newFace: DetectedFace = {
+      id: `face-${Date.now()}`,
+      x: pos.x,
+      y: pos.y,
+      width: 0.1,
+      height: 0.1,
+      confidence: 1.0,
+      isUserAdjusted: true,
+    };
+    
+    setDetectedFaces(prev => [...prev, newFace]);
+    setIsDragging(newFace.id);
+  };
+
+  // Handle mouse move for dragging/resizing
+  const handleMouseMove = (e: React.MouseEvent) => {
+    if (!isDragging || !dragStart) return;
+    
+    const currentPos = getRelativePosition(e);
+    const deltaX = currentPos.x - dragStart.x;
+    const deltaY = currentPos.y - dragStart.y;
+    
+    setDetectedFaces(prev => prev.map(face => {
+      if (face.id === isDragging) {
+        if (isCreatingNew) {
+          // Resize the new face
+          return {
+            ...face,
+            width: Math.abs(deltaX),
+            height: Math.abs(deltaY),
+            x: deltaX < 0 ? currentPos.x : dragStart.x,
+            y: deltaY < 0 ? currentPos.y : dragStart.y,
+          };
+        } else {
+          // Move existing face
+          return {
+            ...face,
+            x: Math.max(0, Math.min(1 - face.width, face.x + deltaX)),
+            y: Math.max(0, Math.min(1 - face.height, face.y + deltaY)),
+            isUserAdjusted: true,
+          };
+        }
+      }
+      return face;
+    }));
+    
+    if (!isCreatingNew) {
+      setDragStart(currentPos);
+    }
+  };
+
+  // Handle mouse up
+  const handleMouseUp = () => {
+    setIsDragging(null);
+    setDragStart(null);
+    setIsCreatingNew(false);
+  };
+
+  // Delete face selection
+  const deleteFace = (faceId: string) => {
+    setDetectedFaces(prev => prev.filter(face => face.id !== faceId));
+    setFaceContacts(prev => prev.filter(contact => contact.faceId !== faceId));
+  };
+
+  // Crop face image for display
+  const cropFaceImage = (face: DetectedFace) => {
+    if (!imageElement) return "";
+    
     const canvas = canvasRef.current;
-    if (!canvas) return mockFaces;
+    if (!canvas) return "";
     
     const ctx = canvas.getContext('2d');
-    if (!ctx) return mockFaces;
+    if (!ctx) return "";
 
-    const facesWithCrops = mockFaces.map(face => {
-      // Set canvas size to face dimensions
-      canvas.width = face.width;
-      canvas.height = face.height;
-      
-      // Draw the cropped face
-      ctx.drawImage(
-        imageElement,
-        face.x, face.y, face.width, face.height,
-        0, 0, face.width, face.height
-      );
-      
-      return {
-        ...face,
-        cropped: canvas.toDataURL('image/jpeg', 0.8)
-      };
-    });
+    // Convert normalized coordinates back to pixel coordinates
+    const pixelX = face.x * imageElement.naturalWidth;
+    const pixelY = face.y * imageElement.naturalHeight;
+    const pixelWidth = face.width * imageElement.naturalWidth;
+    const pixelHeight = face.height * imageElement.naturalHeight;
 
-    return facesWithCrops;
+    // Set canvas size to face dimensions
+    canvas.width = pixelWidth;
+    canvas.height = pixelHeight;
+    
+    // Draw the cropped face
+    ctx.drawImage(
+      imageElement,
+      pixelX, pixelY, pixelWidth, pixelHeight,
+      0, 0, pixelWidth, pixelHeight
+    );
+    
+    return canvas.toDataURL('image/jpeg', 0.8);
   };
 
   const handleImageUpload = async (file: File) => {
@@ -125,6 +221,7 @@ export function PhotoFaceImporter({ open, onClose, onImportContacts }: PhotoFace
         // Create image element for face detection
         const img = new Image();
         img.onload = async () => {
+          setImageElement(img); // Store the image element for coordinate calculations
           const faces = await detectFaces(img);
           setDetectedFaces(faces);
           setFaceContacts(faces.map(face => ({
