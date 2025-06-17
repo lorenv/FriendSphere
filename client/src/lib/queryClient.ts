@@ -8,13 +8,16 @@ async function throwIfResNotOk(res: Response) {
 }
 
 function getAuthHeaders() {
-  const token = localStorage.getItem('authToken');
   const headers: Record<string, string> = {
     "Content-Type": "application/json",
   };
   
-  if (token) {
-    headers["Authorization"] = `Bearer ${token}`;
+  // Only access localStorage on the client side
+  if (typeof window !== 'undefined') {
+    const token = localStorage.getItem('authToken');
+    if (token) {
+      headers["Authorization"] = `Bearer ${token}`;
+    }
   }
   
   return headers;
