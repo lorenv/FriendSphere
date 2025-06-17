@@ -385,34 +385,93 @@ export function PhotoFaceImporter({ open, onClose, onImportContacts }: PhotoFace
               </div>
             ) : (
               <>
-                {/* Photo with face overlays */}
-                <div className="relative">
-                  <img 
-                    src={uploadedImage} 
-                    alt="Uploaded photo" 
-                    className="w-full max-h-96 object-contain rounded-lg"
-                  />
-                  {detectedFaces.map(face => (
-                    <div
-                      key={face.id}
-                      className={`absolute border-2 cursor-pointer transition-all ${
-                        selectedFace === face.id 
-                          ? 'border-blue-500 bg-blue-500/20' 
-                          : 'border-green-500 bg-green-500/10 hover:bg-green-500/20'
-                      }`}
-                      style={{
-                        left: `${(face.x / 800) * 100}%`,
-                        top: `${(face.y / 600) * 100}%`,
-                        width: `${(face.width / 800) * 100}%`,
-                        height: `${(face.height / 600) * 100}%`,
+                {/* Interactive photo with draggable face selections */}
+                <div className="space-y-2">
+                  <div className="flex items-center justify-between">
+                    <p className="text-sm text-gray-600">
+                      Drag the face boxes to adjust them or click on the photo to add new faces
+                    </p>
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      onClick={() => {
+                        const newFace: DetectedFace = {
+                          id: `face-${Date.now()}`,
+                          x: 0.4,
+                          y: 0.3,
+                          width: 0.15,
+                          height: 0.2,
+                          confidence: 1.0,
+                          isUserAdjusted: true,
+                        };
+                        setDetectedFaces(prev => [...prev, newFace]);
+                        setFaceContacts(prev => [...prev, {
+                          faceId: newFace.id,
+                          firstName: '',
+                          lastName: '',
+                          phone: '',
+                          email: '',
+                          relationshipLevel: 'acquaintance',
+                          added: false
+                        }]);
                       }}
-                      onClick={() => setSelectedFace(face.id)}
                     >
-                      <div className="absolute -top-6 left-0 bg-green-500 text-white text-xs px-2 py-1 rounded">
-                        Face {detectedFaces.indexOf(face) + 1}
+                      <Plus size={16} className="mr-1" />
+                      Add Face
+                    </Button>
+                  </div>
+                  
+                  <div 
+                    ref={imageContainerRef}
+                    className="relative cursor-crosshair select-none"
+                    onMouseDown={handleImageMouseDown}
+                    onMouseMove={handleMouseMove}
+                    onMouseUp={handleMouseUp}
+                    onMouseLeave={handleMouseUp}
+                  >
+                    <img 
+                      src={uploadedImage} 
+                      alt="Uploaded photo" 
+                      className="w-full max-h-96 object-contain rounded-lg"
+                      draggable={false}
+                    />
+                    {detectedFaces.map(face => (
+                      <div
+                        key={face.id}
+                        className={`absolute border-2 cursor-move transition-all ${
+                          selectedFace === face.id 
+                            ? 'border-blue-500 bg-blue-500/20' 
+                            : face.isUserAdjusted
+                            ? 'border-purple-500 bg-purple-500/20'
+                            : 'border-green-500 bg-green-500/20'
+                        }`}
+                        style={{
+                          left: `${face.x * 100}%`,
+                          top: `${face.y * 100}%`,
+                          width: `${face.width * 100}%`,
+                          height: `${face.height * 100}%`,
+                        }}
+                        onMouseDown={(e) => handleMouseDown(e, face.id)}
+                        onClick={() => setSelectedFace(face.id)}
+                      >
+                        <Badge className="absolute -top-6 left-0 text-xs">
+                          Face {face.id.split('-')[1] || face.id.slice(-3)}
+                          {face.isUserAdjusted && " ✓"}
+                        </Badge>
+                        <Button
+                          size="sm"
+                          variant="destructive"
+                          className="absolute -top-6 -right-6 w-6 h-6 p-0"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            deleteFace(face.id);
+                          }}
+                        >
+                          <X size={12} />
+                        </Button>
                       </div>
-                    </div>
-                  ))}
+                    ))}
+                  </div>
                 </div>
 
                 {/* Face contact forms */}
@@ -428,9 +487,9 @@ export function PhotoFaceImporter({ open, onClose, onImportContacts }: PhotoFace
                           <div className="flex items-start gap-4">
                             {/* Cropped face preview */}
                             <div className="w-16 h-16 rounded-lg overflow-hidden bg-gray-100 flex-shrink-0">
-                              {face.cropped ? (
+                              {imageElement ? (
                                 <img 
-                                  src={face.cropped} 
+                                  src={cropFaceImage(face)} 
                                   alt={`Face ${index + 1}`}
                                   className="w-full h-full object-cover"
                                 />
