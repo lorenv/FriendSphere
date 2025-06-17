@@ -549,7 +549,7 @@ export default function AddFriend() {
                       render={({ field }) => (
                         <FormItem>
                           <FormLabel>Preferred Communication</FormLabel>
-                          <Select onValueChange={field.onChange} defaultValue={field.value}>
+                          <Select onValueChange={field.onChange} defaultValue={field.value || undefined}>
                             <FormControl>
                               <SelectTrigger>
                                 <SelectValue placeholder="How do they like to be contacted?" />
@@ -573,7 +573,7 @@ export default function AddFriend() {
                       render={({ field }) => (
                         <FormItem>
                           <FormLabel>Group vs One-on-One</FormLabel>
-                          <Select onValueChange={field.onChange} defaultValue={field.value}>
+                          <Select onValueChange={field.onChange} defaultValue={field.value || undefined}>
                             <FormControl>
                               <SelectTrigger>
                                 <SelectValue placeholder="Do they prefer group hangouts or one-on-one?" />
@@ -650,7 +650,7 @@ export default function AddFriend() {
                           </div>
                           <FormControl>
                             <Switch
-                              checked={field.value}
+                              checked={field.value || false}
                               onCheckedChange={field.onChange}
                             />
                           </FormControl>
@@ -684,7 +684,7 @@ export default function AddFriend() {
                           </div>
                           <FormControl>
                             <Switch
-                              checked={field.value}
+                              checked={field.value || false}
                               onCheckedChange={field.onChange}
                             />
                           </FormControl>
