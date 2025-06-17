@@ -7,7 +7,7 @@ import { insertFriendSchema, type InsertFriend } from "@shared/schema";
 import { queryClient, apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import { ContactImportModal } from "@/components/contact-import-modal";
-import { PhotoFaceImporter } from "@/components/photo-face-importer";
+// import { PhotoFaceImporter } from "@/components/photo-face-importer";
 import { ArrowLeft, Camera, Plus, X, UserPlus, Upload, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -784,11 +784,11 @@ export default function AddFriend() {
           onImport={handleContactImport}
         />
 
-        <PhotoFaceImporter
+        {/* <PhotoFaceImporter
           open={showPhotoImporter}
           onClose={() => setShowPhotoImporter(false)}
           onImportContacts={handlePhotoImportContacts}
-        />
+        /> */}
       </div>
     </div>
   );

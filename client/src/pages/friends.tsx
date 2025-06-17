@@ -4,7 +4,7 @@ import { useLocation } from "wouter";
 import { Friend } from "@shared/schema";
 import { BottomNavigation } from "@/components/bottom-navigation";
 import { FloatingActionButton } from "@/components/floating-action-button";
-import { PhotoImportFAB } from "@/components/photo-import-fab";
+// import { PhotoImportFAB } from "@/components/photo-import-fab";
 import { FriendCard } from "@/components/friend-card";
 import { RELATIONSHIP_LEVELS } from "@/lib/constants";
 import { Search, Filter, Star, Shield, Heart, Briefcase, Circle } from "lucide-react";
@@ -258,7 +258,7 @@ export default function Friends() {
       </div>
 
       <FloatingActionButton />
-      <PhotoImportFAB />
+      {/* <PhotoImportFAB /> */}
       <BottomNavigation />
     </div>
   );
