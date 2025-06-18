@@ -439,9 +439,15 @@ export default function PhotoImport() {
     ));
   };
 
+  const removeContact = (faceId: string) => {
+    setFaceContacts(prev => prev.map(contact => 
+      contact.faceId === faceId ? { ...contact, removed: true } : contact
+    ));
+  };
+
   const handleImportContacts = async () => {
     const contactsToImport = faceContacts
-      .filter(contact => contact.firstName.trim() && !contact.added)
+      .filter(contact => contact.firstName.trim() && !contact.added && !contact.removed)
       .map(contact => ({
         firstName: contact.firstName,
         lastName: contact.lastName,
@@ -465,14 +471,24 @@ export default function PhotoImport() {
 
     for (const contact of contactsToImport) {
       try {
-        await createFriendMutation.mutateAsync({
-          firstName: contact.firstName,
-          lastName: contact.lastName || "",
-          phone: contact.phone || "",
-          email: contact.email || "",
-          relationshipLevel: contact.relationshipLevel,
-          photo: contact.photo,
-        });
+        const friendData = {
+          firstName: contact.firstName.trim(),
+          lastName: contact.lastName?.trim() || "",
+          phone: contact.phone?.trim() || "",
+          email: contact.email?.trim() || "",
+          relationshipLevel: contact.relationshipLevel || "acquaintance",
+          photo: contact.photo || "",
+          // Add required fields with defaults
+          location: "",
+          neighborhood: "",
+          interest1: "",
+          interest2: "",
+          interest3: "",
+          howWeMet: "",
+        };
+        
+        console.log(`Attempting to import ${contact.firstName} with data:`, friendData);
+        await createFriendMutation.mutateAsync(friendData);
         
         // Mark as successfully added
         const originalContact = faceContacts.find(c => 
@@ -723,11 +739,19 @@ export default function PhotoImport() {
                   <h3 className="font-semibold">Contact Information</h3>
                   {detectedFaces.map((face, index) => {
                     const contact = faceContacts.find(c => c.faceId === face.id);
-                    if (!contact) return null;
+                    if (!contact || contact.removed) return null;
 
                     return (
-                      <Card key={face.id} className={`${selectedFace === face.id ? 'ring-2 ring-blue-500' : ''}`}>
+                      <Card key={face.id} className={`relative ${selectedFace === face.id ? 'ring-2 ring-blue-500' : ''}`}>
                         <CardContent className="p-4">
+                          {/* Remove contact button */}
+                          <button
+                            onClick={() => removeContact(face.id)}
+                            className="absolute top-2 right-2 w-6 h-6 rounded-full bg-red-500 text-white flex items-center justify-center text-xs hover:bg-red-600 z-10"
+                            title="Remove this contact"
+                          >
+                            ×
+                          </button>
                           <div className="flex items-start gap-4">
                             {/* Cropped face preview */}
                             <div className="w-16 h-16 rounded-lg overflow-hidden bg-gray-100 flex-shrink-0">
