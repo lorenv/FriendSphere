@@ -748,7 +748,7 @@ export default function PhotoImport() {
                     <p className="text-sm font-medium text-green-900 mb-1">✓ AI detected {detectedFaces.length} face{detectedFaces.length !== 1 ? 's' : ''}</p>
                     <div className="text-xs text-green-700 space-y-1">
                       <p>• Drag face boxes to adjust position</p>
-                      <p>• Tap empty areas to add missed faces</p>
+                      <p>• Use "Add Face" button to add missed faces</p>
                       <p>• Use X button to remove incorrect detections</p>
                       <p>• Green = AI detected, Purple = Your adjustments</p>
                     </div>
