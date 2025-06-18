@@ -739,8 +739,8 @@ export default function PhotoImport() {
                         style={{
                           left: `${face.x * 100}%`,
                           top: `${face.y * 100}%`,
-                          width: `${Math.max(face.width * 100, 12)}%`,
-                          height: `${Math.max(face.height * 100, 12)}%`,
+                          width: `${Math.max(Math.min(face.width, face.height) * 100, 12)}%`,
+                          height: `${Math.max(Math.min(face.width, face.height) * 100, 12)}%`,
                           userSelect: 'none',
                           WebkitUserSelect: 'none',
                           minWidth: '48px',
