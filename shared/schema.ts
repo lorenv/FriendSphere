@@ -136,6 +136,9 @@ export const insertFriendSchema = createInsertSchema(friends).omit({
   id: true,
   userId: true,
   lastInteraction: true,
+}).extend({
+  phone: z.string().optional(),
+  email: z.string().optional(),
 });
 
 export const insertRelationshipSchema = createInsertSchema(relationships).omit({

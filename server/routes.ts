@@ -103,8 +103,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.status(201).json(friend);
     } catch (error) {
       if (error instanceof z.ZodError) {
-        return res.status(400).json({ message: "Invalid friend data", errors: error.errors });
+        console.error("Friend validation errors:", error.errors);
+        return res.status(400).json({ 
+          message: "Invalid friend data", 
+          errors: error.errors,
+          details: error.errors.map(e => `${e.path.join('.')}: ${e.message}`).join(', ')
+        });
       }
+      console.error("Failed to create friend:", error);
       res.status(500).json({ message: "Failed to create friend" });
     }
   });

@@ -457,35 +457,54 @@ export default function PhotoImport() {
       return;
     }
 
-    try {
-      for (const contact of contactsToImport) {
+    let successCount = 0;
+    let failedContacts: string[] = [];
+
+    for (const contact of contactsToImport) {
+      try {
         await createFriendMutation.mutateAsync({
           firstName: contact.firstName,
-          lastName: contact.lastName,
-          phone: contact.phone,
-          email: contact.email,
+          lastName: contact.lastName || "",
+          phone: contact.phone || "",
+          email: contact.email || "",
           relationshipLevel: contact.relationshipLevel,
           photo: contact.photo,
         });
-      }
-
-      contactsToImport.forEach((_, index) => {
-        const contact = faceContacts.filter(c => c.firstName.trim() && !c.added)[index];
-        if (contact) {
-          markFaceAsAdded(contact.faceId);
+        
+        // Mark as successfully added
+        const originalContact = faceContacts.find(c => 
+          c.firstName === contact.firstName && 
+          c.lastName === contact.lastName && 
+          !c.added
+        );
+        if (originalContact) {
+          markFaceAsAdded(originalContact.faceId);
         }
-      });
+        
+        successCount++;
+      } catch (error) {
+        console.error(`Failed to import ${contact.firstName}:`, error);
+        failedContacts.push(contact.firstName);
+      }
+    }
 
+    // Show appropriate success/error message
+    if (successCount > 0 && failedContacts.length === 0) {
       toast({
-        title: "Contacts imported",
-        description: `Successfully imported ${contactsToImport.length} contact(s) from photo`,
+        title: "🎉 Contacts imported successfully!",
+        description: `Added ${successCount} new contact${successCount !== 1 ? 's' : ''} to your friends list`,
       });
-      
-      setLocation("/");
-    } catch (error) {
+      setTimeout(() => setLocation("/"), 1000);
+    } else if (successCount > 0 && failedContacts.length > 0) {
       toast({
-        title: "Error",
-        description: "Failed to import some contacts",
+        title: "Partially successful",
+        description: `Added ${successCount} contacts. ${failedContacts.length} failed: ${failedContacts.join(', ')}`,
+        variant: "destructive",
+      });
+    } else {
+      toast({
+        title: "Import failed",
+        description: `Failed to import contacts: ${failedContacts.join(', ')}`,
         variant: "destructive",
       });
     }
@@ -680,13 +699,13 @@ export default function PhotoImport() {
                     ))}
                   </div>
                   
-                  <div className="bg-blue-50 border border-blue-200 rounded-lg p-3 text-center">
-                    <p className="text-sm font-medium text-blue-900 mb-1">How to adjust face selections:</p>
-                    <div className="text-xs text-blue-700 space-y-1">
-                      <p>• Tap and drag face boxes to move them</p>
-                      <p>• Tap empty areas on photo to add new faces</p>
-                      <p>• Use the X button to delete incorrect selections</p>
-                      <p>• Green = AI suggestion, Purple = Your adjustment</p>
+                  <div className="bg-green-50 border border-green-200 rounded-lg p-3 text-center">
+                    <p className="text-sm font-medium text-green-900 mb-1">✓ AI detected {detectedFaces.length} face{detectedFaces.length !== 1 ? 's' : ''}</p>
+                    <div className="text-xs text-green-700 space-y-1">
+                      <p>• Drag face boxes to adjust position</p>
+                      <p>• Tap empty areas to add missed faces</p>
+                      <p>• Use X button to remove incorrect detections</p>
+                      <p>• Green = AI detected, Purple = Your adjustments</p>
                     </div>
                   </div>
                 </div>
