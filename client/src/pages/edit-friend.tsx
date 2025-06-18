@@ -370,7 +370,7 @@ export default function EditFriend() {
                 name="howWeMet"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>How We Met</FormLabel>
+                    <FormLabel>How We Met (Quick Note)</FormLabel>
                     <FormControl>
                       <Input placeholder="Where or how you met" {...field} value={field.value || ""} />
                     </FormControl>
@@ -517,38 +517,32 @@ export default function EditFriend() {
                 name="interest1"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Interest 1</FormLabel>
+                    <FormLabel>Interests & Hobbies</FormLabel>
                     <FormControl>
-                      <Input placeholder="Primary interest or hobby" {...field} value={field.value || ""} />
+                      <Input 
+                        placeholder="e.g. Photography, Hiking, Cooking, Music..." 
+                        {...field} 
+                        value={field.value || ""} 
+                        list="interests-suggestions-edit"
+                      />
                     </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-
-              <FormField
-                control={form.control}
-                name="interest2"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Interest 2</FormLabel>
-                    <FormControl>
-                      <Input placeholder="Another interest or hobby" {...field} value={field.value || ""} />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-
-              <FormField
-                control={form.control}
-                name="interest3"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Interest 3</FormLabel>
-                    <FormControl>
-                      <Input placeholder="Third interest or hobby" {...field} value={field.value || ""} />
-                    </FormControl>
+                    <datalist id="interests-suggestions-edit">
+                      <option value="Photography" />
+                      <option value="Hiking" />
+                      <option value="Cooking" />
+                      <option value="Music" />
+                      <option value="Travel" />
+                      <option value="Reading" />
+                      <option value="Sports" />
+                      <option value="Gaming" />
+                      <option value="Art" />
+                      <option value="Fitness" />
+                      <option value="Technology" />
+                      <option value="Movies" />
+                      <option value="Dancing" />
+                      <option value="Writing" />
+                      <option value="Gardening" />
+                    </datalist>
                     <FormMessage />
                   </FormItem>
                 )}
