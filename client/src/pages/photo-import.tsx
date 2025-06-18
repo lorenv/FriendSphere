@@ -879,30 +879,7 @@ export default function PhotoImport() {
                                 })}
                               </div>
 
-                              {/* Relationship Level Selector */}
-                              <div className="flex justify-between gap-2">
-                                {Object.entries(RELATIONSHIP_LEVELS).map(([key, level]) => {
-                                  const iconMap = { star: Star, shield: Shield, heart: Heart, briefcase: Briefcase };
-                                  const Icon = iconMap[level.icon as keyof typeof iconMap];
-                                  const isSelected = contact.relationshipLevel === key;
-                                  
-                                  return (
-                                    <button
-                                      key={key}
-                                      type="button"
-                                      onClick={() => updateFaceContact(face.id, 'relationshipLevel', key)}
-                                      className={`flex-1 p-2 rounded-lg border-2 transition-all duration-200 flex flex-col items-center justify-center space-y-1 hover:scale-105 ${
-                                        isSelected 
-                                          ? getSelectedColorClasses(level.color)
-                                          : getUnselectedColorClasses(level.color)
-                                      }`}
-                                      title={level.label}
-                                    >
-                                      <Icon size={16} />
-                                    </button>
-                                  );
-                                })}
-                              </div>
+
 
                               {contact.added && (
                                 <div className="flex items-center gap-2 text-green-600 text-sm">
