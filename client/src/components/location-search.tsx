@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { MapPin, Search } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -10,11 +10,12 @@ interface LocationSearchProps {
   placeholder?: string;
 }
 
-declare global {
-  interface Window {
-    google: any;
-    initGoogleMaps: () => void;
-  }
+interface PlaceSuggestion {
+  id: string;
+  name: string;
+  type: string;
+  fullLocation: string;
+  placeId: string;
 }
 
 export function LocationSearch({ 
@@ -24,62 +25,53 @@ export function LocationSearch({
   placeholder = "Search neighborhoods..."
 }: LocationSearchProps) {
   const [searchQuery, setSearchQuery] = useState(value);
-  const [suggestions, setSuggestions] = useState<any[]>([]);
+  const [suggestions, setSuggestions] = useState<PlaceSuggestion[]>([]);
   const [showSuggestions, setShowSuggestions] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
-  const inputRef = useRef<HTMLInputElement>(null);
-  const autocompleteService = useRef<any>(null);
-  const placesService = useRef<any>(null);
 
   useEffect(() => {
     setSearchQuery(neighborhood || value || "");
   }, [value, neighborhood]);
 
-  useEffect(() => {
-    if (typeof window !== 'undefined' && !window.google) {
-      const script = document.createElement('script');
-      script.src = `https://maps.googleapis.com/maps/api/js?key=${import.meta.env.VITE_GOOGLE_MAPS_API_KEY}&libraries=places`;
-      script.async = true;
-      script.defer = true;
-      script.onload = initializeGoogleMaps;
-      document.head.appendChild(script);
-    } else if (window.google) {
-      initializeGoogleMaps();
+  const searchPlaces = useCallback(async (query: string) => {
+    if (query.length < 2) {
+      setSuggestions([]);
+      setShowSuggestions(false);
+      return;
+    }
+
+    setIsLoading(true);
+    try {
+      const response = await fetch('/api/places/search', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ query }),
+      });
+
+      if (!response.ok) {
+        throw new Error('Places search failed');
+      }
+
+      const data = await response.json();
+      setSuggestions(data.suggestions || []);
+      setShowSuggestions(data.suggestions?.length > 0);
+    } catch (error) {
+      console.error('Error searching places:', error);
+      setSuggestions([]);
+      setShowSuggestions(false);
+    } finally {
+      setIsLoading(false);
     }
   }, []);
-
-  const initializeGoogleMaps = () => {
-    if (window.google && window.google.maps) {
-      autocompleteService.current = new window.google.maps.places.AutocompleteService();
-      const mapDiv = document.createElement('div');
-      const map = new window.google.maps.Map(mapDiv);
-      placesService.current = new window.google.maps.places.PlacesService(map);
-    }
-  };
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const newValue = e.target.value;
     setSearchQuery(newValue);
     
-    if (newValue.length > 2 && autocompleteService.current) {
-      setIsLoading(true);
-      autocompleteService.current.getPlacePredictions(
-        {
-          input: newValue,
-          types: ['(regions)'],
-          componentRestrictions: { country: 'us' }
-        },
-        (predictions: any[], status: any) => {
-          setIsLoading(false);
-          if (status === window.google.maps.places.PlacesServiceStatus.OK && predictions) {
-            setSuggestions(predictions.slice(0, 5));
-            setShowSuggestions(true);
-          } else {
-            setSuggestions([]);
-            setShowSuggestions(false);
-          }
-        }
-      );
+    if (newValue.length >= 2) {
+      searchPlaces(newValue);
     } else {
       setSuggestions([]);
       setShowSuggestions(false);
@@ -87,16 +79,10 @@ export function LocationSearch({
     }
   };
 
-  const handleSuggestionSelect = (suggestion: any) => {
-    const description = suggestion.description;
-    setSearchQuery(description);
+  const handleSuggestionSelect = (suggestion: PlaceSuggestion) => {
+    setSearchQuery(suggestion.fullLocation);
     setShowSuggestions(false);
-    
-    // Extract neighborhood from the place description
-    const parts = description.split(', ');
-    const neighborhood = parts[0];
-    
-    onChange(description, neighborhood);
+    onChange(suggestion.fullLocation, suggestion.name);
   };
 
   const getCurrentLocation = () => {
@@ -107,29 +93,32 @@ export function LocationSearch({
 
     setIsLoading(true);
     navigator.geolocation.getCurrentPosition(
-      (position) => {
+      async (position) => {
         const { latitude, longitude } = position.coords;
         
-        if (window.google && window.google.maps) {
-          const geocoder = new window.google.maps.Geocoder();
-          const latlng = { lat: latitude, lng: longitude };
-          
-          geocoder.geocode({ location: latlng }, (results: any[], status: any) => {
-            setIsLoading(false);
-            if (status === 'OK' && results[0]) {
-              const address = results[0].formatted_address;
-              setSearchQuery(address);
-              
-              // Extract neighborhood from the address components
-              const addressComponents = results[0].address_components;
-              const neighborhood = addressComponents.find((component: any) => 
-                component.types.includes('neighborhood') || 
-                component.types.includes('sublocality')
-              )?.long_name || addressComponents[0]?.long_name;
-              
-              onChange(address, neighborhood);
-            }
+        try {
+          const response = await fetch('/api/places/reverse-geocode', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({ latitude, longitude }),
           });
+
+          if (!response.ok) {
+            throw new Error('Reverse geocoding failed');
+          }
+
+          const data = await response.json();
+          if (data.address) {
+            setSearchQuery(data.address);
+            onChange(data.address, data.neighborhood);
+          }
+        } catch (error) {
+          console.error('Error getting location:', error);
+          alert('Unable to get your current location.');
+        } finally {
+          setIsLoading(false);
         }
       },
       (error) => {
@@ -149,7 +138,6 @@ export function LocationSearch({
       <div className="flex gap-2">
         <div className="flex-1 relative">
           <Input
-            ref={inputRef}
             value={searchQuery}
             onChange={handleInputChange}
             placeholder={placeholder}
@@ -158,15 +146,18 @@ export function LocationSearch({
           />
           {showSuggestions && suggestions.length > 0 && (
             <div className="absolute top-full left-0 right-0 bg-white border border-gray-200 rounded-md shadow-lg z-50 max-h-60 overflow-y-auto">
-              {suggestions.map((suggestion, index) => (
+              {suggestions.map((suggestion) => (
                 <button
-                  key={suggestion.place_id || index}
+                  key={suggestion.id}
                   className="w-full text-left px-3 py-2 hover:bg-gray-100 border-b last:border-b-0"
                   onClick={() => handleSuggestionSelect(suggestion)}
                 >
                   <div className="flex items-center">
                     <MapPin className="w-4 h-4 mr-2 text-gray-400" />
-                    <span className="text-sm">{suggestion.description}</span>
+                    <div>
+                      <div className="text-sm font-medium">{suggestion.name}</div>
+                      <div className="text-xs text-gray-500">{suggestion.fullLocation}</div>
+                    </div>
                   </div>
                 </button>
               ))}

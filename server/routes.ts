@@ -346,6 +346,61 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Reverse geocoding route for current location
+  app.post("/api/places/reverse-geocode", async (req, res) => {
+    try {
+      const { latitude, longitude } = req.body;
+      
+      if (!latitude || !longitude) {
+        return res.status(400).json({ error: "Latitude and longitude are required" });
+      }
+
+      const apiKey = process.env.GOOGLE_MAPS_API_KEY;
+      if (!apiKey) {
+        return res.status(500).json({ error: "Google Maps API key not configured" });
+      }
+
+      const params = new URLSearchParams({
+        latlng: `${latitude},${longitude}`,
+        key: apiKey,
+        language: 'en'
+      });
+
+      const url = `https://maps.googleapis.com/maps/api/geocode/json?${params}`;
+      
+      const response = await fetch(url);
+      const data = await response.json();
+
+      if (data.status !== "OK") {
+        console.error("Google Geocoding API error:", data);
+        return res.status(500).json({ error: "Reverse geocoding failed" });
+      }
+
+      if (data.results && data.results.length > 0) {
+        const result = data.results[0];
+        const address = result.formatted_address;
+        
+        // Extract neighborhood from address components
+        const addressComponents = result.address_components;
+        const neighborhood = addressComponents.find((component: any) => 
+          component.types.includes('neighborhood') || 
+          component.types.includes('sublocality') ||
+          component.types.includes('sublocality_level_1')
+        )?.long_name || addressComponents[0]?.long_name;
+
+        res.json({ 
+          address,
+          neighborhood: neighborhood || address.split(',')[0].trim()
+        });
+      } else {
+        res.status(404).json({ error: "No location found" });
+      }
+    } catch (error) {
+      console.error("Reverse geocoding error:", error);
+      res.status(500).json({ error: "Failed to reverse geocode location" });
+    }
+  });
+
   const httpServer = createServer(app);
   return httpServer;
 }
