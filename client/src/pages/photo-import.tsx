@@ -27,7 +27,7 @@ interface FaceContact {
   firstName: string;
   lastName: string;
   phone: string;
-  email: string;
+  quickNote: string;
   relationshipLevel: string;
   added: boolean;
   removed: boolean;
@@ -280,7 +280,7 @@ export default function PhotoImport() {
       firstName: '',
       lastName: '',
       phone: '',
-      email: '',
+      quickNote: '',
       relationshipLevel: 'acquaintance',
       added: false,
       removed: false
@@ -391,7 +391,7 @@ export default function PhotoImport() {
             firstName: '',
             lastName: '',
             phone: '',
-            email: '',
+            quickNote: '',
             relationshipLevel: 'acquaintance',
             added: false,
             removed: false
@@ -426,7 +426,7 @@ export default function PhotoImport() {
 
   const createFriendMutation = useMutation({
     mutationFn: async (friendData: InsertFriend) => {
-      return apiRequest('/api/friends', 'POST', friendData);
+      return apiRequest('POST', '/api/friends', friendData);
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['/api/friends'] });
@@ -452,7 +452,7 @@ export default function PhotoImport() {
         firstName: contact.firstName,
         lastName: contact.lastName,
         phone: contact.phone,
-        email: contact.email,
+        quickNote: contact.quickNote,
         relationshipLevel: contact.relationshipLevel,
         photo: cropFaceImage(detectedFaces.find(f => f.id === contact.faceId)!),
       }));
@@ -475,7 +475,7 @@ export default function PhotoImport() {
           firstName: contact.firstName.trim(),
           lastName: contact.lastName?.trim() || "",
           phone: contact.phone?.trim() || "",
-          email: contact.email?.trim() || "",
+          email: "",
           relationshipLevel: contact.relationshipLevel || "acquaintance",
           photo: contact.photo || "",
           // Add required fields with defaults
@@ -484,7 +484,7 @@ export default function PhotoImport() {
           interest1: "",
           interest2: "",
           interest3: "",
-          howWeMet: "",
+          howWeMet: contact.quickNote?.trim() || "",
         };
         
         console.log(`Attempting to import ${contact.firstName} with data:`, friendData);
@@ -638,7 +638,7 @@ export default function PhotoImport() {
                           firstName: '',
                           lastName: '',
                           phone: '',
-                          email: '',
+                          quickNote: '',
                           relationshipLevel: 'acquaintance',
                           added: false,
                           removed: false
@@ -801,11 +801,11 @@ export default function PhotoImport() {
                                   />
                                 </div>
                                 <div>
-                                  <Label className="text-xs">Email</Label>
+                                  <Label className="text-xs">Quick Note</Label>
                                   <Input
-                                    placeholder="Email address"
-                                    value={contact.email}
-                                    onChange={(e) => updateFaceContact(face.id, 'email', e.target.value)}
+                                    placeholder="How you met, facts about them..."
+                                    value={contact.quickNote}
+                                    onChange={(e) => updateFaceContact(face.id, 'quickNote', e.target.value)}
                                     className="h-8"
                                   />
                                 </div>
