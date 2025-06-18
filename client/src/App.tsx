@@ -9,7 +9,7 @@ import Friends from "@/pages/friends";
 import FriendDetail from "@/pages/friend-detail";
 import AddFriend from "@/pages/add-friend";
 import EditFriend from "@/pages/edit-friend";
-import PhotoImport from "@/pages/photo-import";
+import PhotoImport from "@/pages/photo-import-simple";
 import NetworkMap from "@/pages/network-map";
 import NameGame from "@/pages/name-game";
 import Activity from "@/pages/activity";
