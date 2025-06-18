@@ -742,55 +742,39 @@ export default function PhotoImport() {
                           setSelectedFace(face.id);
                         }}
                       >
-                        {/* Mobile-friendly resize buttons */}
+                        {/* Simple square resize buttons */}
                         {selectedFace === face.id && (
                           <>
                             <button
-                              className="absolute -top-8 left-1/2 transform -translate-x-1/2 w-6 h-6 bg-blue-500 text-white rounded-full text-xs flex items-center justify-center"
+                              className="absolute -top-8 -left-8 w-7 h-7 bg-red-500 text-white rounded-full text-sm flex items-center justify-center shadow-lg"
                               onClick={(e) => {
                                 e.stopPropagation();
                                 setDetectedFaces(prev => prev.map(f => 
                                   f.id === face.id 
-                                    ? { ...f, height: Math.max(0.05, f.height - 0.02), isUserAdjusted: true }
+                                    ? { 
+                                        ...f, 
+                                        width: Math.max(0.05, f.width - 0.03),
+                                        height: Math.max(0.05, f.height - 0.03),
+                                        isUserAdjusted: true 
+                                      }
                                     : f
                                 ));
                               }}
                             >
-                              -
+                              −
                             </button>
                             <button
-                              className="absolute -bottom-8 left-1/2 transform -translate-x-1/2 w-6 h-6 bg-blue-500 text-white rounded-full text-xs flex items-center justify-center"
+                              className="absolute -top-8 -right-8 w-7 h-7 bg-green-500 text-white rounded-full text-sm flex items-center justify-center shadow-lg"
                               onClick={(e) => {
                                 e.stopPropagation();
                                 setDetectedFaces(prev => prev.map(f => 
                                   f.id === face.id 
-                                    ? { ...f, height: Math.min(0.4, f.height + 0.02), isUserAdjusted: true }
-                                    : f
-                                ));
-                              }}
-                            >
-                              +
-                            </button>
-                            <button
-                              className="absolute top-1/2 -left-8 transform -translate-y-1/2 w-6 h-6 bg-blue-500 text-white rounded-full text-xs flex items-center justify-center"
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                setDetectedFaces(prev => prev.map(f => 
-                                  f.id === face.id 
-                                    ? { ...f, width: Math.max(0.05, f.width - 0.02), isUserAdjusted: true }
-                                    : f
-                                ));
-                              }}
-                            >
-                              -
-                            </button>
-                            <button
-                              className="absolute top-1/2 -right-8 transform -translate-y-1/2 w-6 h-6 bg-blue-500 text-white rounded-full text-xs flex items-center justify-center"
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                setDetectedFaces(prev => prev.map(f => 
-                                  f.id === face.id 
-                                    ? { ...f, width: Math.min(0.4, f.width + 0.02), isUserAdjusted: true }
+                                    ? { 
+                                        ...f, 
+                                        width: Math.min(0.4, f.width + 0.03),
+                                        height: Math.min(0.4, f.height + 0.03),
+                                        isUserAdjusted: true 
+                                      }
                                     : f
                                 ));
                               }}
