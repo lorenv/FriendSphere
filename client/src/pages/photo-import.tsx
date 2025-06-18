@@ -4,12 +4,13 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent } from "@/components/ui/card";
-import { Upload, Users, Camera, Loader2, Plus, X, Check, ArrowLeft } from "lucide-react";
+import { Upload, Users, Camera, Loader2, Plus, X, Check, ArrowLeft, Star, Shield, Heart, Briefcase } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { Badge } from "@/components/ui/badge";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { apiRequest } from "@/lib/queryClient";
 import type { InsertFriend } from "@shared/schema";
+import { RELATIONSHIP_LEVELS } from "@/lib/constants";
 import * as faceapi from 'face-api.js';
 
 interface DetectedFace {
@@ -32,6 +33,36 @@ interface FaceContact {
   added: boolean;
   removed: boolean;
 }
+
+const getSelectedColorClasses = (color: string) => {
+  switch (color) {
+    case 'emerald':
+      return 'text-emerald-600 bg-emerald-50 border-emerald-300 shadow-sm';
+    case 'blue':
+      return 'text-blue-600 bg-blue-50 border-blue-300 shadow-sm';
+    case 'rose':
+      return 'text-rose-600 bg-rose-50 border-rose-300 shadow-sm';
+    case 'slate':
+      return 'text-slate-600 bg-slate-50 border-slate-300 shadow-sm';
+    default:
+      return 'text-gray-600 bg-gray-50 border-gray-300 shadow-sm';
+  }
+};
+
+const getUnselectedColorClasses = (color: string) => {
+  switch (color) {
+    case 'emerald':
+      return 'text-emerald-400 border-gray-200 bg-white hover:bg-gray-50 hover:text-emerald-500';
+    case 'blue':
+      return 'text-blue-400 border-gray-200 bg-white hover:bg-gray-50 hover:text-blue-500';
+    case 'rose':
+      return 'text-rose-400 border-gray-200 bg-white hover:bg-gray-50 hover:text-rose-500';
+    case 'slate':
+      return 'text-slate-400 border-gray-200 bg-white hover:bg-gray-50 hover:text-slate-500';
+    default:
+      return 'text-gray-400 border-gray-200 bg-white hover:bg-gray-50 hover:text-gray-500';
+  }
+};
 
 export default function PhotoImport() {
   const [, setLocation] = useLocation();
@@ -809,6 +840,68 @@ export default function PhotoImport() {
                                     className="h-8"
                                   />
                                 </div>
+                              </div>
+
+                              {/* Relationship Level Selector */}
+                              <div className="flex justify-between gap-2">
+                                {Object.entries(RELATIONSHIP_LEVELS).map(([key, level]) => {
+                                  const iconMap = { star: Star, shield: Shield, heart: Heart, briefcase: Briefcase };
+                                  const Icon = iconMap[level.icon as keyof typeof iconMap];
+                                  const isSelected = contact.relationshipLevel === key;
+                                  
+                                  return (
+                                    <button
+                                      key={key}
+                                      type="button"
+                                      onClick={() => updateFaceContact(face.id, 'relationshipLevel', key)}
+                                      className={`flex-1 p-2 rounded-lg border-2 transition-all duration-200 flex flex-col items-center justify-center space-y-1 hover:scale-105 ${
+                                        isSelected 
+                                          ? level.color === 'emerald'
+                                            ? 'text-emerald-600 bg-emerald-50 border-emerald-300 shadow-sm'
+                                            : level.color === 'blue'
+                                            ? 'text-blue-600 bg-blue-50 border-blue-300 shadow-sm'
+                                            : level.color === 'rose'
+                                            ? 'text-rose-600 bg-rose-50 border-rose-300 shadow-sm'
+                                            : 'text-slate-600 bg-slate-50 border-slate-300 shadow-sm'
+                                          : level.color === 'emerald'
+                                          ? 'text-emerald-400 border-gray-200 bg-white hover:bg-gray-50 hover:text-emerald-500'
+                                          : level.color === 'blue'
+                                          ? 'text-blue-400 border-gray-200 bg-white hover:bg-gray-50 hover:text-blue-500'
+                                          : level.color === 'rose'
+                                          ? 'text-rose-400 border-gray-200 bg-white hover:bg-gray-50 hover:text-rose-500'
+                                          : 'text-slate-400 border-gray-200 bg-white hover:bg-gray-50 hover:text-slate-500'
+                                      }`}
+                                      title={level.label}
+                                    >
+                                      <Icon size={16} />
+                                    </button>
+                                  );
+                                })}
+                              </div>
+
+                              {/* Relationship Level Selector */}
+                              <div className="flex justify-between gap-2">
+                                {Object.entries(RELATIONSHIP_LEVELS).map(([key, level]) => {
+                                  const iconMap = { star: Star, shield: Shield, heart: Heart, briefcase: Briefcase };
+                                  const Icon = iconMap[level.icon as keyof typeof iconMap];
+                                  const isSelected = contact.relationshipLevel === key;
+                                  
+                                  return (
+                                    <button
+                                      key={key}
+                                      type="button"
+                                      onClick={() => updateFaceContact(face.id, 'relationshipLevel', key)}
+                                      className={`flex-1 p-2 rounded-lg border-2 transition-all duration-200 flex flex-col items-center justify-center space-y-1 hover:scale-105 ${
+                                        isSelected 
+                                          ? getSelectedColorClasses(level.color)
+                                          : getUnselectedColorClasses(level.color)
+                                      }`}
+                                      title={level.label}
+                                    >
+                                      <Icon size={16} />
+                                    </button>
+                                  );
+                                })}
                               </div>
 
                               {contact.added && (

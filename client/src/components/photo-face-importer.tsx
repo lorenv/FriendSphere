@@ -4,9 +4,10 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent } from "@/components/ui/card";
-import { Upload, Users, Camera, Loader2, Plus, X, Check } from "lucide-react";
+import { Upload, Users, Camera, Loader2, Plus, X, Check, Star, Shield, Heart, Briefcase } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { Badge } from "@/components/ui/badge";
+import { RELATIONSHIP_LEVELS } from "@/lib/constants";
 // Face detection library will be loaded on demand
 
 interface DetectedFace {
