@@ -741,6 +741,7 @@ export default function PhotoImport() {
                           WebkitUserSelect: 'none',
                           minWidth: '48px',
                           minHeight: '48px',
+                          aspectRatio: '1',
                         }}
                         onMouseDown={(e) => handlePointerDown(e, face.id)}
                         onTouchStart={(e) => handlePointerDown(e, face.id)}
