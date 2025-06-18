@@ -304,7 +304,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         input: query,
         key: apiKey,
         components: 'country:us', // Restrict to US only
-        types: '(regions)', // Focus on geographic regions to show proper hierarchy
+        types: 'sublocality|locality|administrative_area_level_3|administrative_area_level_2|neighborhood', // Include neighborhoods and localities
         language: 'en'
       });
 
@@ -319,41 +319,46 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
 
       const suggestions = data.predictions?.map((prediction: any) => {
-        // Determine the type based on the place types
+        // Determine the type based on the place types - prioritize most specific
         let type = "locality";
         if (prediction.types.includes("neighborhood") || 
             prediction.types.includes("sublocality") ||
             prediction.types.includes("sublocality_level_1") ||
             prediction.types.includes("sublocality_level_2")) {
           type = "neighborhood";
-        } else if (prediction.types.includes("administrative_area_level_2")) {
-          type = "county";
         } else if (prediction.types.includes("locality")) {
           type = "city";
+        } else if (prediction.types.includes("administrative_area_level_3")) {
+          type = "administrative_area_level_3";
+        } else if (prediction.types.includes("administrative_area_level_2")) {
+          type = "county";
         } else if (prediction.types.includes("administrative_area_level_1")) {
           type = "state";
         }
 
-        // For neighborhoods, show the full hierarchy (neighborhood, city, state)
-        const mainText = prediction.structured_formatting.main_text;
-        const secondaryText = prediction.structured_formatting.secondary_text || "";
+        // Extract main and secondary text for better display
+        const mainText = prediction.structured_formatting?.main_text || prediction.description.split(',')[0];
+        const secondaryText = prediction.structured_formatting?.secondary_text || prediction.description.split(',').slice(1).join(',').trim();
         
-        // Better display name that shows geographic context
-        let displayName = mainText;
-        if (type === "neighborhood" && secondaryText) {
-          displayName = `${mainText} (${secondaryText})`;
-        }
-
+        // For saving to database, use just the neighborhood name
+        const neighborhoodName = mainText;
+        
         return {
           id: prediction.place_id,
-          name: displayName,
+          name: mainText, // Just the neighborhood name for clean display
           type,
-          fullLocation: prediction.description,
+          fullLocation: prediction.description, // Full "Baldwin Hills, Los Angeles, CA" for context
           placeId: prediction.place_id,
           mainText,
           secondaryText
         };
       }) || [];
+
+      // Sort to prioritize neighborhoods, then cities, then other areas
+      suggestions.sort((a: any, b: any) => {
+        const typeOrder: { [key: string]: number } = { 'neighborhood': 0, 'city': 1, 'administrative_area_level_3': 2, 'county': 3, 'state': 4 };
+        return (typeOrder[a.type] || 5) - (typeOrder[b.type] || 5);
+      });
 
       res.json({ suggestions });
     } catch (error) {

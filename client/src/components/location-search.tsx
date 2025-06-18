@@ -82,9 +82,17 @@ export function LocationSearch({
   };
 
   const handleSuggestionSelect = (suggestion: PlaceSuggestion) => {
-    setSearchQuery(suggestion.fullLocation);
+    // For neighborhoods, show just the neighborhood name in the input
+    const displayValue = suggestion.type === 'neighborhood' ? suggestion.name : suggestion.fullLocation;
+    setSearchQuery(displayValue);
     setShowSuggestions(false);
-    onChange(suggestion.fullLocation, suggestion.name);
+    
+    // Pass the full location for mapping context and neighborhood name for storage
+    if (suggestion.type === 'neighborhood') {
+      onChange(suggestion.fullLocation, suggestion.name);
+    } else {
+      onChange(suggestion.fullLocation, suggestion.name);
+    }
   };
 
   const getCurrentLocation = () => {
