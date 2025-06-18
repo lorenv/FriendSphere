@@ -99,14 +99,43 @@ export default function PhotoImport() {
   const handlePointerDown = (e: React.TouchEvent | React.MouseEvent, faceId: string) => {
     e.preventDefault();
     e.stopPropagation();
-    const pos = getRelativePosition(e);
+    
+    // Get position from the correct event
+    let clientX, clientY;
+    if ('touches' in e && e.touches.length > 0) {
+      clientX = e.touches[0].clientX;
+      clientY = e.touches[0].clientY;
+    } else if ('clientX' in e) {
+      clientX = e.clientX;
+      clientY = e.clientY;
+    } else {
+      return;
+    }
+    
+    if (!imageContainerRef.current || !imageElement) return;
+    
+    const rect = imageContainerRef.current.getBoundingClientRect();
+    const containerX = clientX - rect.left;
+    const containerY = clientY - rect.top;
+    
+    const pos = {
+      x: containerX / rect.width,
+      y: containerY / rect.height,
+    };
+    
     setIsDragging(faceId);
     setDragStart(pos);
+    setSelectedFace(faceId);
   };
 
   // Handle touch/mouse down on image (for creating new face selections)
   const handleImagePointerDown = (e: React.TouchEvent | React.MouseEvent) => {
+    // Only create new faces if we're not already dragging or creating
     if (isDragging || isCreatingNew) return;
+    
+    // Check if the target is the image itself, not a face box
+    const target = e.target as HTMLElement;
+    if (target.tagName !== 'IMG') return;
     
     const pos = getRelativePosition(e);
     setIsCreatingNew(true);
@@ -123,6 +152,15 @@ export default function PhotoImport() {
     };
     
     setDetectedFaces(prev => [...prev, newFace]);
+    setFaceContacts(prev => [...prev, {
+      faceId: newFace.id,
+      firstName: '',
+      lastName: '',
+      phone: '',
+      email: '',
+      relationshipLevel: 'acquaintance',
+      added: false
+    }]);
     setIsDragging(newFace.id);
   };
 
@@ -458,7 +496,7 @@ export default function PhotoImport() {
                     {detectedFaces.map(face => (
                       <div
                         key={face.id}
-                        className={`absolute border-3 transition-all touch-none ${
+                        className={`absolute border-3 transition-all touch-none min-w-12 min-h-12 ${
                           selectedFace === face.id 
                             ? 'border-blue-500 bg-blue-500/30' 
                             : face.isUserAdjusted
@@ -468,14 +506,20 @@ export default function PhotoImport() {
                         style={{
                           left: `${face.x * 100}%`,
                           top: `${face.y * 100}%`,
-                          width: `${face.width * 100}%`,
-                          height: `${face.height * 100}%`,
+                          width: `${Math.max(face.width * 100, 12)}%`,
+                          height: `${Math.max(face.height * 100, 12)}%`,
                           userSelect: 'none',
                           WebkitUserSelect: 'none',
+                          minWidth: '48px',
+                          minHeight: '48px',
                         }}
                         onMouseDown={(e) => handlePointerDown(e, face.id)}
                         onTouchStart={(e) => handlePointerDown(e, face.id)}
-                        onClick={() => setSelectedFace(face.id)}
+                        onClick={(e) => {
+                          e.preventDefault();
+                          e.stopPropagation();
+                          setSelectedFace(face.id);
+                        }}
                       >
                         <Badge className="absolute -top-8 left-0 text-xs bg-black/70 text-white">
                           Face {face.id.split('-')[1] || face.id.slice(-3)}
