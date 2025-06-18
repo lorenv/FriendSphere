@@ -218,7 +218,7 @@ export default function AddFriend() {
                     onClick={() => setLocation("/photo-import")}
                   >
                     <Camera size={16} className="mr-2" />
-                    Photo Import
+                    Group Import
                   </Button>
                 </div>
 

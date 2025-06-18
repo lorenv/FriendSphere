@@ -78,10 +78,22 @@ export default function PhotoImport() {
   const [isCreatingNew, setIsCreatingNew] = useState(false);
   const [imageElement, setImageElement] = useState<HTMLImageElement | null>(null);
   const [modelsLoaded, setModelsLoaded] = useState(false);
+  const [hasError, setHasError] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const cameraInputRef = useRef<HTMLInputElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const imageContainerRef = useRef<HTMLDivElement>(null);
+
+  // Error boundary effect
+  useEffect(() => {
+    const handleError = (error: ErrorEvent) => {
+      console.error('PhotoImport error:', error);
+      setHasError(true);
+    };
+    
+    window.addEventListener('error', handleError);
+    return () => window.removeEventListener('error', handleError);
+  }, []);
 
   // Initialize face-api.js models
   useEffect(() => {
@@ -92,7 +104,7 @@ export default function PhotoImport() {
         setModelsLoaded(true);
         console.log('Face detection models loaded successfully');
       } catch (error) {
-        console.log('Face detection models failed to load, using fallback detection');
+        console.error('Face detection models failed to load:', error);
         setModelsLoaded(true); // Continue with fallback
       }
     };
@@ -578,6 +590,19 @@ export default function PhotoImport() {
     }
   };
 
+  // Error fallback
+  if (hasError) {
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center p-4">
+        <div className="text-center">
+          <h1 className="text-xl font-bold mb-2">Group Import</h1>
+          <p className="text-gray-600 mb-4">There was an error loading this page.</p>
+          <Button onClick={() => setLocation("/friends")}>Back to Friends</Button>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="min-h-screen bg-gray-50 pb-20">
       <div className="sticky top-0 bg-white border-b border-gray-200 z-10">
@@ -586,12 +611,12 @@ export default function PhotoImport() {
             <Button
               variant="ghost"
               size="sm"
-              onClick={() => setLocation("/")}
+              onClick={() => setLocation("/friends")}
             >
               <ArrowLeft size={20} />
             </Button>
             <div>
-              <h1 className="text-lg font-semibold">Import from Photo</h1>
+              <h1 className="text-lg font-semibold">Group Import</h1>
               <p className="text-sm text-gray-600">Add multiple contacts from group photos</p>
             </div>
           </div>
