@@ -122,12 +122,14 @@ export default function PhotoImport() {
             const normalizedWidth = Math.max(0.05, Math.min(0.5, box.width / imgWidth));
             const normalizedHeight = Math.max(0.05, Math.min(0.5, box.height / imgHeight));
             
+            // Make AI-detected faces square by using the smaller dimension
+            const squareSize = Math.min(normalizedWidth, normalizedHeight);
             return {
               id: `face-${index}`,
               x: normalizedX,
               y: normalizedY,
-              width: normalizedWidth,
-              height: normalizedHeight,
+              width: squareSize,
+              height: squareSize,
               confidence: detection.score,
               isUserAdjusted: false,
             };
@@ -747,7 +749,7 @@ export default function PhotoImport() {
                         {selectedFace === face.id && (
                           <>
                             <button
-                              className="absolute -top-9 -left-9 w-8 h-8 bg-red-500 text-white rounded-full text-sm flex items-center justify-center shadow-lg z-10"
+                              className="absolute top-0 left-0 translate-x-[-50%] translate-y-[-50%] w-8 h-8 bg-red-500 text-white rounded-full text-sm flex items-center justify-center shadow-lg z-10"
                               onClick={(e) => {
                                 e.stopPropagation();
                                 setDetectedFaces(prev => prev.map(f => 
@@ -765,7 +767,7 @@ export default function PhotoImport() {
                               −
                             </button>
                             <button
-                              className="absolute -bottom-9 -left-9 w-8 h-8 bg-green-500 text-white rounded-full text-sm flex items-center justify-center shadow-lg z-10"
+                              className="absolute bottom-0 left-0 translate-x-[-50%] translate-y-[50%] w-8 h-8 bg-green-500 text-white rounded-full text-sm flex items-center justify-center shadow-lg z-10"
                               onClick={(e) => {
                                 e.stopPropagation();
                                 setDetectedFaces(prev => prev.map(f => 
