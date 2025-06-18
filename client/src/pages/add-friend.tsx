@@ -7,7 +7,7 @@ import { insertFriendSchema, type InsertFriend } from "@shared/schema";
 import { queryClient, apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import { ContactImportModal } from "@/components/contact-import-modal";
-import { PhotoFaceImporter } from "@/components/photo-face-importer";
+
 import { ArrowLeft, Camera, Plus, X, UserPlus, Upload, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -26,7 +26,7 @@ export default function AddFriend() {
   const [, setLocation] = useLocation();
   const { toast } = useToast();
   const [showContactImport, setShowContactImport] = useState(false);
-  const [showPhotoImporter, setShowPhotoImporter] = useState(false);
+
   const [currentPhoto, setCurrentPhoto] = useState<string>("");
   const [childrenNames, setChildrenNames] = useState<string[]>([]);
   const [newChildName, setNewChildName] = useState("");
@@ -119,48 +119,7 @@ export default function AddFriend() {
     });
   };
 
-  const handlePhotoImportContacts = async (contacts: Array<{
-    firstName: string;
-    lastName: string;
-    phone: string;
-    email: string;
-    photo?: string;
-    relationshipLevel: string;
-  }>) => {
-    for (const contact of contacts) {
-      try {
-        const friendData: InsertFriend = {
-          firstName: contact.firstName,
-          lastName: contact.lastName,
-          phone: contact.phone,
-          email: contact.email,
-          photo: contact.photo,
-          relationshipLevel: contact.relationshipLevel,
-          isNewFriend: true,
-          hasPartner: false,
-          hasKids: false,
-          childrenNames: [],
-        };
 
-        await apiRequest("POST", "/api/friends", friendData);
-      } catch (error) {
-        toast({
-          title: "Error",
-          description: `Failed to add ${contact.firstName}`,
-          variant: "destructive",
-        });
-      }
-    }
-
-    queryClient.invalidateQueries({ queryKey: ["/api/friends"] });
-    
-    toast({
-      title: "Success",
-      description: `Added ${contacts.length} friends from photo`,
-    });
-
-    setShowPhotoImporter(false);
-  };
 
   const handleFileUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
@@ -256,7 +215,7 @@ export default function AddFriend() {
                   <Button
                     type="button"
                     variant="outline"
-                    onClick={() => setShowPhotoImporter(true)}
+                    onClick={() => setLocation("/photo-import")}
                   >
                     <Camera size={16} className="mr-2" />
                     Photo Import
@@ -784,11 +743,7 @@ export default function AddFriend() {
           onImport={handleContactImport}
         />
 
-        <PhotoFaceImporter
-          open={showPhotoImporter}
-          onClose={() => setShowPhotoImporter(false)}
-          onImportContacts={handlePhotoImportContacts}
-        />
+
       </div>
     </div>
   );
