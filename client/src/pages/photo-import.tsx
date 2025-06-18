@@ -597,7 +597,7 @@ export default function PhotoImport() {
         <div className="text-center">
           <h1 className="text-xl font-bold mb-2">Group Import</h1>
           <p className="text-gray-600 mb-4">There was an error loading this page.</p>
-          <Button onClick={() => setLocation("/friends")}>Back to Friends</Button>
+          <Button onClick={() => window.location.href = "/friends"}>Back to Friends</Button>
         </div>
       </div>
     );
@@ -611,7 +611,7 @@ export default function PhotoImport() {
             <Button
               variant="ghost"
               size="sm"
-              onClick={() => setLocation("/friends")}
+              onClick={() => window.location.href = "/friends"}
             >
               <ArrowLeft size={20} />
             </Button>
