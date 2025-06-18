@@ -212,16 +212,18 @@ export default function AddFriend() {
                     <UserPlus size={16} className="mr-2" />
                     Import Contact
                   </Button>
-                  <Link href="/photo-import">
-                    <Button
-                      type="button"
-                      variant="outline"
-                      className="w-full"
-                    >
-                      <Camera size={16} className="mr-2" />
-                      Group Import
-                    </Button>
-                  </Link>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    onClick={(e) => {
+                      e.preventDefault();
+                      console.log('Button clicked, navigating to photo-import');
+                      window.location.href = '/photo-import';
+                    }}
+                  >
+                    <Camera size={16} className="mr-2" />
+                    Group Import
+                  </Button>
                 </div>
 
                 {/* Photo Upload Section */}
