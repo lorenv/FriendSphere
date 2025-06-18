@@ -116,12 +116,18 @@ export default function PhotoImport() {
 
           return detections.map((detection, index) => {
             const box = detection.box;
+            // Ensure coordinates are properly normalized and bounded
+            const normalizedX = Math.max(0, Math.min(1, box.x / imgWidth));
+            const normalizedY = Math.max(0, Math.min(1, box.y / imgHeight));
+            const normalizedWidth = Math.max(0.05, Math.min(0.5, box.width / imgWidth));
+            const normalizedHeight = Math.max(0.05, Math.min(0.5, box.height / imgHeight));
+            
             return {
               id: `face-${index}`,
-              x: box.x / imgWidth,
-              y: box.y / imgHeight,
-              width: box.width / imgWidth,
-              height: box.height / imgHeight,
+              x: normalizedX,
+              y: normalizedY,
+              width: normalizedWidth,
+              height: normalizedHeight,
               confidence: detection.score,
               isUserAdjusted: false,
             };
@@ -162,15 +168,30 @@ export default function PhotoImport() {
     // Cluster face regions and create face boxes
     const clusteredFaces = clusterFaceRegions(faceRegions);
     
-    return clusteredFaces.map((region, index) => ({
-      id: `face-${index}`,
-      x: region.x / canvas.width,
-      y: region.y / canvas.height,
-      width: Math.min(0.2, 120 / canvas.width),
-      height: Math.min(0.25, 150 / canvas.height),
-      confidence: region.score,
-      isUserAdjusted: false,
-    }));
+    return clusteredFaces.map((region, index) => {
+      // Calculate proper normalized coordinates with bounds checking
+      const normalizedX = Math.max(0, Math.min(0.9, region.x / canvas.width));
+      const normalizedY = Math.max(0, Math.min(0.9, region.y / canvas.height));
+      
+      // Calculate face box size based on image dimensions and orientation
+      const isPortrait = canvas.height > canvas.width;
+      const baseFaceSize = isPortrait ? 
+        Math.min(0.25, 200 / canvas.width) : 
+        Math.min(0.2, 150 / canvas.width);
+      
+      const faceWidth = Math.max(0.05, Math.min(0.4, baseFaceSize));
+      const faceHeight = Math.max(0.05, Math.min(0.4, baseFaceSize * (isPortrait ? 1.1 : 1.2)));
+      
+      return {
+        id: `face-${index}`,
+        x: normalizedX,
+        y: normalizedY,
+        width: faceWidth,
+        height: faceHeight,
+        confidence: region.score,
+        isUserAdjusted: false,
+      };
+    });
   };
 
   // Helper function to calculate skin tone probability
@@ -282,41 +303,10 @@ export default function PhotoImport() {
     setSelectedFace(faceId);
   };
 
-  // Handle touch/mouse down on image (for creating new face selections)
+  // Handle touch/mouse down on image (disabled tap-to-add)
   const handleImagePointerDown = (e: React.TouchEvent | React.MouseEvent) => {
-    // Only create new faces if we're not already dragging or creating
-    if (isDragging || isCreatingNew) return;
-    
-    // Check if the target is the image itself, not a face box
-    const target = e.target as HTMLElement;
-    if (target.tagName !== 'IMG') return;
-    
-    const pos = getRelativePosition(e);
-    setIsCreatingNew(true);
-    setDragStart(pos);
-    
-    const newFace: DetectedFace = {
-      id: `face-${Date.now()}`,
-      x: pos.x,
-      y: pos.y,
-      width: 0.1,
-      height: 0.1,
-      confidence: 1.0,
-      isUserAdjusted: true,
-    };
-    
-    setDetectedFaces(prev => [...prev, newFace]);
-    setFaceContacts(prev => [...prev, {
-      faceId: newFace.id,
-      firstName: '',
-      lastName: '',
-      phone: '',
-      quickNote: '',
-      relationshipLevel: 'acquaintance',
-      added: false,
-      removed: false
-    }]);
-    setIsDragging(newFace.id);
+    // Disabled: tap-to-add faces to prevent accidental additions while adjusting
+    return;
   };
 
   // Handle touch/mouse move for dragging/resizing
