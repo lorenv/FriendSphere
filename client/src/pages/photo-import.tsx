@@ -169,35 +169,44 @@ export default function PhotoImport() {
     if (!isDragging || !dragStart) return;
     
     e.preventDefault();
+    e.stopPropagation();
+    
     const currentPos = getRelativePosition(e);
-    const deltaX = currentPos.x - dragStart.x;
-    const deltaY = currentPos.y - dragStart.y;
     
     setDetectedFaces(prev => prev.map(face => {
       if (face.id === isDragging) {
         if (isCreatingNew) {
+          // Resize the new face being created
+          const width = Math.abs(currentPos.x - dragStart.x);
+          const height = Math.abs(currentPos.y - dragStart.y);
           return {
             ...face,
-            width: Math.abs(deltaX),
-            height: Math.abs(deltaY),
-            x: deltaX < 0 ? currentPos.x : dragStart.x,
-            y: deltaY < 0 ? currentPos.y : dragStart.y,
+            width: Math.max(width, 0.05), // Minimum size
+            height: Math.max(height, 0.05),
+            x: Math.min(dragStart.x, currentPos.x),
+            y: Math.min(dragStart.y, currentPos.y),
+            isUserAdjusted: true,
           };
         } else {
+          // Move existing face
+          const deltaX = currentPos.x - dragStart.x;
+          const deltaY = currentPos.y - dragStart.y;
+          const newX = Math.max(0, Math.min(1 - face.width, face.x + deltaX));
+          const newY = Math.max(0, Math.min(1 - face.height, face.y + deltaY));
+          
+          // Update drag start for smooth movement
+          setDragStart(currentPos);
+          
           return {
             ...face,
-            x: Math.max(0, Math.min(1 - face.width, face.x + deltaX)),
-            y: Math.max(0, Math.min(1 - face.height, face.y + deltaY)),
+            x: newX,
+            y: newY,
             isUserAdjusted: true,
           };
         }
       }
       return face;
     }));
-    
-    if (!isCreatingNew) {
-      setDragStart(currentPos);
-    }
   };
 
   // Handle touch/mouse up
@@ -496,12 +505,12 @@ export default function PhotoImport() {
                     {detectedFaces.map(face => (
                       <div
                         key={face.id}
-                        className={`absolute border-3 transition-all touch-none min-w-12 min-h-12 ${
+                        className={`absolute border-3 transition-all touch-none min-w-12 min-h-12 cursor-move ${
                           selectedFace === face.id 
-                            ? 'border-blue-500 bg-blue-500/30' 
+                            ? 'border-blue-500 bg-blue-500/20' 
                             : face.isUserAdjusted
-                            ? 'border-purple-500 bg-purple-500/30'
-                            : 'border-green-500 bg-green-500/30'
+                            ? 'border-purple-500 bg-purple-500/20'
+                            : 'border-green-500 bg-green-500/20'
                         }`}
                         style={{
                           left: `${face.x * 100}%`,
@@ -521,15 +530,22 @@ export default function PhotoImport() {
                           setSelectedFace(face.id);
                         }}
                       >
-                        <Badge className="absolute -top-8 left-0 text-xs bg-black/70 text-white">
-                          Face {face.id.split('-')[1] || face.id.slice(-3)}
-                          {face.isUserAdjusted && " ✓"}
-                        </Badge>
+                        {/* Drag handle in center for better touch interaction */}
+                        <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+                          <div className="w-2 h-2 bg-white/70 rounded-full border border-gray-600"></div>
+                        </div>
+                        <div className="absolute -top-10 left-0 flex items-center gap-1 pointer-events-none">
+                          <Badge className="text-xs bg-black/70 text-white pointer-events-none">
+                            {detectedFaces.indexOf(face) + 1}
+                            {face.isUserAdjusted && " ✓"}
+                          </Badge>
+                        </div>
                         <Button
                           size="sm"
                           variant="destructive"
-                          className="absolute -top-8 -right-8 w-6 h-6 p-0"
+                          className="absolute -top-2 -right-2 w-6 h-6 p-0 pointer-events-auto"
                           onClick={(e) => {
+                            e.preventDefault();
                             e.stopPropagation();
                             deleteFace(face.id);
                           }}
@@ -540,9 +556,15 @@ export default function PhotoImport() {
                     ))}
                   </div>
                   
-                  <p className="text-xs text-gray-500 text-center">
-                    Tap and drag the boxes to adjust face selections
-                  </p>
+                  <div className="bg-blue-50 border border-blue-200 rounded-lg p-3 text-center">
+                    <p className="text-sm font-medium text-blue-900 mb-1">How to adjust face selections:</p>
+                    <div className="text-xs text-blue-700 space-y-1">
+                      <p>• Tap and drag face boxes to move them</p>
+                      <p>• Tap empty areas on photo to add new faces</p>
+                      <p>• Use the X button to delete incorrect selections</p>
+                      <p>• Green = AI suggestion, Purple = Your adjustment</p>
+                    </div>
+                  </div>
                 </div>
 
                 {/* Face contact forms */}
