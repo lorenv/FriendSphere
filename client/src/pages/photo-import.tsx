@@ -673,7 +673,7 @@ export default function PhotoImport() {
                           x: 0.4,
                           y: 0.3,
                           width: 0.15,
-                          height: 0.2,
+                          height: 0.15,
                           confidence: 1.0,
                           isUserAdjusted: true,
                         };
