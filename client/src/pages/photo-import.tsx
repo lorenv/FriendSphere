@@ -432,11 +432,15 @@ export default function PhotoImport() {
         img.onload = async () => {
           setImageElement(img);
           const faces = await detectFaces(img);
-          // Ensure all faces are square
-          const squareFaces = faces.map(face => ({
-            ...face,
-            height: face.width // Force square dimensions
-          }));
+          // Ensure all faces are truly square by using the smaller dimension
+          const squareFaces = faces.map(face => {
+            const size = Math.min(face.width, face.height);
+            return {
+              ...face,
+              width: size,
+              height: size
+            };
+          });
           
           setDetectedFaces(squareFaces);
           setFaceContacts(squareFaces.map(face => ({
@@ -736,12 +740,11 @@ export default function PhotoImport() {
                           left: `${face.x * 100}%`,
                           top: `${face.y * 100}%`,
                           width: `${Math.max(face.width * 100, 12)}%`,
-                          height: `${Math.max(face.width * 100, 12)}%`,
+                          height: `${Math.max(face.height * 100, 12)}%`,
                           userSelect: 'none',
                           WebkitUserSelect: 'none',
                           minWidth: '48px',
                           minHeight: '48px',
-                          aspectRatio: '1',
                         }}
                         onMouseDown={(e) => handlePointerDown(e, face.id)}
                         onTouchStart={(e) => handlePointerDown(e, face.id)}
