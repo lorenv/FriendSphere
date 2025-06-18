@@ -432,8 +432,14 @@ export default function PhotoImport() {
         img.onload = async () => {
           setImageElement(img);
           const faces = await detectFaces(img);
-          setDetectedFaces(faces);
-          setFaceContacts(faces.map(face => ({
+          // Ensure all faces are square
+          const squareFaces = faces.map(face => ({
+            ...face,
+            height: face.width // Force square dimensions
+          }));
+          
+          setDetectedFaces(squareFaces);
+          setFaceContacts(squareFaces.map(face => ({
             faceId: face.id,
             firstName: '',
             lastName: '',
@@ -735,7 +741,6 @@ export default function PhotoImport() {
                           WebkitUserSelect: 'none',
                           minWidth: '48px',
                           minHeight: '48px',
-                          aspectRatio: '1/1',
                         }}
                         onMouseDown={(e) => handlePointerDown(e, face.id)}
                         onTouchStart={(e) => handlePointerDown(e, face.id)}
@@ -752,16 +757,18 @@ export default function PhotoImport() {
                               className="absolute top-0 left-0 translate-x-[-50%] translate-y-[-50%] w-8 h-8 bg-red-500 text-white rounded-full text-sm flex items-center justify-center shadow-lg z-10"
                               onClick={(e) => {
                                 e.stopPropagation();
-                                setDetectedFaces(prev => prev.map(f => 
-                                  f.id === face.id 
-                                    ? { 
-                                        ...f, 
-                                        width: Math.max(0.05, f.width - 0.03),
-                                        height: Math.max(0.05, f.width - 0.03),
-                                        isUserAdjusted: true 
-                                      }
-                                    : f
-                                ));
+                                setDetectedFaces(prev => prev.map(f => {
+                                  if (f.id === face.id) {
+                                    const newSize = Math.max(0.05, f.width - 0.03);
+                                    return { 
+                                      ...f, 
+                                      width: newSize,
+                                      height: newSize,
+                                      isUserAdjusted: true 
+                                    };
+                                  }
+                                  return f;
+                                }));
                               }}
                             >
                               −
@@ -770,16 +777,18 @@ export default function PhotoImport() {
                               className="absolute bottom-0 left-0 translate-x-[-50%] translate-y-[50%] w-8 h-8 bg-green-500 text-white rounded-full text-sm flex items-center justify-center shadow-lg z-10"
                               onClick={(e) => {
                                 e.stopPropagation();
-                                setDetectedFaces(prev => prev.map(f => 
-                                  f.id === face.id 
-                                    ? { 
-                                        ...f, 
-                                        width: Math.min(0.4, f.width + 0.03),
-                                        height: Math.min(0.4, f.width + 0.03),
-                                        isUserAdjusted: true 
-                                      }
-                                    : f
-                                ));
+                                setDetectedFaces(prev => prev.map(f => {
+                                  if (f.id === face.id) {
+                                    const newSize = Math.min(0.4, f.width + 0.03);
+                                    return { 
+                                      ...f, 
+                                      width: newSize,
+                                      height: newSize,
+                                      isUserAdjusted: true 
+                                    };
+                                  }
+                                  return f;
+                                }));
                               }}
                             >
                               +
