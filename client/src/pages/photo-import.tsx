@@ -377,18 +377,42 @@ export default function PhotoImport() {
     const ctx = canvas.getContext('2d');
     if (!ctx) return "";
 
-    const pixelX = face.x * imageElement.naturalWidth;
-    const pixelY = face.y * imageElement.naturalHeight;
-    const pixelWidth = face.width * imageElement.naturalWidth;
-    const pixelHeight = face.height * imageElement.naturalHeight;
-
-    canvas.width = pixelWidth;
-    canvas.height = pixelHeight;
+    // Calculate source coordinates with padding for better cropping
+    const naturalWidth = imageElement.naturalWidth;
+    const naturalHeight = imageElement.naturalHeight;
     
+    // Add padding around the face for better context
+    const padding = 0.2; // 20% padding
+    const paddedWidth = face.width * (1 + padding);
+    const paddedHeight = face.height * (1 + padding);
+    
+    // Center the padded area around the face
+    const paddedX = Math.max(0, face.x - (paddedWidth - face.width) / 2);
+    const paddedY = Math.max(0, face.y - (paddedHeight - face.height) / 2);
+    
+    // Ensure we don't go beyond image boundaries
+    const finalX = Math.max(0, Math.min(paddedX, 1 - paddedWidth));
+    const finalY = Math.max(0, Math.min(paddedY, 1 - paddedHeight));
+    const finalWidth = Math.min(paddedWidth, 1 - finalX);
+    const finalHeight = Math.min(paddedHeight, 1 - finalY);
+
+    // Convert to pixel coordinates
+    const pixelX = finalX * naturalWidth;
+    const pixelY = finalY * naturalHeight;
+    const pixelWidth = finalWidth * naturalWidth;
+    const pixelHeight = finalHeight * naturalHeight;
+
+    // Set canvas size to a fixed preview size for consistency
+    const previewSize = 128;
+    canvas.width = previewSize;
+    canvas.height = previewSize;
+    
+    // Draw the cropped and scaled face
+    ctx.clearRect(0, 0, previewSize, previewSize);
     ctx.drawImage(
       imageElement,
       pixelX, pixelY, pixelWidth, pixelHeight,
-      0, 0, pixelWidth, pixelHeight
+      0, 0, previewSize, previewSize
     );
     
     return canvas.toDataURL('image/jpeg', 0.8);
@@ -718,7 +742,65 @@ export default function PhotoImport() {
                           setSelectedFace(face.id);
                         }}
                       >
-                        {/* Drag handle in center for better touch interaction */}
+                        {/* Mobile-friendly resize buttons */}
+                        {selectedFace === face.id && (
+                          <>
+                            <button
+                              className="absolute -top-8 left-1/2 transform -translate-x-1/2 w-6 h-6 bg-blue-500 text-white rounded-full text-xs flex items-center justify-center"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                setDetectedFaces(prev => prev.map(f => 
+                                  f.id === face.id 
+                                    ? { ...f, height: Math.max(0.05, f.height - 0.02), isUserAdjusted: true }
+                                    : f
+                                ));
+                              }}
+                            >
+                              -
+                            </button>
+                            <button
+                              className="absolute -bottom-8 left-1/2 transform -translate-x-1/2 w-6 h-6 bg-blue-500 text-white rounded-full text-xs flex items-center justify-center"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                setDetectedFaces(prev => prev.map(f => 
+                                  f.id === face.id 
+                                    ? { ...f, height: Math.min(0.4, f.height + 0.02), isUserAdjusted: true }
+                                    : f
+                                ));
+                              }}
+                            >
+                              +
+                            </button>
+                            <button
+                              className="absolute top-1/2 -left-8 transform -translate-y-1/2 w-6 h-6 bg-blue-500 text-white rounded-full text-xs flex items-center justify-center"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                setDetectedFaces(prev => prev.map(f => 
+                                  f.id === face.id 
+                                    ? { ...f, width: Math.max(0.05, f.width - 0.02), isUserAdjusted: true }
+                                    : f
+                                ));
+                              }}
+                            >
+                              -
+                            </button>
+                            <button
+                              className="absolute top-1/2 -right-8 transform -translate-y-1/2 w-6 h-6 bg-blue-500 text-white rounded-full text-xs flex items-center justify-center"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                setDetectedFaces(prev => prev.map(f => 
+                                  f.id === face.id 
+                                    ? { ...f, width: Math.min(0.4, f.width + 0.02), isUserAdjusted: true }
+                                    : f
+                                ));
+                              }}
+                            >
+                              +
+                            </button>
+                          </>
+                        )}
+                        
+                        {/* Center drag handle */}
                         <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
                           <div className="w-2 h-2 bg-white/70 rounded-full border border-gray-600"></div>
                         </div>
