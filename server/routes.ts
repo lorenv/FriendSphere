@@ -299,12 +299,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(500).json({ error: "Google Maps API key not configured" });
       }
 
-      // Use Google Places API Autocomplete with US restriction and geographic hierarchy
+      // Use Google Places API Autocomplete with US restriction and broader search
       const params = new URLSearchParams({
         input: query,
         key: apiKey,
         components: 'country:us', // Restrict to US only
-        types: 'sublocality|locality|administrative_area_level_3|administrative_area_level_2|neighborhood', // Include neighborhoods and localities
+        types: 'establishment|geocode', // Include establishments and geographic areas
         language: 'en'
       });
 
@@ -319,106 +319,30 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
 
       const suggestions = data.predictions?.map((prediction: any) => {
-        // Determine the type based on the place types - prioritize most specific
+        // Determine the type based on the place types
         let type = "locality";
         if (prediction.types.includes("neighborhood") || 
             prediction.types.includes("sublocality") ||
             prediction.types.includes("sublocality_level_1") ||
             prediction.types.includes("sublocality_level_2")) {
           type = "neighborhood";
-        } else if (prediction.types.includes("locality")) {
-          type = "city";
         } else if (prediction.types.includes("administrative_area_level_3")) {
           type = "administrative_area_level_3";
-        } else if (prediction.types.includes("administrative_area_level_2")) {
-          type = "county";
-        } else if (prediction.types.includes("administrative_area_level_1")) {
-          type = "state";
         }
 
-        // Extract main and secondary text for better display
-        const mainText = prediction.structured_formatting?.main_text || prediction.description.split(',')[0];
-        const secondaryText = prediction.structured_formatting?.secondary_text || prediction.description.split(',').slice(1).join(',').trim();
-        
-        // For saving to database, use just the neighborhood name
-        const neighborhoodName = mainText;
-        
         return {
           id: prediction.place_id,
-          name: mainText, // Just the neighborhood name for clean display
+          name: prediction.structured_formatting.main_text,
           type,
-          fullLocation: prediction.description, // Full "Baldwin Hills, Los Angeles, CA" for context
-          placeId: prediction.place_id,
-          mainText,
-          secondaryText
+          fullLocation: prediction.description,
+          placeId: prediction.place_id
         };
       }) || [];
-
-      // Sort to prioritize neighborhoods, then cities, then other areas
-      suggestions.sort((a: any, b: any) => {
-        const typeOrder: { [key: string]: number } = { 'neighborhood': 0, 'city': 1, 'administrative_area_level_3': 2, 'county': 3, 'state': 4 };
-        return (typeOrder[a.type] || 5) - (typeOrder[b.type] || 5);
-      });
 
       res.json({ suggestions });
     } catch (error) {
       console.error("Places search error:", error);
       res.status(500).json({ error: "Failed to search places" });
-    }
-  });
-
-  // Reverse geocoding route for current location
-  app.post("/api/places/reverse-geocode", async (req, res) => {
-    try {
-      const { latitude, longitude } = req.body;
-      
-      if (!latitude || !longitude) {
-        return res.status(400).json({ error: "Latitude and longitude are required" });
-      }
-
-      const apiKey = process.env.GOOGLE_MAPS_API_KEY;
-      if (!apiKey) {
-        return res.status(500).json({ error: "Google Maps API key not configured" });
-      }
-
-      const params = new URLSearchParams({
-        latlng: `${latitude},${longitude}`,
-        key: apiKey,
-        language: 'en'
-      });
-
-      const url = `https://maps.googleapis.com/maps/api/geocode/json?${params}`;
-      
-      const response = await fetch(url);
-      const data = await response.json();
-
-      if (data.status !== "OK") {
-        console.error("Google Geocoding API error:", data);
-        return res.status(500).json({ error: "Reverse geocoding failed" });
-      }
-
-      if (data.results && data.results.length > 0) {
-        const result = data.results[0];
-        const address = result.formatted_address;
-        
-        // Extract neighborhood from address components
-        const addressComponents = result.address_components;
-        const neighborhood = addressComponents.find((component: any) => 
-          component.types.includes('neighborhood') || 
-          component.types.includes('sublocality') ||
-          component.types.includes('sublocality_level_1')
-        )?.long_name || addressComponents[0]?.long_name;
-
-        res.json({ 
-          address,
-          neighborhood: neighborhood || address.split(',')[0].trim()
-        });
-      } else {
-        res.status(404).json({ error: "No location found" });
-      }
-    } catch (error) {
-      console.error("Reverse geocoding error:", error);
-      res.status(500).json({ error: "Failed to reverse geocode location" });
     }
   });
 
