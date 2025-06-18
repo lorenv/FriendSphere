@@ -1,7 +1,7 @@
 import { useState, useRef } from "react";
 import { useForm, useFieldArray } from "react-hook-form";
 import { useMutation } from "@tanstack/react-query";
-import { useLocation } from "wouter";
+import { useLocation, Link } from "wouter";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { insertFriendSchema, type InsertFriend } from "@shared/schema";
 import { queryClient, apiRequest } from "@/lib/queryClient";
@@ -212,14 +212,16 @@ export default function AddFriend() {
                     <UserPlus size={16} className="mr-2" />
                     Import Contact
                   </Button>
-                  <Button
-                    type="button"
-                    variant="outline"
-                    onClick={() => setLocation("/photo-import")}
-                  >
-                    <Camera size={16} className="mr-2" />
-                    Group Import
-                  </Button>
+                  <Link href="/photo-import">
+                    <Button
+                      type="button"
+                      variant="outline"
+                      className="w-full"
+                    >
+                      <Camera size={16} className="mr-2" />
+                      Group Import
+                    </Button>
+                  </Link>
                 </div>
 
                 {/* Photo Upload Section */}
