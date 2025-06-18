@@ -122,14 +122,12 @@ export default function PhotoImport() {
             const normalizedWidth = Math.max(0.05, Math.min(0.5, box.width / imgWidth));
             const normalizedHeight = Math.max(0.05, Math.min(0.5, box.height / imgHeight));
             
-            // Make AI-detected faces square by using the smaller dimension
-            const squareSize = Math.min(normalizedWidth, normalizedHeight);
             return {
               id: `face-${index}`,
               x: normalizedX,
               y: normalizedY,
-              width: squareSize,
-              height: squareSize,
+              width: normalizedWidth,
+              height: normalizedHeight,
               confidence: detection.score,
               isUserAdjusted: false,
             };
@@ -432,18 +430,8 @@ export default function PhotoImport() {
         img.onload = async () => {
           setImageElement(img);
           const faces = await detectFaces(img);
-          // Ensure all faces are truly square by using the smaller dimension
-          const squareFaces = faces.map(face => {
-            const size = Math.min(face.width, face.height);
-            return {
-              ...face,
-              width: size,
-              height: size
-            };
-          });
-          
-          setDetectedFaces(squareFaces);
-          setFaceContacts(squareFaces.map(face => ({
+          setDetectedFaces(faces);
+          setFaceContacts(faces.map(face => ({
             faceId: face.id,
             firstName: '',
             lastName: '',
@@ -685,7 +673,7 @@ export default function PhotoImport() {
                           x: 0.4,
                           y: 0.3,
                           width: 0.15,
-                          height: 0.15,
+                          height: 0.2,
                           confidence: 1.0,
                           isUserAdjusted: true,
                         };
@@ -726,15 +714,10 @@ export default function PhotoImport() {
                       draggable={false}
                       style={{ userSelect: 'none', WebkitUserSelect: 'none' }}
                     />
-                    {detectedFaces.map(face => {
-                      // Ensure face boxes are always square by using the smaller dimension
-                      const squareSize = Math.min(face.width, face.height);
-                      const displaySize = Math.max(squareSize * 100, 12);
-                      
-                      return (
+                    {detectedFaces.map(face => (
                       <div
                         key={face.id}
-                        className={`absolute border-3 transition-all touch-none cursor-move ${
+                        className={`absolute border-3 transition-all touch-none min-w-12 min-h-12 cursor-move ${
                           selectedFace === face.id 
                             ? 'border-blue-500 bg-blue-500/20' 
                             : face.isUserAdjusted
@@ -744,9 +727,8 @@ export default function PhotoImport() {
                         style={{
                           left: `${face.x * 100}%`,
                           top: `${face.y * 100}%`,
-                          width: `${displaySize}%`,
-                          height: `${displaySize}%`,
-                          aspectRatio: '1',
+                          width: `${Math.max(face.width * 100, 12)}%`,
+                          height: `${Math.max(face.height * 100, 12)}%`,
                           userSelect: 'none',
                           WebkitUserSelect: 'none',
                           minWidth: '48px',
@@ -764,45 +746,37 @@ export default function PhotoImport() {
                         {selectedFace === face.id && (
                           <>
                             <button
-                              className="absolute top-0 left-0 translate-x-[-50%] translate-y-[-50%] w-8 h-8 bg-red-500 text-white rounded-full text-sm flex items-center justify-center shadow-lg z-10"
+                              className="absolute -top-9 left-0 w-8 h-8 bg-red-500 text-white rounded-full text-sm flex items-center justify-center shadow-lg z-10"
                               onClick={(e) => {
                                 e.stopPropagation();
-                                setDetectedFaces(prev => prev.map(f => {
-                                  if (f.id === face.id) {
-                                    // Ensure square by using the smaller dimension and reducing size
-                                    const currentSize = Math.min(f.width, f.height);
-                                    const newSize = Math.max(0.05, currentSize - 0.03);
-                                    return { 
-                                      ...f, 
-                                      width: newSize,
-                                      height: newSize,
-                                      isUserAdjusted: true 
-                                    };
-                                  }
-                                  return f;
-                                }));
+                                setDetectedFaces(prev => prev.map(f => 
+                                  f.id === face.id 
+                                    ? { 
+                                        ...f, 
+                                        width: Math.max(0.05, f.width - 0.03),
+                                        height: Math.max(0.05, f.height - 0.03),
+                                        isUserAdjusted: true 
+                                      }
+                                    : f
+                                ));
                               }}
                             >
                               −
                             </button>
                             <button
-                              className="absolute bottom-0 left-0 translate-x-[-50%] translate-y-[50%] w-8 h-8 bg-green-500 text-white rounded-full text-sm flex items-center justify-center shadow-lg z-10"
+                              className="absolute -top-9 right-0 w-8 h-8 bg-green-500 text-white rounded-full text-sm flex items-center justify-center shadow-lg z-10"
                               onClick={(e) => {
                                 e.stopPropagation();
-                                setDetectedFaces(prev => prev.map(f => {
-                                  if (f.id === face.id) {
-                                    // Ensure square by using the smaller dimension and increasing size
-                                    const currentSize = Math.min(f.width, f.height);
-                                    const newSize = Math.min(0.4, currentSize + 0.03);
-                                    return { 
-                                      ...f, 
-                                      width: newSize,
-                                      height: newSize,
-                                      isUserAdjusted: true 
-                                    };
-                                  }
-                                  return f;
-                                }));
+                                setDetectedFaces(prev => prev.map(f => 
+                                  f.id === face.id 
+                                    ? { 
+                                        ...f, 
+                                        width: Math.min(0.4, f.width + 0.03),
+                                        height: Math.min(0.4, f.height + 0.03),
+                                        isUserAdjusted: true 
+                                      }
+                                    : f
+                                ));
                               }}
                             >
                               +
@@ -833,8 +807,7 @@ export default function PhotoImport() {
                           <X size={12} />
                         </Button>
                       </div>
-                      );
-                    })}
+                    ))}
                   </div>
                   
                   <div className="bg-green-50 border border-green-200 rounded-lg p-3 text-center">
