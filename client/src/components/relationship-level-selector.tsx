@@ -29,7 +29,7 @@ const selectedColorMap = {
 };
 
 const getButtonClasses = (color: string, isSelected: boolean) => {
-  const baseClasses = "flex-1 p-3 rounded-xl border-2 transition-all duration-200 flex flex-col items-center justify-center space-y-1 hover:scale-105";
+  const baseClasses = "p-4 rounded-lg border-2 transition-all duration-200 flex flex-col items-center space-y-2 hover:scale-105";
   
   if (isSelected) {
     switch (color) {
@@ -64,7 +64,7 @@ export function RelationshipLevelSelector({ value = "new", onChange }: Relations
   return (
     <div className="space-y-3">
       <Label>Relationship Level</Label>
-      <div className="flex justify-between gap-2">
+      <div className="grid grid-cols-2 gap-3">
         {Object.entries(RELATIONSHIP_LEVELS).map(([key, level]) => {
           const Icon = iconMap[level.icon as keyof typeof iconMap];
           const isSelected = value === key;
@@ -75,10 +75,9 @@ export function RelationshipLevelSelector({ value = "new", onChange }: Relations
               type="button"
               onClick={() => onChange(key)}
               className={getButtonClasses(level.color, isSelected)}
-              title={level.label}
             >
-              <Icon size={20} />
-              <span className="text-xs font-medium hidden sm:block">{level.label}</span>
+              <Icon size={24} />
+              <span className="text-sm font-medium">{level.label}</span>
             </button>
           );
         })}
