@@ -726,10 +726,15 @@ export default function PhotoImport() {
                       draggable={false}
                       style={{ userSelect: 'none', WebkitUserSelect: 'none' }}
                     />
-                    {detectedFaces.map(face => (
+                    {detectedFaces.map(face => {
+                      // Ensure face boxes are always square by using the smaller dimension
+                      const squareSize = Math.min(face.width, face.height);
+                      const displaySize = Math.max(squareSize * 100, 12);
+                      
+                      return (
                       <div
                         key={face.id}
-                        className={`absolute border-3 transition-all touch-none min-w-12 min-h-12 cursor-move ${
+                        className={`absolute border-3 transition-all touch-none cursor-move ${
                           selectedFace === face.id 
                             ? 'border-blue-500 bg-blue-500/20' 
                             : face.isUserAdjusted
@@ -739,8 +744,9 @@ export default function PhotoImport() {
                         style={{
                           left: `${face.x * 100}%`,
                           top: `${face.y * 100}%`,
-                          width: `${Math.max(Math.min(face.width, face.height) * 100, 12)}%`,
-                          height: `${Math.max(Math.min(face.width, face.height) * 100, 12)}%`,
+                          width: `${displaySize}%`,
+                          height: `${displaySize}%`,
+                          aspectRatio: '1',
                           userSelect: 'none',
                           WebkitUserSelect: 'none',
                           minWidth: '48px',
@@ -763,7 +769,9 @@ export default function PhotoImport() {
                                 e.stopPropagation();
                                 setDetectedFaces(prev => prev.map(f => {
                                   if (f.id === face.id) {
-                                    const newSize = Math.max(0.05, f.width - 0.03);
+                                    // Ensure square by using the smaller dimension and reducing size
+                                    const currentSize = Math.min(f.width, f.height);
+                                    const newSize = Math.max(0.05, currentSize - 0.03);
                                     return { 
                                       ...f, 
                                       width: newSize,
@@ -783,7 +791,9 @@ export default function PhotoImport() {
                                 e.stopPropagation();
                                 setDetectedFaces(prev => prev.map(f => {
                                   if (f.id === face.id) {
-                                    const newSize = Math.min(0.4, f.width + 0.03);
+                                    // Ensure square by using the smaller dimension and increasing size
+                                    const currentSize = Math.min(f.width, f.height);
+                                    const newSize = Math.min(0.4, currentSize + 0.03);
                                     return { 
                                       ...f, 
                                       width: newSize,
@@ -823,7 +833,8 @@ export default function PhotoImport() {
                           <X size={12} />
                         </Button>
                       </div>
-                    ))}
+                      );
+                    })}
                   </div>
                   
                   <div className="bg-green-50 border border-green-200 rounded-lg p-3 text-center">
