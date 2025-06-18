@@ -748,7 +748,7 @@ export default function EditFriend() {
           {/* Submit Button */}
           <Button
             type="submit"
-            className="w-full bg-primary-blue hover:bg-primary-blue/90 text-white"
+            className="w-full bg-blue-600 hover:bg-blue-700 text-white font-medium py-3"
             disabled={updateFriendMutation.isPending}
           >
             {updateFriendMutation.isPending ? "Updating..." : "Update Friend"}
