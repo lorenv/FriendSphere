@@ -30,6 +30,7 @@ interface FaceContact {
   email: string;
   relationshipLevel: string;
   added: boolean;
+  removed: boolean;
 }
 
 export default function PhotoImport() {
@@ -281,7 +282,8 @@ export default function PhotoImport() {
       phone: '',
       email: '',
       relationshipLevel: 'acquaintance',
-      added: false
+      added: false,
+      removed: false
     }]);
     setIsDragging(newFace.id);
   };
@@ -391,7 +393,8 @@ export default function PhotoImport() {
             phone: '',
             email: '',
             relationshipLevel: 'acquaintance',
-            added: false
+            added: false,
+            removed: false
           })));
         };
         img.src = result;
@@ -484,6 +487,10 @@ export default function PhotoImport() {
         successCount++;
       } catch (error) {
         console.error(`Failed to import ${contact.firstName}:`, error);
+        // Log the full error details for debugging
+        if (error instanceof Error && error.message) {
+          console.error(`Error details for ${contact.firstName}:`, error.message);
+        }
         failedContacts.push(contact.firstName);
       }
     }
@@ -617,7 +624,8 @@ export default function PhotoImport() {
                           phone: '',
                           email: '',
                           relationshipLevel: 'acquaintance',
-                          added: false
+                          added: false,
+                          removed: false
                         }]);
                       }}
                     >
