@@ -299,12 +299,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(500).json({ error: "Google Maps API key not configured" });
       }
 
-      // Use Google Places API Autocomplete with US restriction and broader search
+      // Use Google Places API Autocomplete with US restriction and geographic hierarchy
       const params = new URLSearchParams({
         input: query,
         key: apiKey,
         components: 'country:us', // Restrict to US only
-        types: 'establishment|geocode', // Include establishments and geographic areas
+        types: '(regions)', // Focus on geographic regions to show proper hierarchy
         language: 'en'
       });
 
@@ -326,16 +326,32 @@ export async function registerRoutes(app: Express): Promise<Server> {
             prediction.types.includes("sublocality_level_1") ||
             prediction.types.includes("sublocality_level_2")) {
           type = "neighborhood";
-        } else if (prediction.types.includes("administrative_area_level_3")) {
-          type = "administrative_area_level_3";
+        } else if (prediction.types.includes("administrative_area_level_2")) {
+          type = "county";
+        } else if (prediction.types.includes("locality")) {
+          type = "city";
+        } else if (prediction.types.includes("administrative_area_level_1")) {
+          type = "state";
+        }
+
+        // For neighborhoods, show the full hierarchy (neighborhood, city, state)
+        const mainText = prediction.structured_formatting.main_text;
+        const secondaryText = prediction.structured_formatting.secondary_text || "";
+        
+        // Better display name that shows geographic context
+        let displayName = mainText;
+        if (type === "neighborhood" && secondaryText) {
+          displayName = `${mainText} (${secondaryText})`;
         }
 
         return {
           id: prediction.place_id,
-          name: prediction.structured_formatting.main_text,
+          name: displayName,
           type,
           fullLocation: prediction.description,
-          placeId: prediction.place_id
+          placeId: prediction.place_id,
+          mainText,
+          secondaryText
         };
       }) || [];
 

@@ -16,6 +16,8 @@ interface PlaceSuggestion {
   type: string;
   fullLocation: string;
   placeId: string;
+  mainText?: string;
+  secondaryText?: string;
 }
 
 export function LocationSearch({ 
@@ -154,9 +156,20 @@ export function LocationSearch({
                 >
                   <div className="flex items-center">
                     <MapPin className="w-4 h-4 mr-2 text-gray-400" />
-                    <div>
-                      <div className="text-sm font-medium">{suggestion.name}</div>
-                      <div className="text-xs text-gray-500">{suggestion.fullLocation}</div>
+                    <div className="flex-1">
+                      <div className="flex items-center gap-2">
+                        <span className="text-sm font-medium">{suggestion.mainText || suggestion.name}</span>
+                        {suggestion.type === 'neighborhood' && (
+                          <span className="text-xs bg-blue-100 text-blue-700 px-2 py-0.5 rounded">Neighborhood</span>
+                        )}
+                        {suggestion.type === 'city' && (
+                          <span className="text-xs bg-green-100 text-green-700 px-2 py-0.5 rounded">City</span>
+                        )}
+                        {suggestion.type === 'county' && (
+                          <span className="text-xs bg-orange-100 text-orange-700 px-2 py-0.5 rounded">County</span>
+                        )}
+                      </div>
+                      <div className="text-xs text-gray-500">{suggestion.secondaryText || suggestion.fullLocation}</div>
                     </div>
                   </div>
                 </button>
