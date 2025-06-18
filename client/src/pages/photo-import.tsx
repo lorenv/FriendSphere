@@ -746,7 +746,7 @@ export default function PhotoImport() {
                         {selectedFace === face.id && (
                           <>
                             <button
-                              className="absolute -top-8 -left-8 w-7 h-7 bg-red-500 text-white rounded-full text-sm flex items-center justify-center shadow-lg"
+                              className="absolute -top-9 left-0 w-8 h-8 bg-red-500 text-white rounded-full text-sm flex items-center justify-center shadow-lg z-10"
                               onClick={(e) => {
                                 e.stopPropagation();
                                 setDetectedFaces(prev => prev.map(f => 
@@ -764,7 +764,7 @@ export default function PhotoImport() {
                               −
                             </button>
                             <button
-                              className="absolute -top-8 -right-8 w-7 h-7 bg-green-500 text-white rounded-full text-sm flex items-center justify-center shadow-lg"
+                              className="absolute -top-9 right-0 w-8 h-8 bg-green-500 text-white rounded-full text-sm flex items-center justify-center shadow-lg z-10"
                               onClick={(e) => {
                                 e.stopPropagation();
                                 setDetectedFaces(prev => prev.map(f => 
