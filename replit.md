@@ -36,12 +36,12 @@ A mobile-first personal CRM that transforms social networking through intelligen
 
 ## Recent Changes
 
-### December 27, 2024 - Location Update Fix & UI Synchronization
-- Fixed React Query cache invalidation for location updates ensuring UI refreshes immediately
-- Resolved location data saving issue where backend worked but UI didn't update without page refresh
-- Matched query keys exactly between friend detail page and edit page cache invalidation
-- Removed debug logging after successful issue resolution
-- Location functionality now works seamlessly with instant UI updates
+### December 27, 2024 - Navigation & Location Update Fixes
+- Fixed friend detail page 404 errors by switching from window.location to wouter client-side routing
+- Resolved React Query cache invalidation for location updates ensuring UI refreshes immediately
+- Implemented direct cache updates using setQueryData for instant UI synchronization
+- Fixed friend card navigation to use proper client-side routing instead of direct page navigation
+- Location functionality now works seamlessly with instant UI updates without page refresh
 
 ### December 27, 2024 - Authentication Fix & Google Maps Restoration
 - Fixed token expiration handling causing contact import failures

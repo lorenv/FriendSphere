@@ -1,6 +1,7 @@
 import { Friend } from "@shared/schema";
 import { RELATIONSHIP_LEVELS } from "@/lib/constants";
 import { ChevronRight, Star, Shield, Heart, Briefcase, Stars } from "lucide-react";
+import { useLocation } from "wouter";
 
 interface FriendCardProps {
   friend: Friend;
@@ -56,16 +57,13 @@ export function FriendCard({ friend }: FriendCardProps) {
   const RelationshipIcon = iconMap[relationshipLevel.icon as keyof typeof iconMap];
   const fullName = `${friend.firstName} ${friend.lastName || ''}`.trim();
   const colors = getColorClasses(friend.relationshipLevel);
+  const [, setLocation] = useLocation();
   
   const friendUrl = `/friend/${friend.id}`;
-  console.log("FriendCard linking to:", friendUrl, "for friend:", friend.firstName);
   
   return (
     <div 
-      onClick={() => {
-        console.log("FriendCard clicked, navigating to:", friendUrl);
-        window.location.href = friendUrl;
-      }}
+      onClick={() => setLocation(friendUrl)}
       className={`${colors.bg} ${colors.border} border rounded-2xl p-4 flex items-center space-x-4 cursor-pointer hover:shadow-md transition-all duration-200 mb-3`}
     >
         <div className={`w-14 h-14 rounded-xl bg-white flex items-center justify-center overflow-hidden shadow-sm ring-2 ${colors.ring} ring-opacity-60`}>

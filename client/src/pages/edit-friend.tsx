@@ -112,8 +112,6 @@ export default function EditFriend() {
       return await response.json();
     },
     onSuccess: (updatedFriend: Friend) => {
-      console.log("Friend updated, data returned:", updatedFriend);
-      
       // Update the cache directly with the new data
       queryClient.setQueryData([`/api/friends/${friendId}`], updatedFriend);
       

@@ -102,7 +102,7 @@ export default function Friends() {
     queryKey: ["/api/friends"],
   });
 
-  console.log("Friends data in list view:", friends.map(f => ({ id: f.id, name: f.firstName, location: f.location, neighborhood: f.neighborhood })));
+
 
   const filteredFriends = friends.filter(friend => {
     const fullName = `${friend.firstName} ${friend.lastName || ''}`.trim();

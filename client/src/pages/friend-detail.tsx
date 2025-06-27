@@ -34,16 +34,13 @@ export default function FriendDetail() {
   const [isEditingNotes, setIsEditingNotes] = useState(false);
   const [notes, setNotes] = useState("");
 
-  console.log("FriendDetail component loaded, params:", params);
-  console.log("Current URL:", window.location.pathname);
   const friendId = parseInt(params.id || "0");
-  console.log("FriendDetail friendId:", friendId);
 
   const { data: friend, isLoading } = useQuery<Friend>({
     queryKey: [`/api/friends/${friendId}`],
   });
 
-  console.log("Friend detail data:", friend ? { id: friend.id, name: friend.firstName, location: friend.location, neighborhood: friend.neighborhood } : "no data");
+
 
   const updateFriendMutation = useMutation({
     mutationFn: async (updateData: Partial<Friend>) => {
