@@ -1,7 +1,6 @@
 import { Friend } from "@shared/schema";
 import { RELATIONSHIP_LEVELS } from "@/lib/constants";
 import { ChevronRight, Star, Shield, Heart, Briefcase, Stars } from "lucide-react";
-import { Link } from "wouter";
 
 interface FriendCardProps {
   friend: Friend;
@@ -62,8 +61,13 @@ export function FriendCard({ friend }: FriendCardProps) {
   console.log("FriendCard linking to:", friendUrl, "for friend:", friend.firstName);
   
   return (
-    <Link href={friendUrl}>
-      <div className={`${colors.bg} ${colors.border} border rounded-2xl p-4 flex items-center space-x-4 cursor-pointer hover:shadow-md transition-all duration-200 mb-3`}>
+    <div 
+      onClick={() => {
+        console.log("FriendCard clicked, navigating to:", friendUrl);
+        window.location.href = friendUrl;
+      }}
+      className={`${colors.bg} ${colors.border} border rounded-2xl p-4 flex items-center space-x-4 cursor-pointer hover:shadow-md transition-all duration-200 mb-3`}
+    >
         <div className={`w-14 h-14 rounded-xl bg-white flex items-center justify-center overflow-hidden shadow-sm ring-2 ${colors.ring} ring-opacity-60`}>
           {friend.photo ? (
             <img 
@@ -104,6 +108,5 @@ export function FriendCard({ friend }: FriendCardProps) {
           <ChevronRight size={18} className="text-gray-400" />
         </div>
       </div>
-    </Link>
-  );
+    );
 }

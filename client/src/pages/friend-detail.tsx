@@ -34,7 +34,8 @@ export default function FriendDetail() {
   const [isEditingNotes, setIsEditingNotes] = useState(false);
   const [notes, setNotes] = useState("");
 
-  console.log("FriendDetail params:", params);
+  console.log("FriendDetail component loaded, params:", params);
+  console.log("Current URL:", window.location.pathname);
   const friendId = parseInt(params.id || "0");
   console.log("FriendDetail friendId:", friendId);
 
