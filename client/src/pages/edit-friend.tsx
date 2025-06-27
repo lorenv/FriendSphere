@@ -102,24 +102,22 @@ export default function EditFriend() {
 
   const updateFriendMutation = useMutation({
     mutationFn: async (data: InsertFriend) => {
-      console.log("Edit form submission - currentPhoto:", currentPhoto);
-      console.log("Edit form submission - data.photo:", data.photo);
-      console.log("Edit form submission - location:", data.location);
-      console.log("Edit form submission - neighborhood:", data.neighborhood);
-      
       const submitData = {
         ...data,
         photo: currentPhoto || data.photo,
         childrenNames: childrenNames,
       };
       
-      console.log("Complete data being submitted:", submitData);
-      
       return await apiRequest("PATCH", `/api/friends/${friendId}`, submitData);
     },
     onSuccess: () => {
+      // Invalidate the specific friend query with the exact key format used in detail page
       queryClient.invalidateQueries({ queryKey: [`/api/friends/${friendId}`] });
+      // Invalidate the friends list query
       queryClient.invalidateQueries({ queryKey: ["/api/friends"] });
+      // Also invalidate any other friend-related queries
+      queryClient.invalidateQueries({ queryKey: ["/api/friends", friendId] });
+      
       toast({
         title: "Success",
         description: "Friend updated successfully",
@@ -495,7 +493,6 @@ export default function EditFriend() {
                         value={field.value || ""}
                         neighborhood={form.watch("neighborhood") || ""}
                         onChange={(location, neighborhood) => {
-                          console.log("Location changed:", location, "Neighborhood:", neighborhood);
                           field.onChange(location);
                           if (neighborhood) {
                             form.setValue("neighborhood", neighborhood);

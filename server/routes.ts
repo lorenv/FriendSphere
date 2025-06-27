@@ -143,19 +143,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const id = parseInt(req.params.id);
       const updateData = insertFriendSchema.partial().parse(req.body);
-      console.log("PATCH request received for friend", id, "with data:", {
-        location: updateData.location,
-        neighborhood: updateData.neighborhood,
-        firstName: updateData.firstName,
-        photo: updateData.photo ? "present" : "none"
-      });
       const friend = await storage.updateFriend(req.userId!, id, updateData);
       
       if (!friend) {
         return res.status(404).json({ message: "Friend not found" });
       }
       
-      console.log("Friend updated successfully with location:", friend.location, "neighborhood:", friend.neighborhood);
       res.json(friend);
     } catch (error) {
       console.error("PATCH error:", error);
