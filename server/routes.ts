@@ -56,6 +56,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Configuration routes
+  app.get("/api/config/google-maps-key", (req, res) => {
+    res.json({ apiKey: process.env.GOOGLE_MAPS_API_KEY || null });
+  });
+
   app.get("/api/auth/user", authenticateToken, async (req: AuthenticatedRequest, res) => {
     res.json(req.user);
   });

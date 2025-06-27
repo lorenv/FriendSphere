@@ -1,18 +1,13 @@
 import { useState, useEffect, useRef } from "react";
 import { MapPin } from "lucide-react";
 import { Input } from "@/components/ui/input";
+import { loadGoogleMapsAPI } from "@/lib/googleMaps";
 
 interface LocationSearchProps {
   value?: string;
   neighborhood?: string;
   onChange: (location: string, neighborhood?: string) => void;
   placeholder?: string;
-}
-
-declare global {
-  interface Window {
-    google: any;
-  }
 }
 
 export function LocationSearch({ 
@@ -34,11 +29,15 @@ export function LocationSearch({
   }, [value, neighborhood]);
 
   useEffect(() => {
-    // Initialize Google Maps services
-    if (window.google && window.google.maps) {
-      autocompleteService.current = new window.google.maps.places.AutocompleteService();
-      placesService.current = new window.google.maps.places.PlacesService(document.createElement('div'));
-    }
+    // Load Google Maps API and initialize services
+    loadGoogleMapsAPI().then(() => {
+      if (window.google && window.google.maps) {
+        autocompleteService.current = new window.google.maps.places.AutocompleteService();
+        placesService.current = new window.google.maps.places.PlacesService(document.createElement('div'));
+      }
+    }).catch(error => {
+      console.error('Failed to load Google Maps API:', error);
+    });
   }, []);
 
   const searchPlaces = async (query: string) => {
