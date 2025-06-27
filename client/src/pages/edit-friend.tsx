@@ -51,6 +51,8 @@ export default function EditFriend() {
       phone: "",
       email: "",
       howWeMet: "",
+      location: "",
+      neighborhood: "",
       interest1: "",
       interest2: "",
       interest3: "",
@@ -102,6 +104,8 @@ export default function EditFriend() {
     mutationFn: async (data: InsertFriend) => {
       console.log("Edit form submission - currentPhoto:", currentPhoto);
       console.log("Edit form submission - data.photo:", data.photo);
+      console.log("Edit form submission - location:", data.location);
+      console.log("Edit form submission - neighborhood:", data.neighborhood);
       
       const submitData = {
         ...data,
@@ -109,7 +113,7 @@ export default function EditFriend() {
         childrenNames: childrenNames,
       };
       
-      console.log("Photo being submitted:", submitData.photo);
+      console.log("Complete data being submitted:", submitData);
       
       return await apiRequest("PATCH", `/api/friends/${friendId}`, submitData);
     },
@@ -491,6 +495,7 @@ export default function EditFriend() {
                         value={field.value || ""}
                         neighborhood={form.watch("neighborhood") || ""}
                         onChange={(location, neighborhood) => {
+                          console.log("Location changed:", location, "Neighborhood:", neighborhood);
                           field.onChange(location);
                           if (neighborhood) {
                             form.setValue("neighborhood", neighborhood);

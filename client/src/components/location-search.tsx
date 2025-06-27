@@ -114,6 +114,12 @@ export function LocationSearch({
     const fullAddress = suggestion.description;
     const neighborhood = suggestion.terms[0]?.value || fullAddress;
     
+    console.log("LocationSearch: suggestion clicked", {
+      fullAddress,
+      neighborhood,
+      suggestion
+    });
+    
     setSearchQuery(fullAddress);
     setShowSuggestions(false);
     onChange(fullAddress, neighborhood);
@@ -128,6 +134,7 @@ export function LocationSearch({
     if (e.key === 'Enter') {
       e.preventDefault();
       setShowSuggestions(false);
+      console.log("LocationSearch: manual entry via Enter key", searchQuery);
       onChange(searchQuery);
     } else if (e.key === 'Escape') {
       setShowSuggestions(false);
