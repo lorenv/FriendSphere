@@ -1,7 +1,6 @@
 import { useState, useEffect, useRef, useCallback } from "react";
 import { MapPin } from "lucide-react";
 import { Input } from "@/components/ui/input";
-import { loadGoogleMapsAPI } from "@/lib/googleMaps";
 
 interface LocationSearchProps {
   value?: string;
@@ -22,31 +21,54 @@ export function LocationSearch({
   const [isLoading, setIsLoading] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
   const autocompleteService = useRef<any>(null);
-  const placesService = useRef<any>(null);
   const searchTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
   useEffect(() => {
     setSearchQuery(neighborhood || value || "");
   }, [value, neighborhood]);
 
+  // Load Google Maps API dynamically
   useEffect(() => {
-    loadGoogleMapsAPI().then(() => {
-      if (window.google && window.google.maps) {
-        autocompleteService.current = new window.google.maps.places.AutocompleteService();
-        placesService.current = new window.google.maps.places.PlacesService(document.createElement('div'));
+    const loadGoogleMaps = async () => {
+      try {
+        // Check if already loaded
+        if (window.google && window.google.maps) {
+          autocompleteService.current = new window.google.maps.places.AutocompleteService();
+          return;
+        }
+
+        // Fetch API key from backend
+        const response = await fetch('/api/config/google-maps-key');
+        if (!response.ok) return;
+        
+        const data = await response.json();
+        const apiKey = data.apiKey;
+        if (!apiKey) return;
+
+        // Check if script already exists
+        const existingScript = document.querySelector('script[src*="maps.googleapis.com"]');
+        if (existingScript) return;
+
+        // Create and load script
+        const script = document.createElement('script');
+        script.src = `https://maps.googleapis.com/maps/api/js?key=${apiKey}&libraries=places`;
+        script.async = true;
+        script.onload = () => {
+          if (window.google && window.google.maps) {
+            autocompleteService.current = new window.google.maps.places.AutocompleteService();
+          }
+        };
+        document.head.appendChild(script);
+      } catch (error) {
+        console.error('Error loading Google Maps:', error);
       }
-    }).catch(error => {
-      console.error('Failed to load Google Maps API:', error);
-    });
+    };
+
+    loadGoogleMaps();
   }, []);
 
   const searchPlaces = useCallback(async (query: string) => {
-    if (!query.trim()) {
-      setSuggestions([]);
-      return;
-    }
-
-    if (!autocompleteService.current) {
+    if (!query.trim() || !autocompleteService.current) {
       setSuggestions([]);
       return;
     }
@@ -98,7 +120,6 @@ export function LocationSearch({
   };
 
   const handleInputBlur = () => {
-    // Delay hiding suggestions to allow clicks
     setTimeout(() => setShowSuggestions(false), 200);
   };
 
@@ -160,4 +181,10 @@ export function LocationSearch({
       </div>
     </div>
   );
+}
+
+declare global {
+  interface Window {
+    google: any;
+  }
 }
