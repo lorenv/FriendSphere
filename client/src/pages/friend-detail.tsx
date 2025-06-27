@@ -42,6 +42,8 @@ export default function FriendDetail() {
     queryKey: [`/api/friends/${friendId}`],
   });
 
+  console.log("Friend detail data:", friend ? { id: friend.id, name: friend.firstName, location: friend.location, neighborhood: friend.neighborhood } : "no data");
+
   const updateFriendMutation = useMutation({
     mutationFn: async (updateData: Partial<Friend>) => {
       return await apiRequest("PATCH", `/api/friends/${friendId}`, updateData);

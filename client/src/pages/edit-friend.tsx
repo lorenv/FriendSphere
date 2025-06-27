@@ -110,13 +110,20 @@ export default function EditFriend() {
       
       return await apiRequest("PATCH", `/api/friends/${friendId}`, submitData);
     },
-    onSuccess: () => {
+    onSuccess: (updatedFriend) => {
+      console.log("Friend updated, data returned:", updatedFriend);
+      console.log("Invalidating cache for friendId:", friendId);
+      
       // Invalidate the specific friend query with the exact key format used in detail page
       queryClient.invalidateQueries({ queryKey: [`/api/friends/${friendId}`] });
       // Invalidate the friends list query
       queryClient.invalidateQueries({ queryKey: ["/api/friends"] });
       // Also invalidate any other friend-related queries
       queryClient.invalidateQueries({ queryKey: ["/api/friends", friendId] });
+      
+      // Force refetch to ensure UI updates
+      queryClient.refetchQueries({ queryKey: ["/api/friends"] });
+      queryClient.refetchQueries({ queryKey: [`/api/friends/${friendId}`] });
       
       toast({
         title: "Success",
