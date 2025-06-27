@@ -560,6 +560,18 @@ export default function PhotoImport() {
         successCount++;
       } catch (error) {
         console.error(`Failed to import ${contact.firstName}:`, error);
+        
+        // Check if it's an authentication error
+        if (error instanceof Error && error.message.includes('401')) {
+          toast({
+            title: "Session expired",
+            description: "Please log in again to continue",
+            variant: "destructive",
+          });
+          // The redirect will happen automatically from queryClient
+          return;
+        }
+        
         // Log the full error details for debugging
         if (error instanceof Error && error.message) {
           console.error(`Error details for ${contact.firstName}:`, error.message);
